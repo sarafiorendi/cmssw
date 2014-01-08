@@ -27,13 +27,14 @@
 // constructors and destructor
 //
 HLTMuonPFIsoFilter::HLTMuonPFIsoFilter(const edm::ParameterSet& iConfig) : HLTFilter(iConfig),
-   candTag_ (iConfig.getParameter< edm::InputTag > ("CandTag") ),
+   candTag_ 		(iConfig.getParameter< edm::InputTag > ("CandTag") ),
    previousCandTag_ (iConfig.getParameter<edm::InputTag > ("PreviousCandTag")),
-   depTag_  (iConfig.getParameter< std::vector< edm::InputTag > >("DepTag" ) ),
-   maxIso_  (iConfig.getParameter<double>("MaxIso" ) ),
+   depTag_  		(iConfig.getParameter< std::vector< edm::InputTag > >("DepTag" ) ),
+   maxIso_  		(iConfig.getParameter<double>("MaxIso" ) ),
 //    theDepositIsolator(0),
-   min_N_   (iConfig.getParameter<int> ("MinN")),
-   doDeltaB_(iConfig.getParameter<bool> ("doDeltaBeta"))
+   min_N_   		(iConfig.getParameter<int> ("MinN")),
+   onlyCharged_		(iConfig.getParameter<bool> ("onlyCharged")),
+   doDeltaB_		(iConfig.getParameter<bool> ("doDeltaBeta"))
 {
   std::stringstream tags;
   for (unsigned int i=0;i!=depTag_.size();++i)
@@ -42,16 +43,7 @@ HLTMuonPFIsoFilter::HLTMuonPFIsoFilter(const edm::ParameterSet& iConfig) : HLTFi
 				<< "\n" << tags 
 				<< "  MinN : " << min_N_;
 
-//    edm::ParameterSet isolatorPSet = iConfig.getParameter<edm::ParameterSet>("IsolatorPSet");
-//    if (isolatorPSet.empty()) {
-//      theDepositIsolator=0;
-//        }else{
-//      std::string type = isolatorPSet.getParameter<std::string>("ComponentName");
-//      theDepositIsolator = MuonIsolatorFactory::get()->create(type, isolatorPSet);
-//    }
-   
-//    if (theDepositIsolator) 
-     produces<edm::ValueMap<bool> >();
+  produces<edm::ValueMap<bool> >();
 }
 
 HLTMuonPFIsoFilter::~HLTMuonPFIsoFilter()
@@ -98,7 +90,6 @@ HLTMuonPFIsoFilter::~HLTMuonPFIsoFilter()
     int nIsolatedMu = 0;
     unsigned int nMu=mucands->size();
     std::vector<bool> isos(nMu, false);
-//     std::vector<double> MuonDeposits(nDep, 0);
     double MuonDeposits = 0.;
     unsigned int iMu=0;
     for (; iMu<nMu; iMu++) 
@@ -115,44 +106,56 @@ HLTMuonPFIsoFilter::~HLTMuonPFIsoFilter()
       LogDebug("HLTMuonPFIsoFilter") << "tk isNonNull " << tk.isNonnull();
 
        //get the deposits and evaluate relIso if noDeltaBeta correction is applied
-      if (!doDeltaB_)
-      {
+	  if (onlyCharged_){
 		for(unsigned int iDep=0;iDep!=nDep;++iDep)
 		{
 		  const edm::ValueMap<double> ::value_type & muonDeposit = (*(depMap[iDep]))[candref];
 		  LogDebug("HLTMuonPFIsoFilter") << " Muon with q*pt= " << tk->charge()*tk->pt() << " (" << candref->charge()*candref->pt() << ") " << ", eta= " << tk->eta() << " (" << candref->eta() << ") " << "; has deposit["<<iDep<<"]: " << muonDeposit;
 
-		  MuonDeposits += muonDeposit; 
+		  std::size_t foundCharged = depTag_[iDep].label().find("Charged");
+		  if (foundCharged!=std::string::npos)  MuonDeposits += muonDeposit; 
 		}
-  	    MuonDeposits = MuonDeposits/tk->pt();
-  	  }
-  	  
-  	  //get the deposits and evaluate relIso if DeltaBeta correction is applied
-	  else if (doDeltaB_)
-  	  {
-  	    double neutralDeposits = 0.;
-        for(unsigned int iDep=0;iDep!=nDep;++iDep)
+		MuonDeposits = MuonDeposits/tk->pt();
+	  }
+	  else {
+		if (!doDeltaB_)
 		{
-		  const edm::ValueMap<double> ::value_type & muonDeposit = (*(depMap[iDep]))[candref];
-		  LogDebug("HLTMuonPFIsoFilter") << " Muon with q*pt= " << tk->charge()*tk->pt() << " (" << candref->charge()*candref->pt() << ") " << ", eta= " << tk->eta() << " (" << candref->eta() << ") " << "; has deposit["<<iDep<<"]: " << muonDeposit;
+		  for(unsigned int iDep=0;iDep!=nDep;++iDep)
+		  {
+			const edm::ValueMap<double> ::value_type & muonDeposit = (*(depMap[iDep]))[candref];
+			LogDebug("HLTMuonPFIsoFilter") << " Muon with q*pt= " << tk->charge()*tk->pt() << " (" << candref->charge()*candref->pt() << ") " << ", eta= " << tk->eta() << " (" << candref->eta() << ") " << "; has deposit["<<iDep<<"]: " << muonDeposit;
 
-  	      std::size_t foundCharged = depTag_[iDep].label().find("Charged");
-   	      if (foundCharged!=std::string::npos)  MuonDeposits += muonDeposit; 
-  	      
-  	      std::size_t foundGamma = depTag_[iDep].label().find("Gamma");
-   	      if (foundGamma!=std::string::npos) neutralDeposits += muonDeposit;
+			MuonDeposits += muonDeposit; 
+		  }
+		  MuonDeposits = MuonDeposits/tk->pt();
+		}
+	  
+		//get the deposits and evaluate relIso if DeltaBeta correction is applied
+		else 
+		{
+		  double neutralDeposits = 0.;
+		  for(unsigned int iDep=0;iDep!=nDep;++iDep)
+		  {
+			const edm::ValueMap<double> ::value_type & muonDeposit = (*(depMap[iDep]))[candref];
+			LogDebug("HLTMuonPFIsoFilter") << " Muon with q*pt= " << tk->charge()*tk->pt() << " (" << candref->charge()*candref->pt() << ") " << ", eta= " << tk->eta() << " (" << candref->eta() << ") " << "; has deposit["<<iDep<<"]: " << muonDeposit;
 
-  	      std::size_t foundNeutral = depTag_[iDep].label().find("Neutral");
-   	      if (foundNeutral!=std::string::npos) neutralDeposits += muonDeposit;
+			std::size_t foundCharged = depTag_[iDep].label().find("Charged");
+			if (foundCharged!=std::string::npos)  MuonDeposits += muonDeposit; 
+		  
+			std::size_t foundGamma = depTag_[iDep].label().find("Gamma");
+			if (foundGamma!=std::string::npos) neutralDeposits += muonDeposit;
 
-  	      std::size_t foundPU = depTag_[iDep].label().find("PU");
-   	      if (foundPU!=std::string::npos) neutralDeposits = neutralDeposits - 0.5*muonDeposit;
-        }
-        
-        if (neutralDeposits > 0) MuonDeposits = (MuonDeposits + neutralDeposits)/tk->pt();
-        else MuonDeposits = MuonDeposits/tk->pt();
-  	  }
-      
+			std::size_t foundNeutral = depTag_[iDep].label().find("Neutral");
+			if (foundNeutral!=std::string::npos) neutralDeposits += muonDeposit;
+
+			std::size_t foundPU = depTag_[iDep].label().find("PU");
+			if (foundPU!=std::string::npos) neutralDeposits = neutralDeposits - 0.5*muonDeposit;
+		  }
+		
+		  if (neutralDeposits > 0) MuonDeposits = (MuonDeposits + neutralDeposits)/tk->pt();
+		  else MuonDeposits = MuonDeposits/tk->pt();
+		}
+      }
       
       //get the selection
       if (MuonDeposits < maxIso_) isos[iMu] = true;
@@ -185,7 +188,7 @@ HLTMuonPFIsoFilter::~HLTMuonPFIsoFilter()
 
     iEvent.put(PFisoMap);
 
-    LogDebug("HLTMuonPFIsoFilter") << " >>>>> Result of HLTMuonIsoFilter is " << accept << ", number of muons passing isolation cuts= " << nIsolatedMu; 
+    LogDebug("HLTMuonPFIsoFilter") << " >>>>> Result of HLTMuonPFIsoFilter is " << accept << ", number of muons passing isolation cuts= " << nIsolatedMu; 
 
     return accept;
  }
