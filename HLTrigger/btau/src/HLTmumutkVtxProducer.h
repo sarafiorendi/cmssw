@@ -66,6 +66,7 @@ class HLTmumutkVtxProducer : public edm::EDProducer {
   const double minInvMass_;
   const double maxInvMass_;
   const double minD0Significance_;
+  const double overlapDR_;
   edm::InputTag                    beamSpotTag_;
   edm::EDGetTokenT<reco::BeamSpot> beamSpotToken_;
 
