@@ -1,11 +1,11 @@
-# /dev/CMSSW_8_0_0/GRun/V14 (CMSSW_8_0_0)
+# /dev/CMSSW_8_0_0/GRun/V15 (CMSSW_8_0_0)
 
 import FWCore.ParameterSet.Config as cms
 
 process = cms.Process( "HLTGRun" )
 
 process.HLTConfigVersion = cms.PSet(
-  tableName = cms.string('/dev/CMSSW_8_0_0/GRun/V14')
+  tableName = cms.string('/dev/CMSSW_8_0_0/GRun/V15')
 )
 
 process.HLTPSetInitialStepTrajectoryFilterBase = cms.PSet( 
@@ -56538,7 +56538,7 @@ process.hltPreDQMOutput = cms.EDFilter( "HLTPrescaler",
 )
 process.hltPreDQMOutputSmart = cms.EDFilter( "TriggerResultsFilter",
     l1tIgnoreMask = cms.bool( False ),
-    l1tResults = cms.InputTag( "hltGtStage2Digis" ),
+    l1tResults = cms.InputTag( "" ),
     l1techIgnorePrescales = cms.bool( False ),
     hltResults = cms.InputTag( "TriggerResults" ),
     triggerConditions = ( cms.vstring( 'HLT_AK8PFJet360_TrimMass30_v3',
@@ -56991,7 +56991,7 @@ process.hltPreDQMEventDisplayOutput = cms.EDFilter( "HLTPrescaler",
 )
 process.hltPreDQMEventDisplayOutputSmart = cms.EDFilter( "TriggerResultsFilter",
     l1tIgnoreMask = cms.bool( False ),
-    l1tResults = cms.InputTag( "hltGtStage2Digis" ),
+    l1tResults = cms.InputTag( "" ),
     l1techIgnorePrescales = cms.bool( False ),
     hltResults = cms.InputTag( "TriggerResults" ),
     triggerConditions = cms.vstring( 'HLT_AK8PFJet360_TrimMass30_v3',
@@ -57007,7 +57007,7 @@ process.hltPreHLTMonitorOutput = cms.EDFilter( "HLTPrescaler",
 )
 process.hltPreHLTMonitorOutputSmart = cms.EDFilter( "TriggerResultsFilter",
     l1tIgnoreMask = cms.bool( False ),
-    l1tResults = cms.InputTag( "hltGtStage2Digis" ),
+    l1tResults = cms.InputTag( "" ),
     l1techIgnorePrescales = cms.bool( False ),
     hltResults = cms.InputTag( "TriggerResults" ),
     triggerConditions = cms.vstring( 'HLT_PFHT350_v3',
@@ -57045,7 +57045,7 @@ process.hltPreALCAELECTRONOutput = cms.EDFilter( "HLTPrescaler",
 )
 process.hltPreALCAELECTRONOutputSmart = cms.EDFilter( "TriggerResultsFilter",
     l1tIgnoreMask = cms.bool( False ),
-    l1tResults = cms.InputTag( "hltGtStage2Digis" ),
+    l1tResults = cms.InputTag( "" ),
     l1techIgnorePrescales = cms.bool( False ),
     hltResults = cms.InputTag( "TriggerResults" ),
     triggerConditions = cms.vstring( 'HLT_Ele17_Ele12_CaloIdL_TrackIdL_IsoVL_DZ_v3',
@@ -57083,7 +57083,7 @@ process.hltPreExpressOutput = cms.EDFilter( "HLTPrescaler",
 )
 process.hltPreExpressOutputSmart = cms.EDFilter( "TriggerResultsFilter",
     l1tIgnoreMask = cms.bool( False ),
-    l1tResults = cms.InputTag( "hltGtStage2Digis" ),
+    l1tResults = cms.InputTag( "" ),
     l1techIgnorePrescales = cms.bool( False ),
     hltResults = cms.InputTag( "TriggerResults" ),
     triggerConditions = cms.vstring( 'HLT_IsoMu20_v3 / 5',
@@ -57111,7 +57111,7 @@ process.hltPreLookAreaOutput = cms.EDFilter( "HLTPrescaler",
 )
 process.hltPreLookAreaOutputSmart = cms.EDFilter( "TriggerResultsFilter",
     l1tIgnoreMask = cms.bool( False ),
-    l1tResults = cms.InputTag( "hltGtStage2Digis" ),
+    l1tResults = cms.InputTag( "" ),
     l1techIgnorePrescales = cms.bool( False ),
     hltResults = cms.InputTag( "TriggerResults" ),
     triggerConditions = ( cms.vstring( 'HLT_AK8PFJet360_TrimMass30_v3',
@@ -57564,7 +57564,7 @@ process.hltPrePhysicsParkingScoutingMonitorOutput = cms.EDFilter( "HLTPrescaler"
 )
 process.hltPrePhysicsParkingScoutingMonitorOutputSmart = cms.EDFilter( "TriggerResultsFilter",
     l1tIgnoreMask = cms.bool( False ),
-    l1tResults = cms.InputTag( "hltGtStage2Digis" ),
+    l1tResults = cms.InputTag( "" ),
     l1techIgnorePrescales = cms.bool( False ),
     hltResults = cms.InputTag( "TriggerResults" ),
     triggerConditions = cms.vstring( 'HLT_HT450to470_v1 / 50',
@@ -57643,7 +57643,7 @@ process.hltPreScoutingCaloOutput = cms.EDFilter( "HLTPrescaler",
 )
 process.hltPreScoutingCaloOutputSmart = cms.EDFilter( "TriggerResultsFilter",
     l1tIgnoreMask = cms.bool( False ),
-    l1tResults = cms.InputTag( "hltGtStage2Digis" ),
+    l1tResults = cms.InputTag( "" ),
     l1techIgnorePrescales = cms.bool( False ),
     hltResults = cms.InputTag( "TriggerResults" ),
     triggerConditions = cms.vstring( 'DST_CaloJet40_CaloScouting_PFScouting_v1',
@@ -57662,7 +57662,7 @@ process.hltPreScoutingPFOutput = cms.EDFilter( "HLTPrescaler",
 )
 process.hltPreScoutingPFOutputSmart = cms.EDFilter( "TriggerResultsFilter",
     l1tIgnoreMask = cms.bool( False ),
-    l1tResults = cms.InputTag( "hltGtStage2Digis" ),
+    l1tResults = cms.InputTag( "" ),
     l1techIgnorePrescales = cms.bool( False ),
     hltResults = cms.InputTag( "TriggerResults" ),
     triggerConditions = cms.vstring( 'DST_CaloJet40_BTagScouting_v1',

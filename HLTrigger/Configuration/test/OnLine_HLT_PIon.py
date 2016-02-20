@@ -1,11 +1,11 @@
-# /dev/CMSSW_8_0_0/PIon/V14 (CMSSW_8_0_0)
+# /dev/CMSSW_8_0_0/PIon/V15 (CMSSW_8_0_0)
 
 import FWCore.ParameterSet.Config as cms
 
 process = cms.Process( "HLTPIon" )
 
 process.HLTConfigVersion = cms.PSet(
-  tableName = cms.string('/dev/CMSSW_8_0_0/PIon/V14')
+  tableName = cms.string('/dev/CMSSW_8_0_0/PIon/V15')
 )
 
 process.HLTPSetInitialStepTrajectoryFilterBase = cms.PSet( 
@@ -9329,7 +9329,7 @@ process.hltPreDQMOutput = cms.EDFilter( "HLTPrescaler",
 )
 process.hltPreDQMOutputSmart = cms.EDFilter( "TriggerResultsFilter",
     l1tIgnoreMask = cms.bool( False ),
-    l1tResults = cms.InputTag( "hltGtStage2Digis" ),
+    l1tResults = cms.InputTag( "" ),
     l1techIgnorePrescales = cms.bool( False ),
     hltResults = cms.InputTag( "TriggerResults" ),
     triggerConditions = cms.vstring( 'HLT_CaloJet260_v2',

@@ -1,11 +1,11 @@
-# /dev/CMSSW_8_0_0/HIon/V14 (CMSSW_8_0_0)
+# /dev/CMSSW_8_0_0/HIon/V15 (CMSSW_8_0_0)
 
 import FWCore.ParameterSet.Config as cms
 
 process = cms.Process( "HLTHIon" )
 
 process.HLTConfigVersion = cms.PSet(
-  tableName = cms.string('/dev/CMSSW_8_0_0/HIon/V14')
+  tableName = cms.string('/dev/CMSSW_8_0_0/HIon/V15')
 )
 
 process.HLTPSetInitialStepTrajectoryFilterBase = cms.PSet( 
@@ -11955,7 +11955,7 @@ process.hltPreDQMOutput = cms.EDFilter( "HLTPrescaler",
 )
 process.hltPreDQMOutputSmart = cms.EDFilter( "TriggerResultsFilter",
     l1tIgnoreMask = cms.bool( False ),
-    l1tResults = cms.InputTag( "hltGtStage2Digis" ),
+    l1tResults = cms.InputTag( "" ),
     l1techIgnorePrescales = cms.bool( False ),
     hltResults = cms.InputTag( "TriggerResults" ),
     triggerConditions = cms.vstring( 'HLT_HIPuAK4CaloJet40_Eta5p1_v2',
@@ -12181,7 +12181,7 @@ process.hltPreDQMEventDisplayOutput = cms.EDFilter( "HLTPrescaler",
 )
 process.hltPreDQMEventDisplayOutputSmart = cms.EDFilter( "TriggerResultsFilter",
     l1tIgnoreMask = cms.bool( False ),
-    l1tResults = cms.InputTag( "hltGtStage2Digis" ),
+    l1tResults = cms.InputTag( "" ),
     l1techIgnorePrescales = cms.bool( False ),
     hltResults = cms.InputTag( "TriggerResults" ),
     triggerConditions = cms.vstring( 'HLT_HIPuAK4CaloJet150_Eta5p1_v2',
@@ -12215,7 +12215,7 @@ process.hltPreHIExpressOutput = cms.EDFilter( "HLTPrescaler",
 )
 process.hltPreHIExpressOutputSmart = cms.EDFilter( "TriggerResultsFilter",
     l1tIgnoreMask = cms.bool( False ),
-    l1tResults = cms.InputTag( "hltGtStage2Digis" ),
+    l1tResults = cms.InputTag( "" ),
     l1techIgnorePrescales = cms.bool( False ),
     hltResults = cms.InputTag( "TriggerResults" ),
     triggerConditions = cms.vstring( 'HLT_HIPuAK4CaloJet100_Eta5p1_v2',

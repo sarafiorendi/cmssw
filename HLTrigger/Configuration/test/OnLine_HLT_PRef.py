@@ -1,11 +1,11 @@
-# /dev/CMSSW_8_0_0/PRef/V14 (CMSSW_8_0_0)
+# /dev/CMSSW_8_0_0/PRef/V15 (CMSSW_8_0_0)
 
 import FWCore.ParameterSet.Config as cms
 
 process = cms.Process( "HLTPRef" )
 
 process.HLTConfigVersion = cms.PSet(
-  tableName = cms.string('/dev/CMSSW_8_0_0/PRef/V14')
+  tableName = cms.string('/dev/CMSSW_8_0_0/PRef/V15')
 )
 
 process.HLTPSetInitialStepTrajectoryFilterBase = cms.PSet( 
@@ -12514,7 +12514,7 @@ process.hltPreDQMOutput = cms.EDFilter( "HLTPrescaler",
 )
 process.hltPreDQMOutputSmart = cms.EDFilter( "TriggerResultsFilter",
     l1tIgnoreMask = cms.bool( False ),
-    l1tResults = cms.InputTag( "hltGtStage2Digis" ),
+    l1tResults = cms.InputTag( "" ),
     l1techIgnorePrescales = cms.bool( False ),
     hltResults = cms.InputTag( "TriggerResults" ),
     triggerConditions = cms.vstring( 'HLT_Physics_v2',
@@ -12638,7 +12638,7 @@ process.hltPreDQMEventDisplayOutput = cms.EDFilter( "HLTPrescaler",
 )
 process.hltPreDQMEventDisplayOutputSmart = cms.EDFilter( "TriggerResultsFilter",
     l1tIgnoreMask = cms.bool( False ),
-    l1tResults = cms.InputTag( "hltGtStage2Digis" ),
+    l1tResults = cms.InputTag( "" ),
     l1techIgnorePrescales = cms.bool( False ),
     hltResults = cms.InputTag( "TriggerResults" ),
     triggerConditions = cms.vstring(  ),
@@ -12671,7 +12671,7 @@ process.hltPreExpressOutput = cms.EDFilter( "HLTPrescaler",
 )
 process.hltPreExpressOutputSmart = cms.EDFilter( "TriggerResultsFilter",
     l1tIgnoreMask = cms.bool( False ),
-    l1tResults = cms.InputTag( "hltGtStage2Digis" ),
+    l1tResults = cms.InputTag( "" ),
     l1techIgnorePrescales = cms.bool( False ),
     hltResults = cms.InputTag( "TriggerResults" ),
     triggerConditions = cms.vstring( 'HLT_Physics_v2 / 2',
