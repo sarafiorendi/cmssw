@@ -1,11 +1,11 @@
-# /dev/CMSSW_8_0_0/HLT/V28 (CMSSW_8_0_0)
+# /dev/CMSSW_8_0_0/HLT/V29 (CMSSW_8_0_0)
 
 import FWCore.ParameterSet.Config as cms
 
 fragment = cms.ProcessFragment( "HLT" )
 
 fragment.HLTConfigVersion = cms.PSet(
-  tableName = cms.string('/dev/CMSSW_8_0_0/HLT/V28')
+  tableName = cms.string('/dev/CMSSW_8_0_0/HLT/V29')
 )
 
 fragment.HLTPSetInitialStepTrajectoryFilterBase = cms.PSet( 
@@ -3113,7 +3113,7 @@ fragment.TransientTrackBuilderESProducer = cms.ESProducer( "TransientTrackBuilde
   ComponentName = cms.string( "TransientTrackBuilder" )
 )
 fragment.TriggerMenu = cms.ESProducer( "L1TUtmTriggerMenuESProducer",
-  L1TriggerMenuFile = cms.string( "L1Menu_Collisions2015_25nsStage1_v7_uGT_v2a.xml" )
+  L1TriggerMenuFile = cms.string( "L1Menu_Collisions2015_25nsStage1_v7_uGT_v3.xml" )
 )
 fragment.caloDetIdAssociator = cms.ESProducer( "DetIdAssociatorESProducer",
   ComponentName = cms.string( "CaloDetIdAssociator" ),

@@ -1,11 +1,11 @@
-# /dev/CMSSW_8_0_0/PIon/V15 (CMSSW_8_0_0)
+# /dev/CMSSW_8_0_0/PIon/V16 (CMSSW_8_0_0)
 
 import FWCore.ParameterSet.Config as cms
 
 process = cms.Process( "HLTPIon" )
 
 process.HLTConfigVersion = cms.PSet(
-  tableName = cms.string('/dev/CMSSW_8_0_0/PIon/V15')
+  tableName = cms.string('/dev/CMSSW_8_0_0/PIon/V16')
 )
 
 process.HLTPSetInitialStepTrajectoryFilterBase = cms.PSet( 
@@ -1382,7 +1382,7 @@ process.TransientTrackBuilderESProducer = cms.ESProducer( "TransientTrackBuilder
   ComponentName = cms.string( "TransientTrackBuilder" )
 )
 process.TriggerMenu = cms.ESProducer( "L1TUtmTriggerMenuESProducer",
-  L1TriggerMenuFile = cms.string( "L1Menu_Collisions2015_25nsStage1_v7_uGT_v2a.xml" )
+  L1TriggerMenuFile = cms.string( "L1Menu_Collisions2015_25nsStage1_v7_uGT_v3.xml" )
 )
 process.VolumeBasedMagneticFieldESProducer = cms.ESProducer( "VolumeBasedMagneticFieldESProducerFromDB",
   debugBuilder = cms.untracked.bool( False ),

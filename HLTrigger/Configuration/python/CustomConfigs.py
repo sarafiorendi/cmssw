@@ -121,10 +121,10 @@ def L1REPACK(process):
 
 def L1THIon(process):
     if hasattr(process,'TriggerMenu'):
-        process.TriggerMenu.L1TriggerMenuFile = cms.string( "L1Menu_CollisionsHeavyIons2015_v4_uGT_v2.xml" )
+        process.TriggerMenu.L1TriggerMenuFile = cms.string( "L1Menu_CollisionsHeavyIons2015_v5_uGT.xml" )
     return(process)
 
 def L1TPRef(process):
     if hasattr(process,'TriggerMenu'):
-        process.TriggerMenu.L1TriggerMenuFile = cms.string( "L1Menu_Collisions2015_5TeV_pp_reference_v5_uGT_mc.xml" )
+        process.TriggerMenu.L1TriggerMenuFile = cms.string( "L1Menu_Collisions2015_5TeV_pp_reference_v5_uGT_v2_mc.xml" )
     return(process)
