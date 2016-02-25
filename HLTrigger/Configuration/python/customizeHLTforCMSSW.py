@@ -39,7 +39,7 @@ def customizeHLTforCMSSW(process, menuType="GRun"):
     if ( (menuType == "Fake") or (menuType == "FULL") ):
         return process
 
-#   set stage-2 L1T menu (as long as o2o is missing)
+#   set non-default stage-2 L1T menus (as long as o2o is missing)
     if (menuType == "HIon"):
         from HLTrigger.Configuration.CustomConfigs import L1THIon
         process = L1THIon(process)
@@ -47,8 +47,46 @@ def customizeHLTforCMSSW(process, menuType="GRun"):
         from HLTrigger.Configuration.CustomConfigs import L1TPRef
         process = L1TPRef(process)
 
-#   remove modules/sequences/paths with legacy/stage-1 dependence
+#   replace converted l1extra=>l1t plugins which are not yet in ConfDB
+    replaceList = {
+        'EDAnalyzer' : { },
+        'EDFilter'   : {
+            # example: "old-type" : "new-type"
+            # 'HLTMuonL1Filter' : 'HLTMuonL1TFilter',
+            },
+        'EDProducer' : { }
+        }
+    print " "
+    print "# Replacing plugins: "
+    for type,list in replaceList.iteritems():
+        if (type=="EDAnalyzer"):
+            print "# Replacing EDAnalyzers:"
+            for old,new in list.iteritems():
+                print '# EDAnalyzer plugin type: ',old,' -> ',new
+                for module in analyzers_by_type(process,old):
+                    label = module._Labelable__label
+                    print '# Instance: ',label
+                    setattr(process,label,cms.EDAnalyzer(new,**module.parameters_()))
+        elif (type=="EDFilter"):
+            print "# Replacing EDFilters  :"
+            for old,new in list.iteritems():
+                print '# EDFilter plugin type  : ',old,' -> ',new
+                for module in filters_by_type(process,old):
+                    label = module._Labelable__label
+                    print '# Instance: ',label
+                    setattr(process,label,cms.EDFilter(new,**module.parameters_()))
+        elif (type=="EDProducer"):
+            print "# Replacing EDProducers:"
+            for old,new in list.iteritems():
+                print '# EDProducer plugin type: ',old,' -> ',new
+                for module in producers_by_type(process,old):
+                    label = module._Labelable__label
+                    print '# Instance: ',label
+                    setattr(process,label,cms.EDProducer(new,**module.parameters_()))
+        else:
+            print "# Error - Type ',type,' not recognised!"
 
+#   replace remaining l1extra modules with filter returning 'false'
     badTypes = (
                 'HLTEgammaL1MatchFilterRegional',
                 'HLTEcalRecHitInAllL1RegionsProducer',
@@ -59,30 +97,26 @@ def customizeHLTforCMSSW(process, menuType="GRun"):
                 'CaloTowerCreatorForTauHLT',
                 'HLTPFJetL1MatchProducer',
                 'IsolatedPixelTrackCandidateProducer',
-#
                 'HLTLevel1Activity',
-#
                 )
     print " "
-    print "# Bad module types: ",badTypes
-
+    print "# Unconverted module types: ",badTypes
     badModules = [ ]
     for badType in badTypes:
         print " "
-        print '## Bad module type: ',badType
-        for module in producers_by_type(process,badType):
-            label = module._Labelable__label
-            badModules += [label]
-            print '### producer label: ',label
-        for module in filters_by_type(process,badType):
-            label = module._Labelable__label
-            badModules += [label]
-            print '### filter   label: ',label
+        print '## Unconverted module type: ',badType
         for module in analyzers_by_type(process,badType):
             label = module._Labelable__label
             badModules += [label]
             print '### analyzer label: ',label
-
+        for module in filters_by_type(process,badType):
+            label = module._Labelable__label
+            badModules += [label]
+            print '### filter   label: ',label
+        for module in producers_by_type(process,badType):
+            label = module._Labelable__label
+            badModules += [label]
+            print '### producer label: ',label
     print " "
     for label in badModules:
         setattr(process,label,cms.EDFilter("HLTBool",result=cms.bool(False)))
