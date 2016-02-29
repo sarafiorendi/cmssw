@@ -40,9 +40,9 @@ HLTMuonL1TFilter::HLTMuonL1TFilter(const edm::ParameterSet& iConfig) : HLTFilter
   qualityBitMask_ = 0;
   vector<int> selectQualities = iConfig.getParameter<vector<int> >("SelectQualities");
   for(size_t i=0; i<selectQualities.size(); i++){
-    if(selectQualities[i] > 7){
-      throw edm::Exception(edm::errors::Configuration) << "QualityBits must be smaller than 8!";
-    }
+//     if(selectQualities[i] > 7){  // FIXME: this will be updated once we have info from L1
+//       throw edm::Exception(edm::errors::Configuration) << "QualityBits must be smaller than 8!";
+//     }
     qualityBitMask_ |= 1<<selectQualities[i];
   }
 
@@ -55,9 +55,9 @@ HLTMuonL1TFilter::HLTMuonL1TFilter(const edm::ParameterSet& iConfig) : HLTFilter
     ss << "    MaxEta = "          << maxEta_                  << endl;
     ss << "    MinPt = "           << minPt_                   << endl;
     ss << "    SelectQualities =";
-    for(size_t i = 0; i < 8; i++){
-      if((qualityBitMask_>>i) % 2) ss << " " << i;
-    }
+//     for(size_t i = 0; i < 8; i++){
+//       if((qualityBitMask_>>i) % 2) ss << " " << i;
+//     }
     ss << endl;
     ss << "    MinN = "    << minN_ << endl;
     ss << "    saveTags= " << saveTags();
