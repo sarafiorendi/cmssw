@@ -70,7 +70,6 @@ void HLTL1TMuonSelector::produce(edm::StreamID, edm::Event& iEvent, const edm::E
   if (muColl.isValid()){
 	for (int ibx = muColl->getFirstBX(); ibx <= muColl->getLastBX(); ++ibx) {
 	  if (centralBxOnly_ && (ibx != 0)) continue;
-	  int i = 0;
 	  for (auto it = muColl->begin(ibx); it != muColl->end(ibx); it++){
 	  
 		unsigned int quality = it->hwQual();
@@ -97,7 +96,6 @@ void HLTL1TMuonSelector::produce(edm::StreamID, edm::Event& iEvent, const edm::E
         LogTrace(metname) << "quality = "<< quality; 
 
         output->push_back( ibx, *it);
-        i++;
       }
     }
   } else {
