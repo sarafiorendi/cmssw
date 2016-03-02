@@ -21,14 +21,9 @@
 
 // Data Formats 
 #include "DataFormats/TrajectoryState/interface/PTrajectoryStateOnDet.h"
-// #include "DataFormats/MuonDetId/interface/DTChamberId.h"
-// #include "DataFormats/MuonDetId/interface/CSCDetId.h"
-// #include "DataFormats/L1GlobalMuonTrigger/interface/L1MuGMTExtendedCand.h"
-// #include "DataFormats/L1GlobalMuonTrigger/interface/L1MuGMTReadoutCollection.h"
-// #include "DataFormats/L1GlobalMuonTrigger/interface/L1MuRegionalCand.h"
+#include "DataFormats/MuonDetId/interface/DTChamberId.h"
+#include "DataFormats/MuonDetId/interface/CSCDetId.h"
 #include "DataFormats/L1Trigger/interface/Muon.h"
-// #include "DataFormats/L1Trigger/interface/L1MuonParticle.h"
-// #include "DataFormats/L1Trigger/interface/L1MuonParticleFwd.h"
 #include "DataFormats/Common/interface/Handle.h"
 #include "DataFormats/GeometrySurface/interface/BoundCylinder.h"
 #include "DataFormats/Math/interface/deltaR.h"
