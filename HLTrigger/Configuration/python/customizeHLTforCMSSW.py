@@ -52,7 +52,8 @@ def customizeHLTforCMSSW(process, menuType="GRun"):
         'EDAnalyzer' : { },
         'EDFilter'   : {
             # example: "old-type" : "new-type"
-            # 'HLTMuonL1Filter' : 'HLTMuonL1TFilter',
+            'HLTMuonL1Filter' : 'HLTMuonL1TFilter',
+            'HLTL1MuonSelector' : 'HLTL1TMuonSelector',
             },
         'EDProducer' : { }
         }
@@ -91,8 +92,8 @@ def customizeHLTforCMSSW(process, menuType="GRun"):
                 'HLTEgammaL1MatchFilterRegional',
                 'HLTEcalRecHitInAllL1RegionsProducer',
                 'EgammaHLTCaloTowerProducer',
-                'HLTMuonL1Filter',
-                'HLTL1MuonSelector',
+#                 'HLTMuonL1Filter',
+#                 'HLTL1MuonSelector',
                 'L2MuonSeedGenerator',
                 'CaloTowerCreatorForTauHLT',
                 'HLTPFJetL1MatchProducer',
