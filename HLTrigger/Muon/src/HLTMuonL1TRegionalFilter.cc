@@ -178,40 +178,40 @@ bool HLTMuonL1TRegionalFilter::hltFilter(edm::Event& iEvent, const edm::EventSet
 
 
   if (allMuons.isValid()){
-	for (int ibx = allMuons->getFirstBX(); ibx <= allMuons->getLastBX(); ++ibx) {
-	  if (centralBxOnly_ && (ibx != 0)) continue;
-	  for (auto it = allMuons->begin(ibx); it != allMuons->end(ibx); it++){
+    for (int ibx = allMuons->getFirstBX(); ibx <= allMuons->getLastBX(); ++ibx) {
+      if (centralBxOnly_ && (ibx != 0)) continue;
+      for (auto it = allMuons->begin(ibx); it != allMuons->end(ibx); it++){
 
-		MuonRef muon(allMuons, distance(allMuons->begin(allMuons->getFirstBX()),it) );
+        MuonRef muon(allMuons, distance(allMuons->begin(allMuons->getFirstBX()),it) );
 
-		// Only select muons that were selected in the previous level 
-		if(find(prevMuons.begin(), prevMuons.end(), muon) == prevMuons.end()) continue;
+        // Only select muons that were selected in the previous level 
+        if(find(prevMuons.begin(), prevMuons.end(), muon) == prevMuons.end()) continue;
 
-		//check maxEta cut
-		float eta   =  muon->eta();
-		int region = -1;
-		for(size_t r=0; r<etaBoundaries_.size()-1; r++){
-		  if(etaBoundaries_[r]<=eta && eta<=etaBoundaries_[r+1]){
-			region = r;
-			break;
-		  }
-		}
-		if(region == -1) continue;
+        //check maxEta cut
+        float eta   =  muon->eta();
+        int region = -1;
+        for(size_t r=0; r<etaBoundaries_.size()-1; r++){
+          if(etaBoundaries_[r]<=eta && eta<=etaBoundaries_[r+1]){
+            region = r;
+            break;
+          }
+        }
+        if(region == -1) continue;
 
-		//check pT cut
+        //check pT cut
         if(muon->pt() < minPts_[region]) continue;
 
-		//check quality cut
-		if(qualityBitMasks_[region]){
-		  int quality = (it->hwQual() == 0 ? 0 : (1 << it->hwQual()));
-		  if((quality & qualityBitMasks_[region]) == 0) continue;
-		}
+        //check quality cut
+        if(qualityBitMasks_[region]){
+          int quality = (it->hwQual() == 0 ? 0 : (1 << it->hwQual()));
+          if((quality & qualityBitMasks_[region]) == 0) continue;
+        }
 
-		//we have a good candidate
-		n++;
-		filterproduct.addObject(TriggerL1Mu,muon);
-	  }
-	}
+        //we have a good candidate
+        n++;
+        filterproduct.addObject(TriggerL1Mu,muon);
+      }
+    }
   } else {
     edm::LogWarning("MissingProduct") << "L1Upgrade muon bx collection not found." << std::endl;
   }
