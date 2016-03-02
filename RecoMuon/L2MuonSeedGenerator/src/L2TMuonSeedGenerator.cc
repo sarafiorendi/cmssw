@@ -16,7 +16,7 @@
 //--------------------------------------------------
 
 // Class Header
-#include "RecoMuon/L2MuonSeedGenerator/src/L2TMuonSeedGenerator.h"
+#include "RecoMuon/L2MuonSeedGenerator/src/L2MuonSeedGenerator.h"
 
 
 // Framework
