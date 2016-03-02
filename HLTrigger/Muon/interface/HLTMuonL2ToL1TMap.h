@@ -10,7 +10,6 @@
  *
  */
 
-// #include "DataFormats/L1Trigger/interface/L1MuonParticleFwd.h"
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "DataFormats/TrackReco/interface/TrackFwd.h"
 #include "DataFormats/MuonSeed/interface/L2MuonTrajectorySeedCollection.h"

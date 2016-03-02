@@ -12,7 +12,6 @@
  */
 
 #include "HLTrigger/HLTcore/interface/HLTFilter.h"
-// #include "DataFormats/L1Trigger/interface/L1MuonParticleFwd.h"
 #include "DataFormats/RecoCandidate/interface/RecoChargedCandidateFwd.h"
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "DataFormats/MuonReco/interface/MuonTrackLinks.h"

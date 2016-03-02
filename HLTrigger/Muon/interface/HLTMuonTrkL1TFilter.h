@@ -1,7 +1,6 @@
 #ifndef HLTMuonTrkL1TFilter_h
 #define HLTMuonTrkL1TFilter_h
 // author D. Olivito
-//  based on HLTrigger/Muon/interface/HLTDiMuonGlbTrkFilter.h
 #include "HLTrigger/HLTcore/interface/HLTFilter.h"
 #include "DataFormats/RecoCandidate/interface/RecoChargedCandidateFwd.h"
 #include "DataFormats/MuonReco/interface/MuonFwd.h"
