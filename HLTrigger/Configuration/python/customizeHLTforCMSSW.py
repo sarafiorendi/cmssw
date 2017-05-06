@@ -51,7 +51,7 @@ def customiseFor17792(process):
 
 ## Add input parameter for modified dimuon filter (for IterL3)
 def customiseForPRXXX(process):
-    for filter in filters_by_type(process, "HLTMuonDimuonL3Filter"):
+    for filter in filters_by_type(process, "HLTMuonDimuonL3Filter", "HLTMuonTrimuonL3Filter"):
         if not hasattr(filter, "InputLinks"):
             filter.InputLinks = cms.InputTag( "hltIterL3MuonsLinksCombination" )
     return process
