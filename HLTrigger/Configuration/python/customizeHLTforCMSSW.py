@@ -49,6 +49,14 @@ def customiseFor17792(process):
             producer.produceSeedStopReasons = cms.bool(False)
     return process
 
+## Add input parameter for modified dimuon filter (for IterL3)
+def customiseForPRXXX(process):
+    for filter in filters_by_type(process, "HLTMuonDimuonL3Filter"):
+        if not hasattr(filter, "InputLinks"):
+            filter.InputLinks = cms.InputTag( "hltIterL3MuonsLinksCombination" )
+    return process
+
+
 # DA clusterizer tuning
 def customiseFor18330(process):
      for producer in producers_by_type(process, "PrimaryVertexProducer"):
@@ -83,6 +91,8 @@ def customizeHLTforCMSSW(process, menuType="GRun"):
         process = customiseFor17792(process)
         process = customiseFor17794(process)
         process = customiseFor18330(process)
+    
+    process = customiseForPRXXX(process) 
 
     # add call to action function in proper order: newest last!
     # process = customiseFor12718(process)
