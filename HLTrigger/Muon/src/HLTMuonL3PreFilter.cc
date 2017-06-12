@@ -19,12 +19,15 @@
 #include "DataFormats/RecoCandidate/interface/RecoChargedCandidate.h"
 #include "DataFormats/RecoCandidate/interface/RecoChargedCandidateFwd.h"
 #include "DataFormats/MuonReco/interface/MuonTrackLinks.h"
+#include "DataFormats/MuonReco/interface/Muon.h"
+
 #include "DataFormats/BeamSpot/interface/BeamSpot.h"
 #include "DataFormats/MuonSeed/interface/L3MuonTrajectorySeed.h"
 #include "DataFormats/MuonSeed/interface/L3MuonTrajectorySeedCollection.h"
 #include "DataFormats/TrajectorySeed/interface/TrajectorySeedCollection.h"
 
 #include "FWCore/Utilities/interface/InputTag.h"
+
 
 //
 // constructors and destructor
@@ -41,6 +44,10 @@ HLTMuonL3PreFilter::HLTMuonL3PreFilter(const ParameterSet& iConfig) : HLTFilter(
    candToken_ (consumes<reco::RecoChargedCandidateCollection>(candTag_)),
    previousCandTag_   (iConfig.getParameter<InputTag > ("PreviousCandTag")),
    previousCandToken_ (consumes<trigger::TriggerFilterObjectWithRefs>(previousCandTag_)),
+   l1CandTag_   (iConfig.getParameter<InputTag > ("L1CandTag")),
+   l1CandToken_ (consumes<trigger::TriggerFilterObjectWithRefs>(l1CandTag_)),
+   recoMuTag_   (iConfig.getParameter<InputTag > ("inputMuonCollection")),
+   recoMuToken_ (consumes<reco::MuonCollection>(recoMuTag_)),
    min_N_     (iConfig.getParameter<int> ("MinN")),
    max_Eta_   (iConfig.getParameter<double> ("MaxEta")),
    min_Nhits_ (iConfig.getParameter<int> ("MinNhits")),
@@ -56,6 +63,13 @@ HLTMuonL3PreFilter::HLTMuonL3PreFilter(const ParameterSet& iConfig) : HLTFilter(
    min_NmuonHits_ (iConfig.getParameter<int> ("MinNmuonHits")),
    max_PtDifference_ (iConfig.getParameter<double> ("MaxPtDifference")),
    min_TrackPt_ (iConfig.getParameter<double> ("MinTrackPt")),
+   min_MuonStations_L3fromL1_ (iConfig.getParameter<int>("minMuonStations")),
+   min_TrkHits_L3fromL1_      (iConfig.getParameter<int>("minTrkHits")),
+   min_MuonHits_L3fromL1_     (iConfig.getParameter<int>("minMuonHits")),
+   allowedTypeMask_L3fromL1_  (iConfig.getParameter<unsigned int>("allowedTypeMask")),
+   requiredTypeMask_L3fromL1_ (iConfig.getParameter<unsigned int>("requiredTypeMask")),
+   maxNormalizedChi2_L3fromL1_(iConfig.getParameter<double>("MaxNormalizedChi2_L3FromL1")),
+   trkMuonId_        ( muon::SelectionType(iConfig.getParameter<unsigned int>("trkMuonId"))),
    devDebug_ (false),
    theL3LinksLabel (iConfig.getParameter<InputTag>("InputLinks")),
    linkToken_ (consumes<reco::MuonTrackLinksCollection>(theL3LinksLabel))
@@ -84,6 +98,8 @@ HLTMuonL3PreFilter::fillDescriptions(edm::ConfigurationDescriptions& description
   desc.add<edm::InputTag>("CandTag",edm::InputTag("hltL3MuonCandidates"));
   //  desc.add<edm::InputTag>("PreviousCandTag",edm::InputTag("hltDiMuonL2PreFiltered0"));
   desc.add<edm::InputTag>("PreviousCandTag",edm::InputTag(""));
+  desc.add<edm::InputTag>("L1CandTag",edm::InputTag(""));
+  desc.add<edm::InputTag>("inputMuonCollection",edm::InputTag(""));
   desc.add<int>("MinN",1);
   desc.add<double>("MaxEta",2.5);
   desc.add<int>("MinNhits",0);
@@ -99,6 +115,13 @@ HLTMuonL3PreFilter::fillDescriptions(edm::ConfigurationDescriptions& description
   desc.add<int>("MinNmuonHits",0);
   desc.add<double>("MaxPtDifference",9999.0);
   desc.add<double>("MinTrackPt",0.0);
+  desc.add<int>("minMuonStations",-1);
+  desc.add<int>("minTrkHits",-1);
+  desc.add<int>("minMuonHits",-1);
+  desc.add<unsigned int>("allowedTypeMask",255);
+  desc.add<unsigned int>("requiredTypeMask",0);
+  desc.add<double>("MaxNormalizedChi2_L3FromL1",0.0);
+  desc.add<unsigned int>("trkMuonId",0);
   desc.add<edm::InputTag>("InputLinks",edm::InputTag(""));
   descriptions.add("hltMuonL3PreFilter",desc);
 }
@@ -115,6 +138,7 @@ bool HLTMuonL3PreFilter::hltFilter(Event& iEvent, const EventSetup& iSetup, trig
    // this HLT filter, and place it in the Event.
 
    if (saveTags()) filterproduct.addCollectionTag(candTag_);
+//    std::cout << "event: " << iEvent.id() << std::endl;
 
    // Read RecoChargedCandidates from L3MuonCandidateProducer:
    Handle<RecoChargedCandidateCollection> mucands;
@@ -136,6 +160,8 @@ bool HLTMuonL3PreFilter::hltFilter(Event& iEvent, const EventSetup& iSetup, trig
 
    // sort them by L2Track
    std::map<reco::TrackRef, std::vector<RecoChargedCandidateRef> > L2toL3s;
+   std::map<unsigned int,   RecoChargedCandidateRef > L1toL3s;
+
    
    // Test to see if we can use L3MuonTrajectorySeeds:
    if (mucands->empty()) return false;
@@ -168,23 +194,68 @@ bool HLTMuonL3PreFilter::hltFilter(Event& iEvent, const EventSetup& iSetup, trig
      // Read Links collection:
      edm::Handle<reco::MuonTrackLinksCollection> links;
      iEvent.getByToken(linkToken_, links);
- 
+
+     edm::Handle<trigger::TriggerFilterObjectWithRefs> level1Cands;
+     std::vector<l1t::MuonRef> vl1cands;
+     std::vector<l1t::MuonRef>::iterator vl1cands_begin;
+     std::vector<l1t::MuonRef>::iterator vl1cands_end;
+  
+     bool check_l1match = true;
+
      // Loop over RecoChargedCandidates:
      for(unsigned int i(0); i < mucands->size(); ++i){
 	RecoChargedCandidateRef cand(mucands,i);
+        TrackRef tk = cand->track(); // is inner track
+	check_l1match = true;
+        int nlink = 0;
 	for(auto const & link : *links){
-	  TrackRef tk = cand->track();
+	  nlink++;
 
 	  // Using the same method that was used to create the links between L3 and L2
 	  // ToDo: there should be a better way than dR,dPt matching
-	  const reco::Track& globalTrack = *link.globalTrack();
+	  const reco::Track& globalTrack = *link.trackerTrack();
+// 	  const reco::Track& globalTrack = *link.globalTrack();
+
+	  //sara
+// 	  std::cout << "i: " << i<< "  ; nlink: " << nlink << std::endl;
+// 	  std::cout << "eta:  RCCTrack: " << tk->eta() << "  ; RCC:" << cand -> eta() << "  ; link:" << globalTrack.eta() << std::endl;
+// 	  std::cout << "phi:  RCCTrack: " << tk->phi() << "  ; RCC:" << cand -> phi() << "  ; link:" << globalTrack.phi() << std::endl;
+// 	  std::cout << "pt :  RCCTrack: " << tk->pt()  << "  ; RCC:" << cand -> pt()  << "  ; link:" << globalTrack.pt() << std::endl;
+	  //end sara
+
 	  float dR2 = deltaR2(tk->eta(),tk->phi(),globalTrack.eta(),globalTrack.phi());
 	  float dPt = std::abs(tk->pt() - globalTrack.pt())/tk->pt();
+
+// 	  std::cout << "dpt : " << dPt  << "  ; dR2:" << dR2 << std::endl;
+// 	  std::cout << std::endl;
+
 	  if (dR2 < 0.02*0.02 and dPt < 0.001) {
 	      const TrackRef staTrack = link.standAloneTrack();
 	      L2toL3s[staTrack].push_back(RecoChargedCandidateRef(cand));
+	      check_l1match = false;
 	  }
         } //MTL loop
+     
+        
+       
+        if ( !( l1CandTag_ == edm::InputTag("")) && check_l1match){
+            iEvent.getByToken(l1CandToken_,level1Cands);
+            level1Cands->getObjects(trigger::TriggerL1Mu,vl1cands);
+            const unsigned int nL1Muons(vl1cands.size());
+	    for (unsigned int il1=0; il1!=nL1Muons; ++il1) {
+
+                if (deltaR(cand->eta(), cand->phi(), vl1cands[il1]->eta(), vl1cands[il1]->phi()) < 0.3) { //was muon, non cand
+//                   reco::TrackRef dummyRef = cand -> track();
+//   	          L2toL3s[dummyRef].push_back(RecoChargedCandidateRef(cand));
+  	          L1toL3s[i] = RecoChargedCandidateRef(cand);
+//   	          L1toL3s[i].push_back(RecoChargedCandidateRef(cand));
+                  break;
+                }
+
+	    }
+            
+        }     
+     
      } //RCC loop
    } //end of using normal TrajectorySeeds
 
@@ -194,7 +265,7 @@ bool HLTMuonL3PreFilter::hltFilter(Event& iEvent, const EventSetup& iSetup, trig
      LogDebug("HLTMuonL3PreFilter")<<"looking at: "<<L2toL3s.size()<<" L2->L3s from: "<<mucands->size();
      for (; L2toL3s_it!=L2toL3s_end; ++L2toL3s_it){
   
-       if (!triggeredByLevel2(L2toL3s_it->first,vl2cands)) continue;
+       if (! ( triggeredByLevel2(L2toL3s_it->first,vl2cands))) continue;
   
        //loop over the L3Tk reconstructed for this L2.
        unsigned int iTk=0;
@@ -234,7 +305,7 @@ bool HLTMuonL3PreFilter::hltFilter(Event& iEvent, const EventSetup& iSetup, trig
   
          //min muon hits cut
          const reco::HitPattern& trackHits = tk->hitPattern();
-         if (trackHits.numberOfValidMuonHits() < min_NmuonHits_ ) continue;
+         if (trackHits.numberOfValidMuonHits() < min_NmuonHits_ ) continue; // sara: why we require muon hits to inner track?
   
          //pt difference cut
          double candPt = cand->pt();
@@ -262,6 +333,39 @@ bool HLTMuonL3PreFilter::hltFilter(Event& iEvent, const EventSetup& iSetup, trig
         break; // and go on with the next L2 association
        }
      }////loop over L2s from L3 grouping
+     
+     // now loop on L3 from L1
+     edm::Handle<reco::MuonCollection> recomuons;
+     iEvent.getByToken(recoMuToken_,recomuons);
+
+
+     auto L1toL3s_it  = L1toL3s.begin();
+     auto L1toL3s_end = L1toL3s.end();
+     for (; L1toL3s_it!=L1toL3s_end; ++L1toL3s_it){
+//         std::cout << "now into L1 matched L3 "<< std::endl;
+        const reco::Muon& muon(recomuons->at(L1toL3s_it->first)); 
+
+        if ( (muon.type() & allowedTypeMask_L3fromL1_ ) == 0 ) continue;
+        if ( (muon.type() & requiredTypeMask_L3fromL1_) != requiredTypeMask_L3fromL1_ ) continue;
+        if (  muon.numberOfMatchedStations() < min_MuonStations_L3fromL1_ ) continue;
+        if ( !muon.innerTrack().isNull() ){
+          if (muon.innerTrack()->numberOfValidHits() < min_TrkHits_L3fromL1_) continue;
+        }
+        if ( !muon.globalTrack().isNull() ){
+          if (muon.globalTrack()->normalizedChi2() > maxNormalizedChi2_L3fromL1_) continue;
+          if (muon.globalTrack()->hitPattern().numberOfValidMuonHits() < min_MuonHits_L3fromL1_) continue;
+        }
+        if ( muon.isTrackerMuon() && !muon::isGoodMuon(muon,trkMuonId_) ) continue;
+        if ( muon.pt() < min_Pt_ ) continue;
+        if ( std::abs(muon.eta()) > max_Eta_ ) continue;
+
+        RecoChargedCandidateRef & cand=L1toL3s_it->second;
+        filterproduct.addObject(TriggerMuon,cand);
+//         std::cout << "found one more " << n<< std::endl;
+        n++;
+
+     }     
+     
   
      vector<RecoChargedCandidateRef> vref;
      filterproduct.getObjects(TriggerMuon,vref);
