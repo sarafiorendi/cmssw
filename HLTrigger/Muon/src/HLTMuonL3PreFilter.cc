@@ -214,20 +214,9 @@ bool HLTMuonL3PreFilter::hltFilter(Event& iEvent, const EventSetup& iSetup, trig
 	  // Using the same method that was used to create the links between L3 and L2
 	  // ToDo: there should be a better way than dR,dPt matching
 	  const reco::Track& globalTrack = *link.trackerTrack();
-// 	  const reco::Track& globalTrack = *link.globalTrack();
-
-	  //sara
-// 	  std::cout << "i: " << i<< "  ; nlink: " << nlink << std::endl;
-// 	  std::cout << "eta:  RCCTrack: " << tk->eta() << "  ; RCC:" << cand -> eta() << "  ; link:" << globalTrack.eta() << std::endl;
-// 	  std::cout << "phi:  RCCTrack: " << tk->phi() << "  ; RCC:" << cand -> phi() << "  ; link:" << globalTrack.phi() << std::endl;
-// 	  std::cout << "pt :  RCCTrack: " << tk->pt()  << "  ; RCC:" << cand -> pt()  << "  ; link:" << globalTrack.pt() << std::endl;
-	  //end sara
 
 	  float dR2 = deltaR2(tk->eta(),tk->phi(),globalTrack.eta(),globalTrack.phi());
 	  float dPt = std::abs(tk->pt() - globalTrack.pt())/tk->pt();
-
-// 	  std::cout << "dpt : " << dPt  << "  ; dR2:" << dR2 << std::endl;
-// 	  std::cout << std::endl;
 
 	  if (dR2 < 0.02*0.02 and dPt < 0.001) {
 	      const TrackRef staTrack = link.standAloneTrack();
@@ -245,10 +234,7 @@ bool HLTMuonL3PreFilter::hltFilter(Event& iEvent, const EventSetup& iSetup, trig
 	    for (unsigned int il1=0; il1!=nL1Muons; ++il1) {
 
                 if (deltaR(cand->eta(), cand->phi(), vl1cands[il1]->eta(), vl1cands[il1]->phi()) < 0.3) { //was muon, non cand
-//                   reco::TrackRef dummyRef = cand -> track();
-//   	          L2toL3s[dummyRef].push_back(RecoChargedCandidateRef(cand));
   	          L1toL3s[i] = RecoChargedCandidateRef(cand);
-//   	          L1toL3s[i].push_back(RecoChargedCandidateRef(cand));
                   break;
                 }
 
@@ -342,7 +328,6 @@ bool HLTMuonL3PreFilter::hltFilter(Event& iEvent, const EventSetup& iSetup, trig
      auto L1toL3s_it  = L1toL3s.begin();
      auto L1toL3s_end = L1toL3s.end();
      for (; L1toL3s_it!=L1toL3s_end; ++L1toL3s_it){
-//         std::cout << "now into L1 matched L3 "<< std::endl;
         const reco::Muon& muon(recomuons->at(L1toL3s_it->first)); 
 
         if ( (muon.type() & allowedTypeMask_L3fromL1_ ) == 0 ) continue;
@@ -361,7 +346,6 @@ bool HLTMuonL3PreFilter::hltFilter(Event& iEvent, const EventSetup& iSetup, trig
 
         RecoChargedCandidateRef & cand=L1toL3s_it->second;
         filterproduct.addObject(TriggerMuon,cand);
-//         std::cout << "found one more " << n<< std::endl;
         n++;
 
      }     
