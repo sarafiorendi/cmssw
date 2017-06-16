@@ -67,6 +67,8 @@ class HLTMuonL3PreFilter : public HLTFilter {
       const unsigned int requiredTypeMask_L3fromL1_;
       double maxNormalizedChi2_L3fromL1_;
       muon::SelectionType trkMuonId_;
+      bool centralBxOnly_;
+      const double L1MatchingdR_;
 
       const bool devDebug_;
       const edm::InputTag theL3LinksLabel;
