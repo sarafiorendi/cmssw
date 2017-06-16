@@ -61,14 +61,14 @@ class HLTMuonL3PreFilter : public HLTFilter {
 
       // cuts for L3FromL1
       const int min_MuonStations_L3fromL1_;            // cut on min number of stations - for L3FromL1
-      const int min_TrkHits_L3fromL1_;
-      const int min_MuonHits_L3fromL1_;
+//       const int min_TrkHits_L3fromL1_;
+//       const int min_MuonHits_L3fromL1_;
       const unsigned int allowedTypeMask_L3fromL1_;
       const unsigned int requiredTypeMask_L3fromL1_;
       double maxNormalizedChi2_L3fromL1_;
       muon::SelectionType trkMuonId_;
-      bool centralBxOnly_;
       const double L1MatchingdR_;
+      const bool matchPreviousCand_;
 
       const bool devDebug_;
       const edm::InputTag theL3LinksLabel;
