@@ -20,6 +20,8 @@
 #include "DataFormats/MuonReco/interface/MuonSelectors.h"
 #include "DataFormats/MuonReco/interface/MuonTrackLinks.h"
 #include "DataFormats/Math/interface/deltaR.h"
+#include "DataFormats/RecoCandidate/interface/RecoChargedCandidate.h"
+#include "DataFormats/RecoCandidate/interface/RecoChargedCandidateFwd.h"
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
 #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 
@@ -33,6 +35,8 @@ class HLTMuonL3PreFilter : public HLTFilter {
 
    private:
       bool triggeredByLevel2(const reco::TrackRef& track,std::vector<reco::RecoChargedCandidateRef>& vcands) const;
+      bool applySelection(const reco::RecoChargedCandidateRef&, const reco::BeamSpot&) const; 
+
       const edm::InputTag                    beamspotTag_ ;
       const edm::EDGetTokenT<reco::BeamSpot> beamspotToken_ ;
       const edm::InputTag                                          candTag_;   // input tag identifying product contains muons
