@@ -117,7 +117,7 @@ HLTMuonL3PreFilter::fillDescriptions(edm::ConfigurationDescriptions& description
   desc.add<int>("minMuonHits",-1);
   desc.add<unsigned int>("allowedTypeMask",255);
   desc.add<unsigned int>("requiredTypeMask",0);
-  desc.add<double>("MaxNormalizedChi2_L3FromL1",0.0);
+  desc.add<double>("MaxNormalizedChi2_L3FromL1",9999.0);
   desc.add<unsigned int>("trkMuonId",0);
   desc.add<double>("L1MatchingdR",0.3);
   desc.add<bool>("MatchToPreviousCand", true);
@@ -206,35 +206,42 @@ bool HLTMuonL3PreFilter::hltFilter(Event& iEvent, const EventSetup& iSetup, trig
         TrackRef tk = cand->track(); 
 	check_l1match = true;
         int nlink = 0;
-	for(auto const & link : *links){
-	  nlink++;
 
-	  // Using the same method that was used to create the links between L3 and L2
-	  // ToDo: there should be a better way than dR,dPt matching
-	  const reco::Track& trackerTrack = *link.trackerTrack();
-
-	  float dR2 = deltaR2(tk->eta(),tk->phi(),trackerTrack.eta(),trackerTrack.phi());
-          float dPt = std::abs(tk->pt() - trackerTrack.pt());
-          if (tk->pt() != 0) dPt = dPt/tk->pt();
-
-          if (matchPreviousCand_ && dR2 < 0.02*0.02 and dPt < 0.001) {
-            const TrackRef staTrack = link.standAloneTrack();
-            L2toL3s[staTrack].push_back(RecoChargedCandidateRef(cand));
-            check_l1match = false;
-          }
-        } //MTL loop
-     
-        
-        if ( !l1CandTag_.label().empty() && check_l1match && matchPreviousCand_){
-          iEvent.getByToken(l1CandToken_,level1Cands);
-          level1Cands->getObjects(trigger::TriggerL1Mu,vl1cands);
-          const unsigned int nL1Muons(vl1cands.size());
-          for (unsigned int il1=0; il1!=nL1Muons; ++il1) {
-            if (deltaR(cand->eta(), cand->phi(), vl1cands[il1]->eta(), vl1cands[il1]->phi()) < L1MatchingdR_) { 
-               MuonToL3s[i] = RecoChargedCandidateRef(cand);
+        if (!matchPreviousCand_) {
+          L2toL3s[tk].push_back(RecoChargedCandidateRef(cand));
+        }
+        else {
+	  for(auto const & link : *links){
+	    nlink++;
+  
+	    // Using the same method that was used to create the links between L3 and L2
+	    // ToDo: there should be a better way than dR,dPt matching
+	    const reco::Track& trackerTrack = *link.trackerTrack();
+  
+	    float dR2 = deltaR2(tk->eta(),tk->phi(),trackerTrack.eta(),trackerTrack.phi());
+            float dPt = std::abs(tk->pt() - trackerTrack.pt());
+            if (tk->pt() != 0) dPt = dPt/tk->pt();
+  
+            if (dR2 < 0.02*0.02 and dPt < 0.001) {
+              const TrackRef staTrack = link.standAloneTrack();
+              L2toL3s[staTrack].push_back(RecoChargedCandidateRef(cand));
+              check_l1match = false;
             }
-          }
-        }     
+          } //MTL loop
+       
+          
+          if ( !l1CandTag_.label().empty() && check_l1match ){
+            iEvent.getByToken(l1CandToken_,level1Cands);
+            level1Cands->getObjects(trigger::TriggerL1Mu,vl1cands);
+            const unsigned int nL1Muons(vl1cands.size());
+            for (unsigned int il1=0; il1!=nL1Muons; ++il1) {
+              if (deltaR(cand->eta(), cand->phi(), vl1cands[il1]->eta(), vl1cands[il1]->phi()) < L1MatchingdR_) { 
+                 MuonToL3s[i] = RecoChargedCandidateRef(cand);
+              }
+            }
+          }   
+        }
+          
      } //RCC loop
    } //end of using normal TrajectorySeeds
 
