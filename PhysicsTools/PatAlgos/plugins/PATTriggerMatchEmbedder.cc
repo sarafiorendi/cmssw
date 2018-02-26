@@ -35,6 +35,7 @@
 #include "DataFormats/PatCandidates/interface/Photon.h"
 #include "DataFormats/PatCandidates/interface/Tau.h"
 
+#include "DataFormats/PatCandidates/interface/GenericParticle.h"
 
 namespace pat {
 
@@ -63,7 +64,8 @@ namespace pat {
   typedef PATTriggerMatchEmbedder< Muon >     PATTriggerMatchMuonEmbedder;
   typedef PATTriggerMatchEmbedder< Photon >   PATTriggerMatchPhotonEmbedder;
   typedef PATTriggerMatchEmbedder< Tau >      PATTriggerMatchTauEmbedder;
-
+  typedef PATTriggerMatchEmbedder< GenericParticle >    PATTriggerMatchGenericParticleEmbedder;
+  
 }
 
 
@@ -125,3 +127,4 @@ DEFINE_FWK_MODULE( PATTriggerMatchMETEmbedder );
 DEFINE_FWK_MODULE( PATTriggerMatchMuonEmbedder );
 DEFINE_FWK_MODULE( PATTriggerMatchPhotonEmbedder );
 DEFINE_FWK_MODULE( PATTriggerMatchTauEmbedder );
+DEFINE_FWK_MODULE( PATTriggerMatchGenericParticleEmbedder );
