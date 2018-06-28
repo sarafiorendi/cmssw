@@ -13,6 +13,7 @@ DEFINE_FWK_MODULE(PATPFParticleSelector);
 DEFINE_FWK_MODULE(PATCompositeCandidateSelector);
 DEFINE_FWK_MODULE(PATTriggerObjectStandAloneSelector);
 DEFINE_FWK_MODULE(PATGenericParticleSelector);
+DEFINE_FWK_MODULE(PATPackedCandidateSelector);
 
 
 DEFINE_FWK_MODULE(PATElectronRefSelector);

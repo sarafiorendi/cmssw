@@ -23,6 +23,7 @@
 #include "DataFormats/PatCandidates/interface/GenericParticle.h"
 #include "DataFormats/PatCandidates/interface/TriggerObjectStandAlone.h"
 #include "DataFormats/PatCandidates/interface/CompositeCandidate.h"
+#include "DataFormats/PatCandidates/interface/PackedCandidate.h"
 
 #include "PhysicsTools/PatAlgos/plugins/PATJetSelector.h"
 
@@ -72,6 +73,10 @@ namespace pat {
               std::vector<GenericParticle>,
               StringCutObjectSelector<GenericParticle>
           > PATGenericParticleSelector;
+  typedef SingleObjectSelector<
+              std::vector<PackedCandidate>,
+              StringCutObjectSelector<PackedCandidate>
+          > PATPackedCandidateSelector;    
 
   typedef SingleObjectSelector<
               std::vector<Electron>,
