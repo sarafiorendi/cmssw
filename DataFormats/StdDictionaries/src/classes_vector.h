@@ -54,6 +54,7 @@ namespace DataFormats_StdDictionaries {
   std::vector<std::vector<unsigned int> > dummy2v;
   std::vector<std::vector<unsigned short> > dummy9v;
   std::vector<std::vector<unsigned char> > dummy10v;
+  std::vector<std::vector<std::string> > dummy11v;
   std::vector<unsigned char*> dummy7p;
   std::vector<unsigned char> dummy7;
   std::vector<unsigned int> dummy2;
