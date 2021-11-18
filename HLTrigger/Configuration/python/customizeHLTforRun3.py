@@ -4,9 +4,16 @@ from .Run3.runHLTPaths_cfg import fixMenu
 from .Run3.fixIsoTrackHBHE import fixIsoTrackHBHE
 
 ## New Tracking (patatrack tracks + single iteration)
-from .Run3.customizeHLTforRun3Tracking import customizeHLTforRun3Tracking
+# from .Run3.customizeHLTforRun3TrackingPlusIter4 import customizeHLTforRun3TrackingPlusIter4
+from .Run3.customizeHLTforRun3TrackingPlusIter4 import customizeHLTforRun3Tracking, customizeHLTforRun3TrackingPlusIter4ForTau
 def TRK_newTracking(process): 
     process = customizeHLTforRun3Tracking(process)
+    process = fixMenu(process)
+    process = fixIsoTrackHBHE(process)
+    return process
+## add iter4
+def TRK_newTrackingIter04(process): 
+    process = customizeHLTforRun3TrackingPlusIter4ForTau(process)
     process = fixMenu(process)
     process = fixIsoTrackHBHE(process)
     return process
