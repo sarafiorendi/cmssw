@@ -50,6 +50,9 @@ DEFINE_FWK_MODULE(HLTmumutktkFilter);
 #include "ConeIsolation.h"
 DEFINE_FWK_MODULE(ConeIsolation);
 
+#include "HLTL1TTauSelector.h"
+DEFINE_FWK_MODULE(HLTL1TTauSelector);
+
 #include "DataFormats/JetReco/interface/CaloJet.h"
 #include "DataFormats/JetReco/interface/PFJet.h"
 #include "DataFormats/TauReco/interface/PFTau.h"
