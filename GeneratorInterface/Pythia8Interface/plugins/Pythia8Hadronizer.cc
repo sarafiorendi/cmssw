@@ -43,6 +43,9 @@ using namespace Pythia8;
 //decay filter hook
 #include "GeneratorInterface/Pythia8Interface/interface/PTFilterHook.h"
 
+//other hooks
+#include "GeneratorInterface/Pythia8Interface/plugins/SuepHook.h"
+
 // EvtGen plugin
 //
 #include "Pythia8Plugins/EvtGen.h"
@@ -145,6 +148,9 @@ private:
   //PT filter hook
   std::shared_ptr<PTFilterHook> fPTFilterHook;
 
+  //other hooks
+  std::shared_ptr<SuepHook> fSuepHook;
+ 
   int EV1_nFinal;
   bool EV1_vetoOn;
   int EV1_maxVetoCount;
@@ -308,6 +314,11 @@ Pythia8Hadronizer::Pythia8Hadronizer(const edm::ParameterSet &params)
                                                    0));
   }
 
+  if ( params.exists("suep") )
+  {
+    fSuepHook.reset(new SuepHook(params.getParameter<edm::ParameterSet>("suep")));
+  }
+  
   if (params.exists("VinciaPlugin")) {
     throw edm::Exception(edm::errors::Configuration, "Pythia8Interface")
         << " Obsolete parameter: VinciaPlugin \n Please use the parameter PartonShowers:model instead \n";
@@ -363,6 +374,8 @@ bool Pythia8Hadronizer::initializeForInternalPartons() {
     edm::LogInfo("Pythia8Interface") << "Turning on Emission Veto Hook 1 from CMSSW Pythia8Interface";
     (fUserHooksVector->hooks).push_back(fEmissionVetoHook1);
   }
+  if (fSuepHook.get())
+    (fUserHooksVector->hooks).push_back(fSuepHook);
 
   if (fMasterGen->settings.mode("POWHEG:veto") > 0 || fMasterGen->settings.mode("POWHEG:MPIveto") > 0) {
     if (fJetMatchingHook.get() || fEmissionVetoHook1.get())
@@ -506,7 +519,7 @@ bool Pythia8Hadronizer::initializeForExternalPartons() {
     edm::LogInfo("Pythia8Interface") << "Turning on Emission Veto Hook 1 from CMSSW Pythia8Interface";
     (fUserHooksVector->hooks).push_back(fEmissionVetoHook1);
   }
-
+  
   if (fMasterGen->settings.mode("POWHEG:veto") > 0 || fMasterGen->settings.mode("POWHEG:MPIveto") > 0) {
     if (fJetMatchingHook.get() || fEmissionVetoHook1.get())
       throw edm::Exception(edm::errors::Configuration, "Pythia8Interface")
