@@ -622,7 +622,7 @@ void PurgeDuplicate::execute(std::vector<Track>& outputtracks_, unsigned int iSe
                                         L1stub->bend(),
                                         L1stub->strip(),
                                         L1stub->tps(),
-                                         L1stub->ttStubRef()
+                                        L1stub->ttStubRef()
                                       );
                                    
                 invent_stub_ptr->setl1tstub(new L1TStub(invent_L1stub));
@@ -931,11 +931,9 @@ std::vector<double> PurgeDuplicate::get_invented_coords_displ(unsigned int iSect
   double tracklet_rinv = tracklet->rinv();
   double rho = 1/tracklet->rinv();
   double rho_minus_d0 = rho + tracklet->d0(); // should be -, but otherwise does not work
-  //   if (rho < 0) rho_minus_d0 = -rho_minus_d0;
 
   // exact helix
-  if (st->isBarrel() && L1stub->isPSmodule()){
-//       stub_r = settings_.rmean(2);
+  if (st->isBarrel()){
       stub_r = settings_.rmean(stubLayer-1);
       
       sin_val = (stub_r*stub_r + rho_minus_d0*rho_minus_d0 - rho*rho) / (2 * stub_r * rho_minus_d0) ;
@@ -945,24 +943,8 @@ std::vector<double> PurgeDuplicate::get_invented_coords_displ(unsigned int iSect
 
       beta =  std::acos((rho*rho + rho_minus_d0*rho_minus_d0 - stub_r*stub_r) / (2 * rho * rho_minus_d0) );
       stub_z = tracklet->z0() + tracklet->t() * std::abs(rho * beta);
-//      if (abs(rho)>4000) {
-//           std::cout << "rho sara: " << rho << std::endl;
-//           std::cout << "projecting to : "  << stub_r << std::endl;
-//           std::cout << "r0 sara: "   << rho_minus_d0 << std::endl;
-//           std::cout << "d0 sara: "   << tracklet->d0() << std::endl;
-//           std::cout << "phi0 sara: " << tracklet->phi0()<< std::endl;
-//           std::cout << "phi before: "  << tracklet->phi0() - std::asin(sin_val) << std::endl;
-//           std::cout << "phi intermediate: "  << tracklet->phi0() - std::asin(sin_val) + iSector * settings_.dphisector() - 0.5 * settings_.dphisectorHG()<< std::endl;
-//           std::cout << "phi sara: "  << stub_phi<< std::endl;
-// //           std::cout << "beta sara: "  << beta<< std::endl;
-// //           std::cout << "z0 sara: "  << tracklet->z0() << std::endl;
-// //           std::cout << "t sara: "  << tracklet->t() << std::endl;
-//       }
   }
-  else if (!st->isBarrel() && L1stub->isPSmodule()){
-//       stub_z = settings_.zmean(1)*tracklet->disk()/abs(tracklet->disk());
-//       rho = std::abs(rho); //not clear from formulas though
-//       if (tracklet->t() < 0) stub_z = -stub_z;
+  else {
       stub_z = settings_.zmean(stubDisk-1)*tracklet->disk()/abs(tracklet->disk());
       beta = (stub_z - tracklet->z0()) / (tracklet->t() * std::abs(rho)); // maybe rho should be abs value
       r_square = -2 * rho * rho_minus_d0 * std::cos(beta) + rho*rho + rho_minus_d0*rho_minus_d0;
@@ -972,48 +954,7 @@ std::vector<double> PurgeDuplicate::get_invented_coords_displ(unsigned int iSect
       stub_phi = tracklet->phi0() - std::asin(sin_val);
       stub_phi  = stub_phi + iSector * settings_.dphisector() - 0.5 * settings_.dphisectorHG();
       stub_phi  = reco::reduceRange(stub_phi);
-
-//      if (abs(rho)>4000) {
-//           std::cout << "rho sara: " << rho << std::endl;
-//           std::cout << "t sara: " << tracklet->t() << std::endl;
-//           std::cout << "projecting to z: "  << stub_z << std::endl;
-//           std::cout << "beta sara : "  << stub_z << " * " << tracklet->z0() << " / " << tracklet->t() << " * " << rho << " = " << beta << std::endl;
-// //           std::cout << "beta sara: "  << beta << std::endl;
-//           std::cout << "d0 sara: "   << tracklet->d0() << std::endl;
-// //           std::cout << "r0 sara: "  << rho_minus_d0 << std::endl;
-//           std::cout << "r square sara: "  << r_square << std::endl;
-//           std::cout << "phi val before "  << tracklet->phi0() - std::asin(sin_val) << std::endl;
-// //           std::cout << "r0 sara: "   << rho_minus_d0 << std::endl;
-// //           std::cout << "d0 sara: "   << tracklet->d0() << std::endl;
-// //           std::cout << "phi0 sara: " << tracklet->phi0()<< std::endl;
-// //           std::cout << "phi before: "  << tracklet->phi0() - std::asin(sin_val) << std::endl;
-// //           std::cout << "phi intermediate: "  << tracklet->phi0() - std::asin(sin_val) + iSector * settings_.dphisector() - 0.5 * settings_.dphisectorHG()<< std::endl;
-// //           std::cout << "phi sara: "  << stub_phi<< std::endl;
-// // //           std::cout << "beta sara: "  << beta<< std::endl;
-// // //           std::cout << "z0 sara: "  << tracklet->z0() << std::endl;
-// // //           std::cout << "t sara: "  << tracklet->t() << std::endl;
-//       }
-
   }
-//       stub_z = settings_.zmean(stubDisk-1)*tracklet->disk()/abs(tracklet->disk());
-//       r_star = (stub_z - tracklet->z0()) / tracklet->t();
-//       eps    =  pow((tracklet->d0() * tracklet->t()/stub_z), 2) + 1/6*pow( (r_star * tracklet_rinv/2) , 2);
-//       stub_r = r_star * (1-eps);
-// //      stub_r = L1stub->r();
-//      
-//       coeff_1  = tracklet->d0()*tracklet->t()/stub_z;
-//       stub_phi = tracklet->phi0() - stub_r*tracklet_rinv/2;
-//       stub_phi = stub_phi + coeff_1 * (1 + tracklet->z0()/stub_z) * (1 + tracklet->d0()*tracklet_rinv/2) * (1 + eps);
-//       stub_phi = stub_phi + 1/6 * pow((-r_star*tracklet_rinv/2 + coeff_1), 3);
-//       stub_phi  = stub_phi + iSector * settings_.dphisector() - 0.5 * settings_.dphisectorHG();
-//       stub_phi  = reco::reduceRange(stub_phi);
-// 
-//   }
-//   else{
-//       stub_r = L1stub->r();
-//       stub_z = L1stub->z();
-//       stub_phi = L1stub->phi();
-//   }
 
   // approx helix
 //   if (st->isBarrel() && L1stub->isPSmodule()){
@@ -1066,39 +1007,11 @@ std::vector<double> PurgeDuplicate::get_invented_coords_displ(unsigned int iSect
 //       stub_phi  = reco::reduceRange(stub_phi);
 // 
 //   }
-  else{
-      stub_r = L1stub->r();
-      stub_z = L1stub->z();
-      stub_phi = L1stub->phi();
-  }
+//   else{
+//       stub_r = L1stub->r();
+//       stub_z = L1stub->z();
+//       stub_phi = L1stub->phi();
+//   }
   std::vector invented_coords{stub_r, stub_z, stub_phi};
   return invented_coords;
-}
-
-
-void PurgeDuplicate::exactproj(double rproj,
-                                            double rinv,
-                                            double phi0,
-                                            double d0,
-                                            double t,
-                                            double z0,
-                                            double r0,
-                                            double& phiproj,
-                                            double& zproj,
-                                            double& phider,
-                                            double& zder) {
-  double rho = 1 / rinv;
-  if (rho < 0) {
-    r0 = -r0;
-  }
-  phiproj = phi0 - asin((rproj * rproj + r0 * r0 - rho * rho) / (2 * rproj * r0));
-  double beta = acos((rho * rho + r0 * r0 - rproj * rproj) / (2 * r0 * rho));
-  zproj = z0 + t * std::abs(rho * beta);
-
-  //not exact, but close
-  phider = -0.5 * rinv / sqrt(1 - pow(0.5 * rproj * rinv, 2)) + d0 / (rproj * rproj);
-  zder = t / sqrt(1 - pow(0.5 * rproj * rinv, 2));
-
-//   if (settings_.debugTracklet())
-//     edm::LogVerbatim("Tracklet") << "exact proj layer at " << rproj << " : " << phiproj << " " << zproj;
 }

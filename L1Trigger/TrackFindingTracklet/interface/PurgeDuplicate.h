@@ -42,17 +42,7 @@ namespace trklet {
     std::pair<int,int> findLayerDisk(const Stub*);
     std::vector<double> get_invented_coords(unsigned int, const Stub*, Tracklet*);
     std::vector<double> get_invented_coords_displ(unsigned int, const Stub*, Tracklet*);
-    void exactproj(double rproj,
-                          double ,
-                          double ,
-                          double ,
-                          double ,
-                          double ,
-                          double ,
-                          double& ,
-                          double& ,
-                          double& ,
-                          double& );
+
     std::vector<Track*> inputtracks_;
     std::vector<std::vector<const Stub*>> inputstublists_;
     std::vector<std::vector<const Stub*>> myinputstublists_;
