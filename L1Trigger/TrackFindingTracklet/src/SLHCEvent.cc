@@ -22,9 +22,11 @@ bool SLHCEvent::addStub(string DTClink,
                         double bend,
                         double strip,
                         vector<int> tps,
+                        int stubindex,
                         const TTStubRef& ttStubRef) {
   L1TStub stub(DTClink, region, layerdisk, stubword, isPSmodule, isFlipped, x, y, z, bend, strip, tps, ttStubRef);
-
+  stub.setUniqueIndex(stubindex);
+  
   stubs_.push_back(stub);
   return true;
 }
