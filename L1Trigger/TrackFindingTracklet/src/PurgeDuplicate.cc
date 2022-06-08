@@ -12,8 +12,6 @@
 #include "L1Trigger/TrackFindingTMTT/interface/L1track3D.h"
 #include "L1Trigger/TrackFindingTMTT/interface/KFParamsComb.h"
 #include "L1Trigger/TrackFindingTracklet/interface/HybridFit.h"
-
-#include "L1Trigger/TrackFindingTracklet/interface/TrackletCalculatorDisplaced.h"
 #endif
 
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
@@ -125,7 +123,6 @@ void PurgeDuplicate::execute(std::vector<Track>& outputtracks_, unsigned int iSe
         continue;
       if (inputtrackfits_[i]->nStublists() != inputtrackfits_[i]->nTracks())
         throw "Number of stublists and tracks don't match up!";
-
       for (unsigned int j = 0; j < inputtrackfits_[i]->nStublists(); j++) {
         Tracklet* aTrack = inputtrackfits_[i]->getTrack(j);
         inputtracklets_.push_back(inputtrackfits_[i]->getTrack(j));
@@ -302,8 +299,8 @@ void PurgeDuplicate::execute(std::vector<Track>& outputtracks_, unsigned int iSe
 
           // Get a merged stub list
           std::vector<const Stub*> newStubList;
-          std::vector<const Stub*> stubsTrk1 = inputstublists_[rejetrk];
-          std::vector<const Stub*> stubsTrk2 = inputstublists_[preftrk];
+          std::vector<const Stub*> stubsTrk1 = inputstublists_[preftrk];
+          std::vector<const Stub*> stubsTrk2 = inputstublists_[rejetrk];
           std::vector<unsigned int> stubsTrk1indices;
           std::vector<unsigned int> stubsTrk2indices;
           for (unsigned int stub1it = 0; stub1it < stubsTrk1.size(); stub1it++) {
@@ -315,7 +312,6 @@ void PurgeDuplicate::execute(std::vector<Track>& outputtracks_, unsigned int iSe
           newStubList = stubsTrk1;
           for (unsigned int stub2it = 0; stub2it < stubsTrk2.size(); stub2it++) {
             if (find(stubsTrk1indices.begin(), stubsTrk1indices.end(), stubsTrk2indices[stub2it]) == stubsTrk1indices.end()) {
-//             if (find(stubsTrk1.begin(), stubsTrk1.end(), stubsTrk2[stub2it]) == stubsTrk1.end()) {
               newStubList.push_back(stubsTrk2[stub2it]);
             }
           }
@@ -323,13 +319,12 @@ void PurgeDuplicate::execute(std::vector<Track>& outputtracks_, unsigned int iSe
           inputstublists_[preftrk] = newStubList;
   
           std::vector<std::pair<int, int>> newStubidsList;
-          std::vector<std::pair<int, int>> stubidsTrk1 = mergedstubidslists_[rejetrk];
-          std::vector<std::pair<int, int>> stubidsTrk2 = mergedstubidslists_[preftrk];
+          std::vector<std::pair<int, int>> stubidsTrk1 = mergedstubidslists_[preftrk];
+          std::vector<std::pair<int, int>> stubidsTrk2 = mergedstubidslists_[rejetrk];
           newStubidsList = stubidsTrk1;
   
           for (unsigned int stub2it = 0; stub2it < stubsTrk2.size(); stub2it++) {
             if (find(stubsTrk1indices.begin(), stubsTrk1indices.end(), stubsTrk2indices[stub2it]) == stubsTrk1indices.end()) {
-//             if (find(stubsTrk1.begin(), stubsTrk1.end(), stubsTrk2[stub2it]) == stubsTrk1.end()){
               newStubidsList.push_back(stubidsTrk2[stub2it]);
             }
           }
@@ -607,6 +602,7 @@ std::vector<double> PurgeDuplicate::getInventedCoordsExtended(unsigned int iSect
   int stubLayer = (findLayerDisk(st)).first;
   int stubDisk = (findLayerDisk(st)).second;
   
+  
   double stub_phi  = -99;
   double stub_z    = -99;
   double stub_r    = -99;
@@ -639,6 +635,17 @@ std::vector<double> PurgeDuplicate::getInventedCoordsExtended(unsigned int iSect
       stub_phi = reco::reduceRange(stub_phi);
   }
   
+  int seed = tracklet->seedIndex();
+  if ( (seed == 8 && stubLayer == 4) ||\
+       (seed == 9 && stubLayer == 5) ||\
+       (seed == 10 && stubLayer == 3) ||\
+       (seed == 11 && abs(stubDisk) == 1)
+     ){
+    stub_phi  = st->l1tstub()->phi();
+    stub_z    = st->l1tstub()->z();
+    stub_r    = st->l1tstub()->r();
+  }
+
   std::vector invented_coords{stub_r, stub_z, stub_phi};
   return invented_coords;
 }

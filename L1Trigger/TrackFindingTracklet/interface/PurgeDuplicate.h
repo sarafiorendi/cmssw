@@ -46,7 +46,6 @@ namespace trklet {
 
     std::vector<Track*> inputtracks_;
     std::vector<std::vector<const Stub*>> inputstublists_;
-    std::vector<std::vector<const Stub*>> myinputstublists_;
     std::vector<std::vector<std::pair<int, int>>> inputstubidslists_;
     std::vector<std::vector<std::pair<int, int>>> mergedstubidslists_;
     std::vector<TrackFitMemory*> inputtrackfits_;
