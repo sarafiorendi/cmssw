@@ -688,7 +688,6 @@ std::vector<const Stub*> PurgeDuplicate::seedStubCoordsFromTracklet (unsigned in
                               L1stub->bend(),
                               L1stub->strip(),
                               L1stub->tps()
-//                               L1stub->ttStubRef()	
                             );
 
       invent_stub_ptr->setl1tstub(new L1TStub(invent_L1stub));
@@ -697,14 +696,6 @@ std::vector<const Stub*> PurgeDuplicate::seedStubCoordsFromTracklet (unsigned in
 
       newStubList.push_back(invent_stub_ptr);  
 
-      // to enable comparison output file                  
-//       std::cout << invent_stub_ptr->isBarrel()<< "\t" << l1tinfo(&invent_L1stub, "invent").c_str() << "\t" <<  l1tinfo(L1stub, "original").c_str() 
-//                 << "\tdr\t"    << abs(invent_L1stub.r()-L1stub->r())  
-//                 << "\tdz\t"    << abs(invent_L1stub.z()-L1stub->z()) 
-//                 << "\tdphi\t"  << abs(invent_L1stub.phi()-L1stub->phi()) 
-//                 << "\tisPS\t"  << L1stub->isPSmodule() 
-// //                 << "\tisTilted\t"  << L1stub->isTilted() 
-//                 << std::endl;
     }
     else{
       newStubList.push_back(thisStub);
