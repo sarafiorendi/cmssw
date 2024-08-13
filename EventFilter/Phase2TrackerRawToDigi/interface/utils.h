@@ -270,7 +270,13 @@ namespace Phase2Tracker {
   // read n bits starting at bit m (msb to lsb)
   inline uint64_t read_n_at_m_l2r(const uint8_t* buffer, int size, int pos_bit) {
     int iword = pos_bit / 64;
-    uint64_t data = *(uint64_t*)(buffer + (iword * 8));
+    uint8_t uint8iword = (uint8_t)iword; // Explicit cast to uint8_t, only if that is < 255
+
+    uint8_t sara_calculation = (*buffer + (uint8iword * 8));
+    uint8_t *sara_ptr = &sara_calculation;
+    uint64_t data = *sara_ptr;
+//     uint64_t data = *(uint64_t*)(buffer + (iword * 8));
+    
     int left_bit = (pos_bit ^ (0x3F)) + 1;
     if (pos_bit % 64 + size <= 64) {
       data >>= (left_bit - size) % 64;
