@@ -26,7 +26,7 @@
 #include "CondFormats/SiStripObjects/interface/Phase2TrackerCabling.h"
 #include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
 
-#define LOGPRINT edm::LogPrint("Phase2TrackerFEDTestAnalyzer")
+// #define LOGPRINT edm::LogPrint("Phase2TrackerFEDTestAnalyzer")
 
 /**
    @class Phase2TrackerFEDTestAnalyzer 
@@ -125,6 +125,8 @@ void Phase2TrackerFEDTestAnalyzer::analyze(const edm::Event& event, const edm::E
   edm::Handle<FEDRawDataCollection> buffers;
   event.getByToken(token_, buffers);
 
+  std::ostringstream LOGPRINT;
+
   // Analyze strip tracker FED buffers in data
   std::vector<int> feds = cabling_->listFeds();
   for (int fedIndex : feds) {
@@ -155,6 +157,9 @@ void Phase2TrackerFEDTestAnalyzer::analyze(const edm::Event& event, const edm::E
       LOGPRINT << " Mode     : " << hex << setw(2) << (int)tr_header.getDebugMode();
       LOGPRINT << " Type     : " << hex << setw(2) << (int)tr_header.getEventType();
       LOGPRINT << " Readout  : " << hex << setw(2) << (int)tr_header.getReadoutMode();
+      if (tr_header.getReadoutMode() != READOUT_MODE_ZERO_SUPPRESSED) {
+        std::cout << "tr_header.getReadoutMode() is not READOUT_MODE_ZERO_SUPPRESSED " << std::endl;
+      }
       LOGPRINT << " Status   : " << hex << setw(16) << (int)tr_header.getGlibStatusCode();
       LOGPRINT << " FE stat  : ";
       for (int i = MAX_FE_PER_FED - 1; i >= 0; i--) {
@@ -182,32 +187,103 @@ void Phase2TrackerFEDTestAnalyzer::analyze(const edm::Event& event, const edm::E
           }
         }
       }
-      LOGPRINT << endl;
-      LOGPRINT << " -------------------------------------------- " << endl;
-      LOGPRINT << " Payload  ----------------------------------- " << endl;
-      LOGPRINT << " -------------------------------------------- " << endl;
+      if (tr_header.getReadoutMode() == READOUT_MODE_ZERO_SUPPRESSED) {
+        // loop channels
+        int ichan = 0;
+        for (int ife = 0; ife < MAX_FE_PER_FED; ife++) {
+          // get fedid from cabling
+          // BODGE FIX from Ian: this crashed, as it assumes all FED input channels are connected to a module. Can we find prettier solution?
+          uint32_t detid = 0;
+          try {
+             const Phase2TrackerModule mod = cabling_->findFedCh(std::make_pair(fedIndex, ife));
+             detid = mod.getDetid();
+          }
+          catch (...) {
+            edm::LogWarning("Phase2TrackerFEDTestAna")<<"FED with unconnected input channel found, making code unhappy "<<fedIndex<<" "<<ife;
+          }
+
+          // container for this module's digis
+//           std::vector<Phase2TrackerCluster1D> clustersTop;
+//           std::vector<Phase2TrackerCluster1D> clustersBottom;
+          // looping over concentrators (4 virtual concentrators in case of PS)
+          for (int iconc = 0; iconc < 4; iconc++) {
+            const Phase2TrackerFEDChannel& channel = buffer.channel(ichan);
+            if (channel.length() > 0) {
+              LOGPRINT << endl;
+              LOGPRINT << " -------------------------------------------- " << endl;
+              LOGPRINT << " Payload  ----------------------------------- " << endl;
+              LOGPRINT << " -------------------------------------------- " << endl;
+
+              LOGPRINT << dec << " ife : " << ife << endl;
+              LOGPRINT << dec << " id from cabling : " << detid << endl;
+              LOGPRINT << dec << " reading channel : " << iconc << " on FE " << ife;
+              LOGPRINT << dec << " with length  : " << (int)channel.length() << endl;
+              // create appropriate unpacker
+              if (channel.dettype() == DET_Son2S) {
+                Phase2TrackerFEDZSSon2SChannelUnpacker unpacker = Phase2TrackerFEDZSSon2SChannelUnpacker(channel);
+                while (unpacker.hasData()) {
+                  unpacker.Merge();
+                  LOGPRINT << std::dec << " Son2S " << (int)unpacker.clusterX() << " " << (int)unpacker.clusterSize() << " "
+                     << (int)unpacker.chipId() << endl;
+
+                  // BODGE FIX from Ian -- Must understand why strip number wrong!
+//                   if (unpacker.clusterX() < 1016) {
+//                     if (unpacker.rawX() % 2) {
+//                        clustersTop.push_back(
+//                           Phase2TrackerCluster1D(unpacker.clusterX(), unpacker.clusterY(), unpacker.clusterSize()));
+//                     } else {
+//                        clustersBottom.push_back(
+//                           Phase2TrackerCluster1D(unpacker.clusterX(), unpacker.clusterY(), unpacker.clusterSize()));
+//                     }
+//                   } else {
+//                       edm::LogError("Phase2TrackerDigiProducer")<<"MESS UP 2S: STRIP NUMBER OUT OF RANGE  "<<unpacker.clusterX()<<" "<<unpacker.clusterY()<<" "<<unpacker.clusterSize();
+//                   }                  
+                  unpacker++;
+                }
+              } 
+//               else if (channel.dettype() == DET_SonPS) {
+           } // end if channel lenght > 0
+           ichan++;
+        } // end loop on iconc
+
+      } // end loop on fe
+     } // end if readout mode
+
+
+//       for (FE_it = all_fe_debug.begin(); FE_it < all_fe_debug.end(); FE_it++) {
+//         if (FE_it->IsOn()) {
+//           LOGPRINT << " FE L1ID: " << endl;
+//           LOGPRINT << "    " << hex << setw(4) << FE_it->getFEL1ID()[0] << dec << endl;
+//           LOGPRINT << "    " << hex << setw(4) << FE_it->getFEL1ID()[1] << dec << endl;
+//           for (int i = 0; i < 16; i++) {
+//             LOGPRINT << " Chip Error" << hex << setw(1) << FE_it->getChipError(i) << dec << endl;
+//             LOGPRINT << " Chip L1ID " << hex << setw(4) << FE_it->getChipL1ID(i) << dec << endl;
+//             LOGPRINT << " Chip PA   " << hex << setw(4) << FE_it->getChipPipelineAddress(i) << dec << endl;
+//           }
+//         }
+//       }
 
       // loop channels
-      int ichan = 0;
-      for (int ife = 0; ife < 16; ife++) {
-        for (int icbc = 0; icbc < 16; icbc++) {
-          const Phase2TrackerFEDChannel& channel = buffer.channel(ichan);
-          if (channel.length() > 0) {
-            LOGPRINT << dec << " reading channel : " << icbc << " on FE " << ife;
-            LOGPRINT << dec << " with length  : " << (int)channel.length();
-            Phase2TrackerFEDRawChannelUnpacker unpacker = Phase2TrackerFEDRawChannelUnpacker(channel);
-            while (unpacker.hasData()) {
-              LOGPRINT << (unpacker.stripOn() ? "1" : "_");
-              unpacker++;
-            }
-            LOGPRINT << "\n";
-          }
-          ichan++;   
-        }
-      }  // end loop on channels
+//       int ichan = 0;
+//       for (int ife = 0; ife < 16; ife++) {
+//         for (int icbc = 0; icbc < 16; icbc++) {
+//           const Phase2TrackerFEDChannel& channel = buffer.channel(ichan);
+//           if (channel.length() > 0) {
+//             LOGPRINT << dec << " reading channel : " << icbc << " on FE " << ife;
+//             LOGPRINT << dec << " with length  : " << (int)channel.length();
+//             Phase2TrackerFEDRawChannelUnpacker unpacker = Phase2TrackerFEDRawChannelUnpacker(channel);
+//             while (unpacker.hasData()) {
+//               LOGPRINT << (unpacker.stripOn() ? "1" : "_");
+//               unpacker++;
+//             }
+//             LOGPRINT << "\n";
+//           }
+//           ichan++;   
+//         }
+//       }  // end loop on channels
     }
-  }
-}
+  } //end loop on feds
+}  
 
 #include "FWCore/PluginManager/interface/ModuleDef.h"
 #include "FWCore/Framework/interface/MakerMacros.h"

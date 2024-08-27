@@ -9,16 +9,15 @@
 #include "DataFormats/Common/interface/DetSet.h"
 #include "DataFormats/FEDRawData/interface/FEDRawDataCollection.h"
 #include "DataFormats/FEDRawData/interface/FEDNumbering.h"
-//#include "DataFormats/FEDRawData/src/fed_header.h"
-//#include "DataFormats/FEDRawData/src/fed_trailer.h"
 #include "DataFormats/Phase2TrackerDigi/interface/Phase2TrackerDigi.h"
 #include "DataFormats/L1TrackTrigger/interface/TTTypes.h"
 #include "DataFormats/DetId/interface/DetId.h"
-#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
-#include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
 #include "EventFilter/Phase2TrackerRawToDigi/interface/Phase2TrackerFEDHeader.h"
-// #include "EventFilter/Phase2TrackerRawToDigi/interface/Phase2TrackerDigiToRaw.h"
 #include "EventFilter/Phase2TrackerRawToDigi/interface/utils.h"
+#include "Geometry/CommonDetUnit/interface/PixelGeomDetUnit.h"
+#include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
+#include "Geometry/Records/interface/IdealGeometryRecord.h"
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/one/EDAnalyzer.h"
 #include "FWCore/Framework/interface/Event.h"
@@ -27,14 +26,8 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/Exception.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
-#include "Geometry/Records/interface/IdealGeometryRecord.h"
-
-
-#include "Geometry/CommonDetUnit/interface/PixelGeomDetUnit.h"
 
 #include <sstream>
-// #include <iomanip>
-// #include <ext/algorithm>
 
 using namespace std;
 using namespace Phase2Tracker;
@@ -93,7 +86,9 @@ void Phase2TrackerDumpDigi::analyze(const edm::Event& event, const edm::EventSet
 //     std::unique_ptr<FEDRawDataCollection> buffers(new FEDRawDataCollection);
   edm::Handle<Phase2TrackerCluster1DCollectionNew> clusters_handle;
   event.getByToken(token_, clusters_handle);
+  std::cout << "size of clusters: " << clusters_handle.product()->size() <<  std::endl;
   for (const auto& DSVItr : *clusters_handle) {
+    std::cout << "inside loop" << std::endl;
     // Getting the id of detector unit
     uint32_t rawid(DSVItr.detId());
     DetId detId(rawid);
@@ -103,9 +98,9 @@ void Phase2TrackerDumpDigi::analyze(const edm::Event& event, const edm::EventSet
     for (const auto& clusterItr : DSVItr) { 
     
       // temporary restriction to 2S modules
-      TrackerGeometry::ModuleType mType = tGeom_->getDetectorType(detId);
-      if (mType != TrackerGeometry::ModuleType::Ph2SS)
-        continue;
+//       TrackerGeometry::ModuleType mType = tGeom_->getDetectorType(detId);
+//       if (mType != TrackerGeometry::ModuleType::Ph2SS)
+//         continue;
       
       std::cout << "detId: " << detId.rawId() << std::endl;
       // I could find this number in the DetId sensors list e.g. https://cms-tklayout.web.cern.ch/cms-tklayout/layouts/repository-git-dev/OT616_200_IT404/index.html

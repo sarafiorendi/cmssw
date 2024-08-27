@@ -6,6 +6,11 @@
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "DataFormats/Common/interface/DetSetVector.h"
 
+#include "Geometry/CommonDetUnit/interface/PixelGeomDetUnit.h"
+// #include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
+// #include "Geometry/Records/interface/IdealGeometryRecord.h"
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+
 namespace Phase2Tracker {
   const int MAX_NP = 31;  // max P clusters per concentrator i.e. per side
   const int MAX_NS = 31;  // same for S clusters
@@ -15,6 +20,7 @@ namespace Phase2Tracker {
     // number of clusters allowed : P-left, P-right, S-left, S-right
     int roomleft[4] = {max_ns, max_ns, max_np, max_np};
     // fill left and right vectors, expand big clusters
+    std::cout << "\t size before splitting and limiting: " << digis.size() << std::endl;
     for (auto dig = digis.begin(); dig < digis.end(); dig++) {
       std::vector<stackedDigi> parts = dig->splitDigi();
       for (auto id = parts.begin(); id < parts.end(); id++) {
@@ -24,6 +30,7 @@ namespace Phase2Tracker {
         }
       }
     }
+    std::cout << "\t size after splitting and limiting: " << processed.size() << std::endl; 
     // Sort vector
     std::sort(processed.begin(), processed.end());
     // replace input vector
@@ -46,9 +53,12 @@ namespace Phase2Tracker {
         mode_(mode),
         FedDaqHeader_(0, 0, 0, DAQ_EVENT_TYPE_SIMULATED),  // TODO : add L1ID
         FedDaqTrailer_(0, 0) {
-    FedHeader_.setDataFormatVersion(2);
-    FedHeader_.setDebugMode(SUMMARY);
+//     FedHeader_.setDataFormatVersion(2);
+    FedHeader_.setDataFormatVersion((uint8_t)2);
+    std::cout << "[Phase2TrackerDigiToRaw:constructor] FedHeader_ data format v: " << unsigned(FedHeader_.getDataFormatVersion()) << std::endl;
+    FedHeader_.setDebugMode(FULL_DEBUG); // sara FULL_DEBUG 22.07: was SUMMARY (
     FedHeader_.setEventType((uint8_t)0x04);
+    std::cout << "[Phase2TrackerDigiToRaw:constructor] FedHeader_ data format v: " << unsigned(FedHeader_.getDataFormatVersion()) << std::endl;
   }
 
   void Phase2TrackerDigiToRaw::buildFEDBuffers(std::unique_ptr<FEDRawDataCollection>& rcollection) {
@@ -58,6 +68,10 @@ namespace Phase2Tracker {
     std::vector<bool> festatus(72, false);
     // iterate on all possible channels
     Phase2TrackerCabling::cabling conns = cabling_->orderedConnections(0);
+    std::cout << "## cabling ##" << std::endl;
+    std::cout << cabling_->summaryDescription().c_str() << std::endl;
+//     std::cout << cabling_->description().c_str() << std::endl;
+    std::cout << "## end cabling ##" << std::endl;
     Phase2TrackerCabling::cabling::const_iterator iconn = conns.begin(), end = conns.end(), icon2;
     while (iconn != end) {
       unsigned int fedid = (*iconn)->getCh().first;
@@ -86,10 +100,12 @@ namespace Phase2Tracker {
       }
       // save buffer
       FedHeader_.setFrontendStatus(festatus);
+      std::cout << "[Phase2TrackerDigiToRaw:buildFEDBuffers] FedHeader_ data format v: " << unsigned(FedHeader_.getDataFormatVersion()) << std::endl;
       // write digis to buffer
       std::vector<uint64_t> fedbuffer = makeBuffer(digis_t);
       FEDRawData& frd = rcollection->FEDData(fedid);
       int size = fedbuffer.size() * 8;
+      std::cout << "[Digi2Raw] size = " << size << std::endl;
       frd.resize(size);
       memcpy(frd.data(), &fedbuffer[0], size);
       festatus.assign(72, false);
@@ -105,9 +121,14 @@ namespace Phase2Tracker {
     std::vector<uint64_t> fedbuffer;
     // add daq header
     fedbuffer.push_back(*(uint64_t*)FedDaqHeader_.data());
+//     std::cout << "[Phase2TrackerDigiToRaw:makeBuffer] print FedDaqHeader_:" << (uint64_t*)FedDaqHeader_.data() << std::endl;
     bitindex += 64;
     // add fed header
     uint8_t* feh = FedHeader_.data();
+    
+//     std::cout << "[Phase2TrackerDigiToRaw:makeBuffer] print FedHeader_ :" << (uint64_t*)FedHeader_.data() << std::endl;
+    std::cout << "[Phase2TrackerDigiToRaw:makeBuffer] print FedHeader_ data format version: " << unsigned(FedHeader_.getDataFormatVersion()) << std::endl;
+    std::cout << "[Phase2TrackerDigiToRaw:makeBuffer] print FedHeader_ is valid: " << FedHeader_.isValid() << std::endl;
     fedbuffer.push_back(*(uint64_t*)feh);
     fedbuffer.push_back(*(uint64_t*)(feh + 8));
     bitindex += 128;
@@ -116,6 +137,11 @@ namespace Phase2Tracker {
     for (idigi = digis.begin(); idigi != digis.end(); idigi++) {
       // get id of stack
       unsigned int detid = idigi->detId();
+      const GeomDetUnit* geomDetUnit(tGeom_->idToDetUnit(detid));
+      if (!geomDetUnit)
+        continue;
+      std::cout << "---- " << std::endl;
+      std::cout << "[Digi2Raw] detId: " << detid << std::endl;
       TrackerGeometry::ModuleType det_type = tGeom_->getDetectorType(detid);
       if (det_type == TrackerGeometry::ModuleType::Ph2PSP or det_type == TrackerGeometry::ModuleType::Ph2PSS) {
         moduletype = 1;
@@ -127,6 +153,7 @@ namespace Phase2Tracker {
       // container for digis, to be sorted afterwards
       std::vector<stackedDigi> digs_mod;
       edmNew::DetSet<Phase2TrackerCluster1D>::const_iterator it;
+
       // pair modules if there are digis for both
       if (tTopo_->isLower(idigi->detId()) == 1) {
         // digis for inner plane (P in case of PS)
@@ -134,6 +161,14 @@ namespace Phase2Tracker {
           // next digi is the corresponding outer plane : join them
           for (it = idigi->begin(); it != idigi->end(); it++) {
             digs_mod.push_back(stackedDigi(it, LAYER_INNER, moduletype));
+  
+            if (det_type == TrackerGeometry::ModuleType::Ph2SS){  
+              MeasurementPoint mpCluster(it->center(), it->column() + 0.5);
+              Local3DPoint localPosCluster = geomDetUnit->topology().localPosition(mpCluster);
+              Global3DPoint globalPosCluster = geomDetUnit->surface().toGlobal(localPosCluster);
+              std::cout << "\t cluster r position: " << globalPosCluster.perp()  << std::endl; 
+              std::cout << "\t cluster global z position: " << globalPosCluster.z()  << std::endl; 
+            }  
           }
           idigi++;
           for (it = idigi->begin(); it != idigi->end(); it++) {
@@ -142,6 +177,13 @@ namespace Phase2Tracker {
         } else {
           // next digi is from another module, only use this one
           for (it = idigi->begin(); it != idigi->end(); it++) {
+            if (det_type == TrackerGeometry::ModuleType::Ph2SS){  
+              MeasurementPoint mpCluster(it->center(), it->column() + 0.5);
+              Local3DPoint localPosCluster = geomDetUnit->topology().localPosition(mpCluster);
+              Global3DPoint globalPosCluster = geomDetUnit->surface().toGlobal(localPosCluster);
+              std::cout << "\t cluster r position: " << globalPosCluster.perp()  << std::endl; 
+              std::cout << "\t cluster global z position: " << globalPosCluster.z()  << std::endl; 
+            }  
             digs_mod.push_back(stackedDigi(it, LAYER_INNER, moduletype));
           }
         }
@@ -149,6 +191,13 @@ namespace Phase2Tracker {
         // digis from outer plane (S in case of PS)
         for (it = idigi->begin(); it != idigi->end(); it++) {
           digs_mod.push_back(stackedDigi(it, LAYER_OUTER, moduletype));
+          if (det_type == TrackerGeometry::ModuleType::Ph2SS){  
+            MeasurementPoint mpCluster(it->center(), it->column() + 0.5);
+            Local3DPoint localPosCluster = geomDetUnit->topology().localPosition(mpCluster);
+            Global3DPoint globalPosCluster = geomDetUnit->surface().toGlobal(localPosCluster);
+            std::cout << "\t cluster r position: " << globalPosCluster.perp()  << std::endl; 
+            std::cout << "\t cluster global z position: " << globalPosCluster.z()  << std::endl; 
+          }  
         }
       }
       // here we:
@@ -158,6 +207,7 @@ namespace Phase2Tracker {
       // - remove extra digis
       std::sort(digs_mod.begin(), digs_mod.end());
       std::pair<int, int> nums = SortExpandAndLimitClusters(digs_mod, MAX_NS, MAX_NP);
+      std::cout << "found " << nums.first << " S clusters and " << nums.second << " P clusters" <<std::endl;
       // - write appropriate header
       writeFeHeaderSparsified(fedbuffer, bitindex, moduletype, nums.second, nums.first);
       // - write the digis
@@ -174,17 +224,25 @@ namespace Phase2Tracker {
 
   void Phase2TrackerDigiToRaw::writeFeHeaderSparsified(
       std::vector<uint64_t>& buffer, uint64_t& bitpointer, int modtype, int np, int ns) {
+    std::cout << "[Digi2Raw] going to write FeHeaderSparsified"<< std::endl;
     uint8_t length = 0;
     uint16_t header = ((uint16_t)ns & 0x3F);
+    std::cout << "\t header: " << header<< std::endl;
     // module type switch
     if (modtype == 1) {
+      std::cout << "\t for PS"<< std::endl;
       header |= ((uint16_t)np & 0x3F) << 6;
       header |= ((uint16_t)modtype & 0x01) << 12;
       length = 13;
     } else {
+      std::cout << "\t for 2S"<< std::endl;
       header |= ((uint16_t)modtype & 0x01) << 6;
       length = 7;
     }
+    std::cout << "[Digi2Raw] now calling write_n_at_m with args:" << std::endl;
+    std::cout << "\t  length: " << unsigned(length ) << std::endl;
+    std::cout << "\t  bitpointer: " << bitpointer << std::endl;
+    std::cout << "\t  header: " << header << std::endl;
     write_n_at_m(buffer, length, bitpointer, header);
     bitpointer += length;
   }
@@ -193,12 +251,15 @@ namespace Phase2Tracker {
   void Phase2TrackerDigiToRaw::writeCluster(std::vector<uint64_t>& buffer, uint64_t& bitpointer, stackedDigi digi) {
     if (digi.getModuleType() == 0) {
       // 2S module
+      std::cout << "[Digi2Raw] going to write an S cluster from 2S"<< std::endl;
       writeSCluster(buffer, bitpointer, digi, false);
     } else {
       // PS module
       if (digi.getLayer() == LAYER_INNER) {
+        std::cout << "[Digi2Raw] going to write a P cluster from PS"<< std::endl;
         writePCluster(buffer, bitpointer, digi);
       } else {
+        std::cout << "[Digi2Raw] going to write an S cluster from PS"<< std::endl;
         writeSCluster(buffer, bitpointer, digi, true);
       }
     }
@@ -217,17 +278,19 @@ namespace Phase2Tracker {
       scluster <<= 1;
       scluster |= (digi.getThreshold() & 0x01);
     }
+    std::cout << "[Digi2Raw] writing S cluster data: " << scluster<< std::endl;
     write_n_at_m(buffer, csize, bitpointer, scluster);
     bitpointer += csize;
 // debug
-#ifdef EDM_ML_DEBUG
+// #ifdef EDM_ML_DEBUG
     std::ostringstream ss;
-    ss << "S chip: " << digi.getChipId() << " digiX: " << digi.getDigiX() << " raw size: " << digi.getSizeX()
+    ss << "S chip: " << digi.getChipId() << " digiX: " << digi.getDigiX() << " rawX: " << digi.getRawX() << " raw size: " << digi.getSizeX()
        << " digiY: " << digi.getDigiY() << " Layer: " << digi.getLayer();
     LogTrace("Phase2TrackerDigiProducer") << ss.str();
+    std::cout << ss.str() << std::endl;
     ss.clear();
     ss.str("");
-#endif
+// #endif
   }
 
   void Phase2TrackerDigiToRaw::writePCluster(std::vector<uint64_t>& buffer, uint64_t& bitpointer, stackedDigi digi) {
@@ -238,13 +301,14 @@ namespace Phase2Tracker {
     write_n_at_m(buffer, 18, bitpointer, pcluster);
     bitpointer += 18;
 // debug
-#ifdef EDM_ML_DEBUG
+// #ifdef EDM_ML_DEBUG
     std::ostringstream ss;
     ss << "P chip: " << digi.getChipId() << " digiX: " << digi.getDigiX() << " raw size: " << digi.getSizeX()
        << " digiY: " << digi.getDigiY();
     LogTrace("Phase2TrackerDigiProducer") << ss.str();
+    std::cout << ss.str() << std::endl;
     ss.clear();
     ss.str("");
-#endif
+// #endif
   }
 }  // namespace Phase2Tracker

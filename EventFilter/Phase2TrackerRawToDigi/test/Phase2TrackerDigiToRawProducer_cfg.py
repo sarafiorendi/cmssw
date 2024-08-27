@@ -4,28 +4,40 @@ import sys
 process = cms.Process("DigiToRaw")
 
 #process.load( "FWCore.MessageLogger.MessageLogger_cfi" )
-process.MessageLogger = cms.Service(
-  "MessageLogger", 
-   destinations = cms.untracked.vstring ('jobOutput'), # Name of output file
-   categories = cms.untracked.vstring('Phase2TrackerDigiToRawProducer','Phase2TrackerDigiProducer','Phase2TrackerFEDBuffer'),
-   jobOutput = cms.untracked.PSet(
-     enableStatistics = cms.untracked.bool(True),
-     # Threshold=DEBUG for specified L1Trk categories (=argument of edm::Log*()) 
-     # & threshold=ERROR for everything else (since WARNING limit=0).
-     threshold = cms.untracked.string("DEBUG"),
-     DEBUG = cms.untracked.PSet(limit = cms.untracked.int32(0)),
-     INFO = cms.untracked.PSet(limit = cms.untracked.int32(0)),
-     WARNING = cms.untracked.PSet(limit = cms.untracked.int32(0)),
-     # Specified categories
-     Phase2TrackerDigiToRawProducer = cms.untracked.PSet(limit = cms.untracked.int32(-1)),
-     Phase2TrackerDigiProducer = cms.untracked.PSet(limit = cms.untracked.int32(-1)),
-     Phase2TrackerFEDBuffer = cms.untracked.PSet(limit = cms.untracked.int32(-1))
-   )
-)
+# process.MessageLogger = cms.Service(
+#   "MessageLogger", 
+#    destinations = cms.untracked.vstring ('jobOutput'), # Name of output file
+#    categories = cms.untracked.vstring('Phase2TrackerDigiToRawProducer','Phase2TrackerDigiProducer','Phase2TrackerFEDBuffer'),
+#    jobOutput = cms.untracked.PSet(
+#      enableStatistics = cms.untracked.bool(True),
+#      # Threshold=DEBUG for specified L1Trk categories (=argument of edm::Log*()) 
+#      # & threshold=ERROR for everything else (since WARNING limit=0).
+#      threshold = cms.untracked.string("DEBUG"),
+#      DEBUG = cms.untracked.PSet(limit = cms.untracked.int32(0)),
+#      INFO = cms.untracked.PSet(limit = cms.untracked.int32(0)),
+#      WARNING = cms.untracked.PSet(limit = cms.untracked.int32(0)),
+#      # Specified categories
+#      Phase2TrackerDigiToRawProducer = cms.untracked.PSet(limit = cms.untracked.int32(-1)),
+#      Phase2TrackerDigiProducer = cms.untracked.PSet(limit = cms.untracked.int32(-1)),
+#      Phase2TrackerFEDBuffer = cms.untracked.PSet(limit = cms.untracked.int32(-1))
+#    )
+# )
+
+
+# process.MessageLogger = cms.Service("MessageLogger",
+#     cerr = cms.untracked.PSet(
+#         enable = cms.untracked.bool(False)
+#     ),
+#     cout = cms.untracked.PSet(
+#         enable = cms.untracked.bool(True),
+#         threshold = cms.untracked.string('DEBUG')
+#     ),
+#     debugModules = cms.untracked.vstring('*')
+# )
 
 process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1) )
 
 # Input source
 process.source = cms.Source("PoolSource",
@@ -55,6 +67,18 @@ process.out = cms.OutputModule(
     )
 
 process.p = cms.Path(process.Phase2TrackerDigiToRawProducer)
+
+
+### sara, understand es 
+# process.escontent = cms.EDAnalyzer(
+#     "PrintEventSetupContent",
+#     compact=cms.untracked.bool(True),
+#     printProviders=cms.untracked.bool(True),
+# )
+# process.esretrieval = cms.EDAnalyzer(
+#     "PrintEventSetupDataRetrieval", printProviders=cms.untracked.bool(True)
+# )
+# process.e = cms.EndPath(process.out+process.escontent + process.esretrieval)
 
 process.e = cms.EndPath(process.out)
 

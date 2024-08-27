@@ -300,6 +300,11 @@ namespace Phase2Tracker {
     int iword = pos_bit / 64;
     int end_bit = pos_bit % 64 + size;
     uint64_t curr_data = *(uint64_t*)(buffer + (iword * 8));
+//     uint8_t uint8iword = (uint8_t)iword; // Explicit cast to uint8_t, only if that is < 255
+//     uint8_t sara_calculation = (*buffer + (uint8iword * 8));
+//     uint8_t *sara_ptr = &sara_calculation;
+//     uint64_t curr_data = *sara_ptr;
+    
     // mask to keep all bits that should not be replaced
     uint64_t mask = ~(((1LL << size) - 1) << pos_bit);
     if (size == 64) {
@@ -329,7 +334,15 @@ namespace Phase2Tracker {
     int right_bit = 0;
     uint64_t mask = 0;
     int iword = pos_bit / 64;
-    uint64_t curr_data = *(uint64_t*)(buffer + (iword * 8));
+//     uint64_t curr_data = *(uint64_t*)(buffer + (iword * 8));
+    //// begin sara
+    uint8_t uint8iword = (uint8_t)iword; // Explicit cast to uint8_t, only if that is < 255
+    uint8_t sara_calculation = (*buffer + (uint8iword * 8));
+    uint8_t *sara_ptr = &sara_calculation;
+    uint64_t curr_data = *sara_ptr;
+    //// end sara
+
+
     if (pos_bit % 64 + size <= 64) {
       right_bit = left_bit - size;
       mask = (size == 64) ? 0LL : ~(((1LL << size) - 1) << right_bit);

@@ -122,36 +122,44 @@ namespace Phase2Tracker {
     // Fix from Ian
     //for (size_t fedIndex = Phase2Tracker::FED_ID_MIN; fedIndex <= Phase2Tracker::CMS_FED_ID_MAX; ++fedIndex) {
     for (int fedIndex : feds) {
+      std::cout << "looking at fedIndex: " << fedIndex << std::endl;
       const FEDRawData& fed = buffers->FEDData(fedIndex);
+      std::cout << "fed.size(): " << fed.size() << std::endl;
       if (fed.size() == 0)
         continue;
       // construct buffer
       Phase2Tracker::Phase2TrackerFEDBuffer buffer(fed.data(), fed.size());
       // Skip FED if buffer is not a valid tracker FEDBuffer
       if (buffer.isValid() == 0) {
+        std::cout  << "[Phase2Tracker::Phase2TrackerDigiProducer::" << __func__ << "]: \n";
+        std::cout  << "Skipping invalid buffer for FED nr " << fedIndex << endl;
         LogTrace("Phase2TrackerDigiProducer") << "[Phase2Tracker::Phase2TrackerDigiProducer::" << __func__ << "]: \n";
         LogTrace("Phase2TrackerDigiProducer") << "Skipping invalid buffer for FED nr " << fedIndex << endl;
         continue;
       }
 
-#ifdef EDM_ML_DEBUG
+// #ifdef EDM_ML_DEBUG
       std::ostringstream ss;
       ss << " -------------------------------------------- " << endl;
       ss << " buffer debug ------------------------------- " << endl;
       ss << " -------------------------------------------- " << endl;
       ss << " buffer size : " << buffer.bufferSize() << endl;
-      ss << " fed id      : " << *fedIndex << endl;
+//       ss << " fed id      : " << *fedIndex << endl;
+//       ss << " -------------------------------------------- " << endl;
+//       ss << " tracker header debug ------------------------" << endl;
+//       ss << " -------------------------------------------- " << endl;
+      LogTrace("Phase2TrackerDigiProducer") << ss.str();
+      std::cout << ss.str() << std::endl;
+      ss.clear();
+      ss.str("");
+// #endif
+
       ss << " -------------------------------------------- " << endl;
       ss << " tracker header debug ------------------------" << endl;
       ss << " -------------------------------------------- " << endl;
-      LogTrace("Phase2TrackerDigiProducer") << ss.str();
-      ss.clear();
-      ss.str("");
-#endif
-
       Phase2TrackerFEDHeader tr_header = buffer.trackerHeader();
 
-#ifdef EDM_ML_DEBUG
+// #ifdef EDM_ML_DEBUG
       ss << " Version  : " << hex << setw(2) << (int)tr_header.getDataFormatVersion() << endl;
       ss << " Mode     : " << hex << setw(2) << tr_header.getDebugMode() << endl;
       ss << " Type     : " << hex << setw(2) << (int)tr_header.getEventType() << endl;
@@ -170,27 +178,29 @@ namespace Phase2Tracker {
       ss << endl;
       ss << " Nr CBC   : " << hex << setw(16) << (int)tr_header.getNumberOfCBC() << endl;
       ss << " FE/Chip status : ";
-      std::vector<Phase2TrackerFEDFEDebug> all_fe_debug = tr_header.CBCStatus();
-      std::vector<Phase2TrackerFEDFEDebug>::iterator FE_it;
-      for (FE_it = all_fe_debug.begin(); FE_it < all_fe_debug.end(); FE_it++) {
-        if (FE_it->IsOn()) {
-          ss << " FE L1ID: " << endl;
-          ss << "    " << hex << setw(4) << FE_it->getFEL1ID()[0] << dec << endl;
-          ss << "    " << hex << setw(4) << FE_it->getFEL1ID()[1] << dec << endl;
-          for (int i = 0; i < 16; i++) {
-            ss << " Chip Error" << hex << setw(1) << FE_it->getChipError(i) << dec << endl;
-            ss << " Chip L1ID " << hex << setw(4) << FE_it->getChipL1ID(i) << dec << endl;
-            ss << " Chip PA   " << hex << setw(4) << FE_it->getChipPipelineAddress(i) << dec << endl;
-          }
-        }
-      }
+//       std::vector<Phase2TrackerFEDFEDebug> all_fe_debug = tr_header.CBCStatus();
+//       std::vector<Phase2TrackerFEDFEDebug>::iterator FE_it;
+//       for (FE_it = all_fe_debug.begin(); FE_it < all_fe_debug.end(); FE_it++) {
+//         if (FE_it->IsOn()) {
+//           ss << " FE L1ID: " << endl;
+//           ss << "    " << hex << setw(4) << FE_it->getFEL1ID()[0] << dec << endl;
+//           ss << "    " << hex << setw(4) << FE_it->getFEL1ID()[1] << dec << endl;
+//           for (int i = 0; i < 16; i++) {
+//             ss << " Chip Error" << hex << setw(1) << FE_it->getChipError(i) << dec << endl;
+//             ss << " Chip L1ID " << hex << setw(4) << FE_it->getChipL1ID(i) << dec << endl;
+//             ss << " Chip PA   " << hex << setw(4) << FE_it->getChipPipelineAddress(i) << dec << endl;
+//           }
+//         }
+//       }
+      std::cout << ss.str() << std::endl;
       LogTrace("Phase2TrackerDigiProducer") << ss.str();
       ss.clear();
       ss.str("");
       ss << " -------------------------------------------- " << endl;
       ss << " Payload  ----------------------------------- " << endl;
       ss << " -------------------------------------------- " << endl;
-#endif
+      std::cout << ss.str() << std::endl;
+// #endif
       // check readout mode
       if (tr_header.getReadoutMode() == READOUT_MODE_PROC_RAW) {
         // loop channels
@@ -279,20 +289,22 @@ namespace Phase2Tracker {
           for (int iconc = 0; iconc < 4; iconc++) {
             const Phase2TrackerFEDChannel& channel = buffer.channel(ichan);
             if (channel.length() > 0) {
-#ifdef EDM_ML_DEBUG
+              std::cout << " iconc " << iconc << " at ichan " << ichan << std::endl;
+              std::cout << " channel.length() " << channel.length() << std::endl;
+// #ifdef EDM_ML_DEBUG
               ss << dec << " id from cabling : " << detid << endl;
               ss << dec << " reading channel : " << iconc << " on FE " << ife;
               ss << dec << " with length  : " << (int)channel.length() << endl;
-#endif
+// #endif
               // create appropriate unpacker
               if (channel.dettype() == DET_Son2S) {
                 Phase2TrackerFEDZSSon2SChannelUnpacker unpacker = Phase2TrackerFEDZSSon2SChannelUnpacker(channel);
                 while (unpacker.hasData()) {
                   unpacker.Merge();
-#ifdef EDM_ML_DEBUG
+// #ifdef EDM_ML_DEBUG
                   ss << std::dec << " Son2S " << (int)unpacker.clusterX() << " " << (int)unpacker.clusterSize() << " "
                      << (int)unpacker.chipId() << endl;
-#endif
+// #endif
                   // BODGE FIX from Ian -- Must understand why strip number wrong!
                   if (unpacker.clusterX() < 1016) {
                     if (unpacker.rawX() % 2) {
@@ -311,10 +323,10 @@ namespace Phase2Tracker {
                 Phase2TrackerFEDZSSonPSChannelUnpacker unpacker = Phase2TrackerFEDZSSonPSChannelUnpacker(channel);
                 while (unpacker.hasData()) {
                   unpacker.Merge();
-#ifdef EDM_ML_DEBUG
+// #ifdef EDM_ML_DEBUG
                   ss << std::dec << " SonPS " << (int)unpacker.clusterX() << " " << (int)unpacker.clusterSize() << " "
                      << (int)unpacker.chipId() << endl;
-#endif
+// #endif
                   // BODGE FIX from Ian -- Must understand why strip number wrong!
                   if (unpacker.clusterX() < 1016) {
                      clustersTop.push_back(Phase2TrackerCluster1D(
@@ -328,10 +340,10 @@ namespace Phase2Tracker {
                 Phase2TrackerFEDZSPonPSChannelUnpacker unpacker = Phase2TrackerFEDZSPonPSChannelUnpacker(channel);
                 while (unpacker.hasData()) {
                   unpacker.Merge();
-#ifdef EDM_ML_DEBUG
+// #ifdef EDM_ML_DEBUG
                   ss << std::dec << " PonPS " << (int)unpacker.clusterX() << " " << (int)unpacker.clusterSize() << " "
                      << (int)unpacker.clusterY() << " " << (int)unpacker.chipId() << endl;
-#endif
+// #endif
                   // BODGE FIX from Ian -- Must understand why strip number wrong!
                   if (unpacker.clusterX() < 1016) {
                      clustersBottom.push_back(
@@ -342,12 +354,13 @@ namespace Phase2Tracker {
                   unpacker++;
                 }
               }
-#ifdef EDM_ML_DEBUG
+// #ifdef EDM_ML_DEBUG
               ss << endl;
+              std::cout << ss.str() << std::endl;
               LogTrace("Phase2TrackerDigiProducer") << ss.str();
               ss.clear();
               ss.str("");
-#endif
+// #endif
             }  // end reading CBC's channel
             ichan++;
           }  // end loop on channels

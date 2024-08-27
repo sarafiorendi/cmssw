@@ -8,7 +8,7 @@ process.load("FWCore.MessageLogger.MessageLogger_cfi")
 process.load("CondCore.CondDB.CondDB_cfi")
 
 # output database (in this case local sqlite file)
-process.CondDB.connect = 'sqlite_file:OTandITDTCCablingMap.db'
+process.CondDB.connect = 'sqlite_file:OTandITDTCCablingMap_T33.db'
 
 # A data source must always be defined. We don't need it, so here's a dummy one.
 process.source = cms.Source("EmptyIOVSource",
@@ -33,7 +33,7 @@ process.otdtccablingmap_producer = cms.EDAnalyzer("DTCCablingMapProducer",
     #dummy_fill_mode = cms.string("DUMMY_FILL_DISABLED"),
     #dummy_fill_mode = cms.string("DUMMY_FILL_ELINK_ID"),
     modulesToDTCCablingCSVFileNames = cms.vstring(
-     "CondTools/SiPhase2Tracker/data/CMSSWCablingMap__OT800_IT700.csv"
+     "CondTools/SiPhase2Tracker/data/CMSSWCablingMapOuter_T33.csv"
     ),
     dummy_fill_mode = cms.string("DUMMY_FILL_ELINK_ID"),
     csvFormat_ncolumns   = cms.uint32( 3),

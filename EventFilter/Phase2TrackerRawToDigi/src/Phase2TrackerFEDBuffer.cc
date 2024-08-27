@@ -10,8 +10,13 @@ namespace Phase2Tracker {
     LogTrace("Phase2TrackerFEDBuffer") << "[Phase2Tracker::Phase2TrackerFEDBuffer::" << __func__ << "] "
                                        << "\n";
     LogTrace("Phase2TrackerFEDBuffer") << "content of buffer with size: " << int(fedBufferSize) << std::endl;
+
+    std::cout  << "[Phase2TrackerFEDBuffer] content of buffer with size: " << int(fedBufferSize) << std::endl;
+
     for (size_t i = 0; i < fedBufferSize; i += 8) {
       uint64_t word = read64(i, buffer_);
+      std::cout  << "[Phase2TrackerFEDBuffer] word " << std::setfill(' ') << std::setw(2) << i / 8 << " | " << std::hex
+                                         << std::setw(16) << std::setfill('0') << word << std::dec  << std::endl;
       LogTrace("Phase2TrackerFEDBuffer") << " word " << std::setfill(' ') << std::setw(2) << i / 8 << " | " << std::hex
                                          << std::setw(16) << std::setfill('0') << word << std::dec << std::endl;
     }
@@ -25,6 +30,8 @@ namespace Phase2Tracker {
     // tracker header follows daq header
     trackerHeader_ = Phase2TrackerFEDHeader(buffer_ + 8);
     valid_ = trackerHeader_.isValid();
+    std::cout  << "[Phase2TrackerFEDBuffer] trackerHeader_.dataFormatVersion()? " << unsigned(trackerHeader_.getDataFormatVersion()) << std::endl;
+    std::cout  << "[Phase2TrackerFEDBuffer] trackerHeader_.isValid()? " << trackerHeader_.isValid() << std::endl;
     // get pointer to payload
     payloadPointer_ = getPointerToPayload();
     // fill list of Phase2TrackerFEDChannels and get pointers to trigger and comissioning data

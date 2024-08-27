@@ -17,7 +17,7 @@ process.MessageLogger = cms.Service("MessageLogger",
 process.load("CondCore.CondDB.CondDB_cfi")
 
 # input database (in this case the local sqlite files)
-process.CondDB.connect = 'sqlite_file:OTandITDTCCablingMap.db'
+process.CondDB.connect = 'sqlite_file:OTandITDTCCablingMap_T33.db'
 
 process.PoolDBESSource = cms.ESSource("PoolDBESSource",
     process.CondDB,
@@ -27,6 +27,20 @@ process.PoolDBESSource = cms.ESSource("PoolDBESSource",
         tag = cms.string("DTCCablingMapProducerUserRun")
     )),
 )
+
+# input  from database 
+# from CondCore.CondDB.CondDB_cfi import *
+# CondDBCabling = CondDB.clone(connect = cms.string('frontier://FrontierProd/CMS_CONDITIONS'))
+
+# process.PoolDBESSource = cms.ESSource("PoolDBESSource",
+#     process.CondDB,
+#     CondDBCabling,
+#     DumpStat=cms.untracked.bool(True),
+#     toGet = cms.VPSet(cms.PSet(
+#         record = cms.string('TrackerDetToDTCELinkCablingMapRcd'),
+#         tag = cms.string("TrackerDetToDTCELinkCablingMap__OT616_200_IT700__T23_Full")
+#     )),
+# )
 
 # A data source must always be defined. We don't need it, so here's a dummy one.
 process.source = cms.Source("EmptyIOVSource",

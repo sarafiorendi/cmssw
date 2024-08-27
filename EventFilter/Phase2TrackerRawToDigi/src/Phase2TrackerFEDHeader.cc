@@ -31,9 +31,10 @@ namespace Phase2Tracker {
     numberOfCBC_ = numberOfCBC();
     pointerToData_ = pointerToData();
 
-    LogTrace("Phase2TrackerFEDBuffer") << "[Phase2Tracker::Phase2TrackerFEDHeader::" << __func__ << "]: \n"
+    std::cout  << "[Phase2Tracker::Phase2TrackerFEDHeader::" << __func__ << "]: \n"
                                        << " Tracker Header contents:\n"
                                        << "  -- Data Format Version : " << uint32_t(dataFormatVersion_) << "\n"
+                                       << "  -- Data Format Version uns: " << unsigned(dataFormatVersion_) << "\n"
                                        << "  -- Debug Level         : " << debugMode_ << "\n"
                                        << "  -- Operating Mode      : " << readoutMode_ << "\n"
                                        << "  -- Condition Data      : " << (conditionData_ ? "Present" : "Absent")
@@ -41,7 +42,19 @@ namespace Phase2Tracker {
                                        << "  -- Data Type           : " << (dataType_ ? "Real" : "Fake") << "\n"
                                        << "  -- Glib Stat registers : " << std::hex << std::setw(16) << glibStatusCode_
                                        << "\n"
-                                       << "  -- connected CBC       : " << std::dec << numberOfCBC_ << "\n";
+                                       << "  -- connected CBC       : " << std::dec << numberOfCBC_ << "\n" 
+                                       << std::endl;
+//     LogTrace("Phase2TrackerFEDBuffer") << "[Phase2Tracker::Phase2TrackerFEDHeader::" << __func__ << "]: \n"
+//                                        << " Tracker Header contents:\n"
+//                                        << "  -- Data Format Version : " << uint32_t(dataFormatVersion_) << "\n"
+//                                        << "  -- Debug Level         : " << debugMode_ << "\n"
+//                                        << "  -- Operating Mode      : " << readoutMode_ << "\n"
+//                                        << "  -- Condition Data      : " << (conditionData_ ? "Present" : "Absent")
+//                                        << "\n"
+//                                        << "  -- Data Type           : " << (dataType_ ? "Real" : "Fake") << "\n"
+//                                        << "  -- Glib Stat registers : " << std::hex << std::setw(16) << glibStatusCode_
+//                                        << "\n"
+//                                        << "  -- connected CBC       : " << std::dec << numberOfCBC_ << "\n";
   }
 
   uint8_t Phase2TrackerFEDHeader::dataFormatVersion() {
@@ -52,6 +65,7 @@ namespace Phase2Tracker {
       ss << "WARNING: FED has been marked as invalid and will be skipped \n";
       ss << "Cause: Invalid Data Format Version in Tracker Header : ";
       printHex(&header_first_word_, 1, ss);
+      std::cout << ss.str() << std::endl;;
       LogTrace("Phase2TrackerFEDHeader") << ss.str() << std::endl;
       valid_ = 0;
     }
@@ -59,7 +73,9 @@ namespace Phase2Tracker {
   }
 
   void Phase2TrackerFEDHeader::setDataFormatVersion(uint8_t version) {
+    std::cout << "setting data format version: " << VERSION_L << " " << VERSION_S << " " << unsigned(version)  << std::endl;;
     write_n_at_m(headercopy_, VERSION_L, VERSION_S, (uint64_t)version);
+    std::cout << "reading data format version: " << read_n_at_m(headercopy_, VERSION_L, VERSION_S)  << std::endl;;
   }
 
   void Phase2TrackerFEDHeader::setDebugMode(READ_MODE mode) {
@@ -102,13 +118,17 @@ namespace Phase2Tracker {
   FEDReadoutMode Phase2TrackerFEDHeader::readoutMode() {
     // readout mode is first bit of event type
     uint8_t mode = static_cast<uint8_t>(eventType_ >> 2) & 0x3;
+    std::cout << "[Phase2TrackerFEDHeader::readoutMode] mode" << unsigned(mode) << std::endl;
 
     switch (mode) {  // check if it is one of correct modes
       case 2:
+        std::cout << "[Phase2TrackerFEDHeader::readoutMode] FEDReadoutMode READOUT_MODE_PROC_RAW" << std::endl;
         return FEDReadoutMode(READOUT_MODE_PROC_RAW);
       case 1:
+        std::cout << "[Phase2TrackerFEDHeader::readoutMode] FEDReadoutMode READOUT_MODE_ZERO_SUPPRESSED" << std::endl;
         return FEDReadoutMode(READOUT_MODE_ZERO_SUPPRESSED);
       default:  // else create Exception
+        std::cout << "[Phase2TrackerFEDHeader::readoutMode] default" << std::endl;
         std::ostringstream ss;
         ss << "[Phase2Tracker::Phase2TrackerFEDHeader::" << __func__ << "] ";
         ss << "WARNING: Skipping FED ";
@@ -137,10 +157,15 @@ namespace Phase2Tracker {
     uint64_t fe_status_1 = (uint64_t)(read_n_at_m(headercopy_, 64, 64));
     std::vector<bool> status(72, false);
     for (int i = 0; i < 72; i++) {
-      if (i < 64) {
-        status[i] = (fe_status_1 >> i) & 0x1;
+//       if (i < 64) {
+//         status[i] = (fe_status_1 >> i) & 0x1;
+//       } else {
+//         status[i] = (fe_status_0 >> (i - 64)) & 0x1;
+//       }
+      if (i < 8) {
+        status[72-i-1] = (fe_status_0 >> i) & 0x1;
       } else {
-        status[i] = (fe_status_0 >> (i - 64)) & 0x1;
+        status[72-i-1] = (fe_status_1 >> (i - 8)) & 0x1;
       }
     }
     return status;
@@ -161,11 +186,16 @@ namespace Phase2Tracker {
         }
       }
     }
+    // write vector of size 8 starting at position 0
     write_n_at_m(headercopy_, 8, 0, (uint64_t)fe_status_0);
+    // write vector of size 64 starting at position 64
     write_n_at_m(headercopy_, 64, 64, (uint64_t)fe_status_1);
   }
 
   void Phase2TrackerFEDHeader::setNumberOfCBC(uint16_t num) {
+    std::cout << "[FEDHEader::setNumberOfCBC] " << num << std::endl;
+    std::cout << "[FEDHEader::CBC_NUMBER_L] " << CBC_NUMBER_L << std::endl;
+    std::cout << "[FEDHEader::CBC_NUMBER_S] " << CBC_NUMBER_S << std::endl;
     write_n_at_m(headercopy_, CBC_NUMBER_L, CBC_NUMBER_S, (uint64_t)num);
   }
 
@@ -195,6 +225,8 @@ namespace Phase2Tracker {
     // check that #CBC = CBC_PER_FE_DEBUG x #FE
     int ncbc = CBC_PER_FE_DEBUG;
     int fe_num = std::count(status.begin(), status.end(), true);
+    std::cout << "[FEDHEader] cbc_num = " << cbc_num << std::endl;
+    std::cout << "[FEDHEader] fed num = " << fe_num << " ncbc = " << ncbc << std::endl;
     if (cbc_num != fe_num * ncbc) {
       std::ostringstream ss;
       ss << "[Phase2Tracker::Phase2TrackerFEDHeader::" << __func__ << "] ";
