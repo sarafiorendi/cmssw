@@ -155,7 +155,9 @@ class PVFitter {
   double minVtxWgt_;
   double maxVtxR_;
   double maxVtxZ_;
-  double errorScale_;
+  double errorScaleX_;
+  double errorScaleY_;
+  double errorScaleZ_;
   double sigmaCut_;         
   double minSumPt_;         
 	

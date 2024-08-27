@@ -71,7 +71,9 @@ FcnBeamSpotFitPV::operator() (const std::vector<double>& pars) const
   double dxdz = pars[6];
   double dydz = pars[7];
   double sigb3 = pars[8];
-  double escale = pars[9];
+  double escalex = pars[9];
+  double escaley = pars[10];
+  double escalez = pars[11];
   //
   // covariance matrix of the beamspot distribution
   //
@@ -131,9 +133,9 @@ FcnBeamSpotFitPV::operator() (const std::vector<double>& pars) const
     corr13 = (*ipv).posCorr[1];
     corr23 = (*ipv).posCorr[2];
     ev3 = (*ipv).posError[2];
-    ev1 *= escale;
-    ev2 *= escale;
-    ev3 *= escale;
+    ev1 *= escalex;
+    ev2 *= escaley;
+    ev3 *= escalez;
     //
     // vertex covariance matrix
     //

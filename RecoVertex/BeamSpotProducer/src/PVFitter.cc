@@ -76,7 +76,9 @@ void PVFitter::initialize(const edm::ParameterSet& iConfig,
   minVtxWgt_         = iConfig.getParameter<edm::ParameterSet>("PVFitter").getUntrackedParameter<double>("minVertexMeanWeight");
   maxVtxR_           = iConfig.getParameter<edm::ParameterSet>("PVFitter").getUntrackedParameter<double>("maxVertexR");
   maxVtxZ_           = iConfig.getParameter<edm::ParameterSet>("PVFitter").getUntrackedParameter<double>("maxVertexZ");
-  errorScale_        = iConfig.getParameter<edm::ParameterSet>("PVFitter").getUntrackedParameter<double>("errorScale");
+  errorScaleX_       = iConfig.getParameter<edm::ParameterSet>("PVFitter").getUntrackedParameter<double>("errorScaleX");
+  errorScaleY_       = iConfig.getParameter<edm::ParameterSet>("PVFitter").getUntrackedParameter<double>("errorScaleY");
+  errorScaleZ_       = iConfig.getParameter<edm::ParameterSet>("PVFitter").getUntrackedParameter<double>("errorScaleZ");
   sigmaCut_          = iConfig.getParameter<edm::ParameterSet>("PVFitter").getUntrackedParameter<double>("nSigmaCut");
   fFitPerBunchCrossing=iConfig.getParameter<edm::ParameterSet>("PVFitter").getUntrackedParameter<bool>("FitPerBunchCrossing");
   useOnlyFirstPV_    = iConfig.getParameter<edm::ParameterSet>("PVFitter").getUntrackedParameter<bool>("useOnlyFirstPV");
@@ -228,8 +230,12 @@ bool PVFitter::runBXFitter() {
     upar.Add("dxdz"  , 0.   , 0.0002, -0.1, 0.1);  // 6
     upar.Add("dydz"  , 0.   , 0.0002, -0.1, 0.1);  // 7
     upar.Add("ez"    , 1.   , 0.1   , 0.  , 30.);  // 8
-    upar.Add("scale", errorScale_   , errorScale_/10.,
-                      errorScale_/2., errorScale_*2.);      // 9
+    upar.Add("scalex", errorScaleX_   , errorScaleX_/10.,
+                       errorScaleX_/2., errorScaleX_*2.);      // 9
+    upar.Add("scaley", errorScaleY_   , errorScaleY_/10.,
+                       errorScaleY_/2., errorScaleY_*2.);      // 9
+    upar.Add("scalez", errorScaleZ_   , errorScaleZ_/10.,
+                       errorScaleZ_/2., errorScaleZ_*2.);      // 9
     MnMigrad migrad(*fcn, upar);
 
     //
@@ -239,6 +245,8 @@ bool PVFitter::runBXFitter() {
     upar.Fix(6);
     upar.Fix(7);
     upar.Fix(9);
+    upar.Fix(10);
+    upar.Fix(11);
     FunctionMinimum ierr = migrad(0,1.);
     if ( !ierr.IsValid() ) {
         edm::LogInfo("PVFitter") << "3D beam spot fit failed in 1st iteration" << std::endl;
@@ -384,7 +392,12 @@ bool PVFitter::runFitter() {
       upar.Add("dxdz"  , 0.   	    , 0.0002	 , -0.1 	, 0.1 	    ); // 6
       upar.Add("dydz"  , 0.   	    , 0.0002	 , -0.1 	, 0.1 	    ); // 7
       upar.Add("ez"    , 1.   	    , 0.1   	 , 0.   	, 30. 	    ); // 8
-      upar.Add("scale" , errorScale_, errorScale_/10.,errorScale_/2., errorScale_*2.); // 9  
+	  upar.Add("scalex", errorScaleX_   , errorScaleX_/10.,
+						 errorScaleX_/2., errorScaleX_*2.);      // 9
+	  upar.Add("scaley", errorScaleY_   , errorScaleY_/10.,
+						 errorScaleY_/2., errorScaleY_*2.);      // 10
+	  upar.Add("scalez", errorScaleZ_   , errorScaleZ_/10.,
+						 errorScaleZ_/2., errorScaleZ_*2.);      // 11
       MnMigrad migrad(*fcn, upar);
       //
       // first iteration without correlations
@@ -393,6 +406,8 @@ bool PVFitter::runFitter() {
       migrad.Fix(6);
       migrad.Fix(7);
       migrad.Fix(9);
+      migrad.Fix(10);
+      migrad.Fix(11);
       FunctionMinimum ierr = migrad(0,1.);
       if ( !ierr.IsValid() ) {
           edm::LogWarning("PVFitter") << "3D beam spot fit failed in 1st iteration" << std::endl;
