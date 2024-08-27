@@ -66,29 +66,15 @@ void Phase2TrackerDumpDigi::beginRun(edm::Run const& run, edm::EventSetup const&
     cabling_ = &es.getData(ph2CablingESToken_);
     tGeom_ = &es.getData(geomToken_);
     tTopo_ = &es.getData(topoToken_);
-
-    // build map of upper and lower for each module
-//     for (auto iu = tGeom_->detUnits().begin(); iu != tGeom_->detUnits().end(); ++iu) {
-//       unsigned int detId_raw = (*iu)->geographicalId().rawId();
-//       DetId detId = DetId(detId_raw);
-//       if (detId.det() == DetId::Detector::Tracker) {
-//         if (tTopo_->isLower(detId) != 0) {
-//           stackMap_[tTopo_->stack(detId)].first = detId;
-//         }
-//         if (tTopo_->isUpper(detId) != 0) {
-//           stackMap_[tTopo_->stack(detId)].second = detId;
-//         }
-//       }
-//     }  // end loop on detunits
-  }
+}
 
 void Phase2TrackerDumpDigi::analyze(const edm::Event& event, const edm::EventSetup& es) {
-//     std::unique_ptr<FEDRawDataCollection> buffers(new FEDRawDataCollection);
+
   edm::Handle<Phase2TrackerCluster1DCollectionNew> clusters_handle;
   event.getByToken(token_, clusters_handle);
+  
   std::cout << "size of clusters: " << clusters_handle.product()->size() <<  std::endl;
   for (const auto& DSVItr : *clusters_handle) {
-    std::cout << "inside loop" << std::endl;
     // Getting the id of detector unit
     uint32_t rawid(DSVItr.detId());
     DetId detId(rawid);

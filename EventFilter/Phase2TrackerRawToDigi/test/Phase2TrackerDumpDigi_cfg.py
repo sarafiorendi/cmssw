@@ -5,7 +5,7 @@ process = cms.Process("DumpDigi")
 
 process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
 # Input source
 # process.source = cms.Source("PoolSource",
@@ -17,11 +17,12 @@ process.Phase2TrackerDumpDigi = cms.EDAnalyzer(
     'Phase2TrackerDumpDigi',
     ProductLabel = cms.InputTag("siPhase2Clusters")
 )
-
+### were created by 
+### https://github.com/cms-sw/cmssw/blob/bbbd522740e9dec3d103ceadd44fc0361310e22d/RecoLocalTracker/SiPhase2Clusterizer/python/phase2TrackerClusterizer_cfi.py#L4
 
 ### test our digis after digi-raw-digi ###
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring("file:rawtodigi.root")    
+    fileNames = cms.untracked.vstring("file:raw2digi.root")    
 )
 process.Phase2TrackerDumpDigi.ProductLabel = cms.InputTag("Phase2TrackerDigiProducer", "Sparsified", "RawToDigi")
 ### end test our digis after digi-raw-digi ###
