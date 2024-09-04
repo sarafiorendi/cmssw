@@ -91,7 +91,7 @@ void DTCCablingMapTestReader::analyze(const edm::Event& iEvent, const edm::Event
     }
     dump_DetToElink << "}" << endl;
 
-    edm::LogInfo("DetToElinkCablingMapDump") << dump_DetToElink.str();
+//     edm::LogInfo("DetToElinkCablingMapDump") << dump_DetToElink.str();
   }
 
   {
@@ -111,7 +111,21 @@ void DTCCablingMapTestReader::analyze(const edm::Event& iEvent, const edm::Event
     }
     dump_ElinkToDet << "}" << endl;
 
-    edm::LogInfo("DetToElinkCablingMapDump") << dump_ElinkToDet.str();
+//     edm::LogInfo("DetToElinkCablingMapDump") << dump_ElinkToDet.str();
+  }
+
+  {
+    ostringstream dump_to_compare;
+
+    dump_to_compare << "Map as from Phase2TrackerCabling:" << endl;
+    std::vector<DTCELinkId> const knownDTCELinkIds = p_cablingMap->getKnownDTCELinkIds();
+
+    for (DTCELinkId const& currentELink : knownDTCELinkIds) {
+      auto detId_it = p_cablingMap->dtcELinkIdToDetId(currentELink);
+      dump_to_compare << detId_it->second << ", ";
+      dump_to_compare << unsigned(currentELink.dtc_id()) << ", " << unsigned(currentELink.gbtlink_id()) << " \n";
+    }
+    edm::LogInfo("DetToElinkCablingMapDump") << dump_to_compare.str();
   }
 }
 

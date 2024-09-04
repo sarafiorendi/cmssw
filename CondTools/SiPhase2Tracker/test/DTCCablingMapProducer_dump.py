@@ -17,7 +17,7 @@ process.MessageLogger = cms.Service("MessageLogger",
 process.load("CondCore.CondDB.CondDB_cfi")
 
 # input database (in this case the local sqlite files)
-process.CondDB.connect = 'sqlite_file:OTandITDTCCablingMap.db'
+process.CondDB.connect = 'sqlite_file:OTandITDTCCablingMap_T33.db'
 
 process.PoolDBESSource = cms.ESSource("PoolDBESSource",
     process.CondDB,
