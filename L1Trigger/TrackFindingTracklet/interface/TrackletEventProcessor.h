@@ -3,6 +3,7 @@
 #define L1Trigger_TrackFindingTracklet_interface_TrackletEventProcessor_h
 
 #include "L1Trigger/TrackFindingTracklet/interface/Timer.h"
+#include "DataFormats/L1TrackTrigger/interface/L1StubTriplet.h"
 
 #include <map>
 #include <memory>
@@ -39,6 +40,7 @@ namespace trklet {
     void printSummary();
 
     const std::vector<Track>& tracks() const { return tracks_; }
+    const std::vector<L1StubTriplet>& triplets() const { return acceptedtriplets_; }
 
   private:
     void configure(std::istream& inwire, std::istream& inmem, std::istream& inproc);
@@ -72,6 +74,8 @@ namespace trklet {
     Timer PDTimer_;
 
     std::vector<Track> tracks_;
+    std::vector<L1StubTriplet> acceptedtriplets_;
+    
   };
 
 };  // namespace trklet

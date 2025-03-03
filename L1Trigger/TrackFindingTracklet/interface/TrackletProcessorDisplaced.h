@@ -36,7 +36,7 @@ namespace trklet {
 
     void addInput(MemoryBase* memory, std::string input) override;
 
-    void execute(unsigned int iSector, double phimin, double phimax);
+    void execute(unsigned int iSector, double phimin, double phimax, std::vector<L1StubTriplet>&);
 
   private:
     int iTC_;
@@ -61,6 +61,9 @@ namespace trklet {
 
     std::vector<VMStubsTEMemory*> innervmstubs_;
     std::vector<VMStubsTEMemory*> outervmstubs_;
+
+//     std::vector<L1StubTriplet> acceptedtriplets_;
+    
   };
 
 };  // namespace trklet

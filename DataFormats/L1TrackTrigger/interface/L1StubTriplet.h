@@ -44,27 +44,6 @@ public:
   void setTPDUnit(int i) { tpdunit_ = i; }
   
 //   int rzbin = (outervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1));
-  
-// 
-//   /// Detector element
-//   DetId getDetId() const { return theDetId; }
-//   void setDetId(DetId aDetId) { theDetId = aDetId; }
-//   unsigned int getStackMember() const { return theStackMember; }
-//   void setStackMember(unsigned int aStackMember) { theStackMember = aStackMember; }
-// 
-//   /// Rows and columns to get rid of Digi collection
-//   std::vector<int> findRows() const;
-//   std::vector<int> findCols() const;
-//   void setCoordinates(std::vector<int> a, std::vector<int> b) {
-//     theRows = a;
-//     theCols = b;
-//   }
-//   std::vector<int> getRows() const { return theRows; }
-//   std::vector<int> getCols() const { return theCols; }
-
-//   /// Single hit coordinates
-//   /// Information
-//   std::string print(unsigned int i = 0) const;
 
 private:
 
@@ -81,59 +60,4 @@ private:
   int tpdunit_;
   
 };  /// Close class
-
-/*! \brief   Implementation of methods
- *  \details Here, in the header file, the methods which do not depend
- *           on the specific type <T> that can fit the template.
- *           Other methods, with type-specific features, are implemented
- *           in the source file.
- */
-
-/// Default Constructor
-/// NOTE: to be used with setSomething(...) methods
-// L1StubTriplet::L1StubTriplet() {
-//   /// Set default data members
-// //   theHits.clear();
-//   innerStubRapprox_ = 0.;
-// }
-
-// /// Another Constructor
-// template <typename T>
-// TTCluster<T>::TTCluster(std::vector<T> aHits, DetId aDetId, unsigned int aStackMember, bool storeLocal) {
-//   /// Set data members
-//   this->setHits(aHits);
-//   this->setDetId(aDetId);
-//   this->setStackMember(aStackMember);
-// 
-//   theRows.clear();
-//   theCols.clear();
-//   if (storeLocal) {
-//     this->setCoordinates(this->findRows(), this->findCols());
-//   }
-// }
-
-/// Destructor
-// L1StubTriplet::~L1StubTriplet() {}
-
-/// Information
-// template <typename T>
-// std::string TTCluster<T>::print(unsigned int i) const {
-//   std::string padding("");
-//   for (unsigned int j = 0; j != i; ++j) {
-//     padding += "\t";
-//   }
-// 
-//   std::stringstream output;
-//   output << padding << "TTCluster:\n";
-//   padding += '\t';
-//   output << padding << "DetId: " << theDetId.rawId() << '\n';
-//   output << padding << "member: " << theStackMember << ", cluster size: " << theHits.size() << '\n';
-//   return output.str();
-// }
-// 
-// template <typename T>
-// std::ostream& operator<<(std::ostream& os, const TTCluster<T>& aTTCluster) {
-//   return (os << aTTCluster.print());
-// }
-
 #endif

@@ -374,9 +374,9 @@ void Sector::executeTP() {
   }
 }
 
-void Sector::executeTPD() {
+void Sector::executeTPD(std::vector<L1StubTriplet>& acceptedtriplets_) {
   for (auto& i : TPD_) {
-    i->execute(isector_, phimin_, phimax_);
+    i->execute(isector_, phimin_, phimax_, acceptedtriplets_);
   }
 }
 

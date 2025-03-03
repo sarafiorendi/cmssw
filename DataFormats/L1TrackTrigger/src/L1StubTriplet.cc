@@ -13,21 +13,6 @@ L1StubTriplet::L1StubTriplet() :
   region_(0),
   tpdunit_(0)
 {
-  /// Set default data members
-//   rapprox_.clear();
-//   zapprox_.clear();
-//   bend_.clear();
-//   rzbin_.clear();
-//   index_.clear();
-//   layerdisk_.clear();
-  
-//   rapprox_.reserve(3); 
-//   zapprox_.reserve(3); 
-//   bend_.reserve(3); 
-//   rzbin_.reserve(3); 
-//   index_.reserve(3); 
-//   layerdisk_.reserve(3); 
-
 }
 
 // Destructor definition

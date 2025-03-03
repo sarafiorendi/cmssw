@@ -35,6 +35,7 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
   outerallstubs_.clear();
   innervmstubs_.clear();
   outervmstubs_.clear();
+//   acceptedtriplets_.clear();
 
   // set layer/disk types based on input seed name
   initLayerDisksandISeedDisp(layerdisk1_, layerdisk2_, layerdisk3_, iSeed_);
@@ -60,6 +61,8 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
   }
 
   // set TC index
+//   std::cout << "name.back(): " << name.back() << std::endl;
+//   std::cout << "region: " << region << std::endl;
   iTC_ = region;
   TCIndex_ = (iSeed_ << settings.nbitsseed()) + iTC_;
 
@@ -157,7 +160,7 @@ void TrackletProcessorDisplaced::addInput(MemoryBase* memory, string input) {
   throw cms::Exception("BadConfig") << __FILE__ << " " << __LINE__ << " Could not find input : " << input;
 }
 
-void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, double phimax) {
+void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, double phimax, std::vector<L1StubTriplet>& acceptedtriplets_) {
   phimin_ = phimin;
   phimax_ = phimax;
   iSector_ = iSector;
@@ -254,12 +257,19 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
     //
 
     bool notemptytrpbuffer = !trpdatabuffer.empty();
+    int count_trpunits = 0;
     for (auto& trpunit : trpunits_) {
+    
       if (trpunit.idle() && notemptytrpbuffer) {  // only fill one idle unit every step
         trpunit.init(std::get<0>(trpbuffer_).read());
         notemptytrpbuffer = false;  //prevent initializing another triplet engine unit
       }
-      trpunit.step();
+//       std::cout << "calling trpunit " << count_trpunits << std::endl;
+//       trpunit.step();
+      trpunit.step(acceptedtriplets_, iSector, iTC_, count_trpunits);
+      count_trpunits++;
+//       std::cout << "[TPD] accepted triplets size: " << acceptedtriplets_.size() << std::endl;
+      
     }
 
     //
@@ -278,6 +288,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
     if ((!trpbuffernearfull) && midmem < midmemend && istub < middleallstubs_[midmem]->nStubs()) {
       const Stub* stub = middleallstubs_[midmem]->getStub(istub);
 
+//       cout << "mid stub from mem " << middleallstubs_[midmem]->getName() << " at " << istub << endl;
       if (settings_.debugTracklet()) {
         edm::LogVerbatim("Tracklet") << "In " << getName() << " have middle stub";
       }

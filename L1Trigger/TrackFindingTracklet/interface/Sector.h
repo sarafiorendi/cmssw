@@ -5,6 +5,7 @@
 #include "L1Trigger/TrackFindingTracklet/interface/L1TStub.h"
 #include "L1Trigger/TrackFindingTracklet/interface/SLHCEvent.h"
 #include "L1Trigger/TrackFindingTracklet/interface/StubStreamData.h"
+#include "DataFormats/L1TrackTrigger/interface/L1StubTriplet.h"
 
 #include <string>
 #include <map>
@@ -110,7 +111,7 @@ namespace trklet {
     void executeTED();
     void executeTRE();
     void executeTP();
-    void executeTPD();
+    void executeTPD(std::vector<L1StubTriplet>&);
     void executeTC();
     void executeTCD();
     void executePR();
