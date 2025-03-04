@@ -49,7 +49,7 @@ void TripletEngineUnit::reset() {
 }
 
 // void TripletEngineUnit::step() {
-void TripletEngineUnit::step(std::vector<L1StubTriplet>& acceptedtriplets, unsigned int iSector, int iTC, int count_trpunits) {
+void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned int iSector, int iTC, int count_trpunits) {
   if (goodtriplet__) {
     candtriplets_.store(candtriplet__);
   }
@@ -117,8 +117,7 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& acceptedtriplets, unsig
     myTriplet.setSector(iSector);
     myTriplet.setRegion(iTC);
     myTriplet.setTPDUnit(count_trpunits);
-//     std::cout << iTC << std::endl;
-    acceptedtriplets.push_back(myTriplet);
+    foundtriplets.push_back(myTriplet);
   }
 
   // go to next projection (looping through all inner stubs for each outer stub)

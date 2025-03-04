@@ -40,7 +40,8 @@ namespace trklet {
     void printSummary();
 
     const std::vector<Track>& tracks() const { return tracks_; }
-    const std::vector<L1StubTriplet>& triplets() const { return acceptedtriplets_; }
+    const std::vector<L1StubTriplet>& triplets() const { return foundtriplets_; }
+    const std::vector<L1StubTriplet>& acceptedTriplets() const { return acceptedtriplets_; }
 
   private:
     void configure(std::istream& inwire, std::istream& inmem, std::istream& inproc);
@@ -74,6 +75,7 @@ namespace trklet {
     Timer PDTimer_;
 
     std::vector<Track> tracks_;
+    std::vector<L1StubTriplet> foundtriplets_;
     std::vector<L1StubTriplet> acceptedtriplets_;
     
   };

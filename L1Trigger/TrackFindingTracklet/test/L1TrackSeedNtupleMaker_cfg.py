@@ -108,7 +108,6 @@ process.source = cms.Source("PoolSource", fileNames = cms.untracked.vstring(*inp
 # Use skipEvents to select particular single events for test vectors
 #process.source.skipEvents = cms.untracked.uint32(11)
 
-process.TFileService = cms.Service("TFileService", fileName = cms.string('testSeeds.root'), closeFileFast = cms.untracked.bool(True))
 process.Timing = cms.Service("Timing", summaryOnly = cms.untracked.bool(True))
 
 
@@ -235,11 +234,21 @@ else:
 
 
 # Define the EDAnalyzer with the correct product label
+process.TFileService = cms.Service("TFileService", 
+  fileName = cms.string('testSeeds.root'), 
+  closeFileFast = cms.untracked.bool(True)
+)
 process.L1SeedsNtuple = cms.EDAnalyzer(
     'TripletsAnalyzer',
-    InputTriplets = cms.InputTag("l1tTTTracksFromExtendedTrackletEmulation", "DisplacedSeedTriplets")
+    InputTriplets = cms.InputTag("l1tTTTracksFromExtendedTrackletEmulation", "DisplacedSeedAllTriplets")
 )
 process.ana = cms.Path(process.L1SeedsNtuple)
+
+process.L1AcceptedSeedsNtuple = cms.EDAnalyzer(
+    'TripletsAnalyzer',
+    InputTriplets = cms.InputTag("l1tTTTracksFromExtendedTrackletEmulation", "DisplacedSeedAcceptedTriplets")
+)
+process.ana = cms.Path(process.L1SeedsNtuple + process.L1AcceptedSeedsNtuple)
 
 ############################################################
 # final schedule of what is to be run

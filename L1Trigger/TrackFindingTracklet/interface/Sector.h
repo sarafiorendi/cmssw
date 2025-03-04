@@ -111,7 +111,7 @@ namespace trklet {
     void executeTED();
     void executeTRE();
     void executeTP();
-    void executeTPD(std::vector<L1StubTriplet>&);
+    void executeTPD(std::vector<L1StubTriplet>&, std::vector<L1StubTriplet>&);
     void executeTC();
     void executeTCD();
     void executePR();

@@ -36,7 +36,7 @@ namespace trklet {
 
     void addInput(MemoryBase* memory, std::string input) override;
 
-    void execute(unsigned int iSector, double phimin, double phimax, std::vector<L1StubTriplet>&);
+    void execute(unsigned int iSector, double phimin, double phimax, std::vector<L1StubTriplet>&, std::vector<L1StubTriplet>&);
 
   private:
     int iTC_;

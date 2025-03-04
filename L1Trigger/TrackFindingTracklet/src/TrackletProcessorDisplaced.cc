@@ -160,7 +160,7 @@ void TrackletProcessorDisplaced::addInput(MemoryBase* memory, string input) {
   throw cms::Exception("BadConfig") << __FILE__ << " " << __LINE__ << " Could not find input : " << input;
 }
 
-void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, double phimax, std::vector<L1StubTriplet>& acceptedtriplets_) {
+void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, double phimax, std::vector<L1StubTriplet>& foundtriplets_, std::vector<L1StubTriplet>& acceptedtriplets_) {
   phimin_ = phimin;
   phimax_ = phimax;
   iSector_ = iSector;
@@ -204,11 +204,16 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
 
     // set pointer to the last filled trpunit
     TripletEngineUnit* trpunitptr = nullptr;
+    int count_trpunits_block1 = 0;
+    int the_trpunit_being_read = 0;
+    
     for (auto& trpunit : trpunits_) {
       trpunit.setNearFull();
       if (!trpunit.empty()) {
         trpunitptr = &trpunit;
+        the_trpunit_being_read = count_trpunits_block1;
       }
+      count_trpunits_block1++;
     }
 
     if (trpunitptr != nullptr) {
@@ -228,6 +233,35 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         edm::LogVerbatim("Tracklet") << "TrackletProcessorDisplaced execute " << getName() << "[" << iSector_ << "]";
       }
 
+      L1StubTriplet myTripletNow;
+      myTripletNow.setStubRapprox(0, innerFPGAStub->rapprox());
+      myTripletNow.setStubRapprox(1, middleFPGAStub->rapprox());
+      myTripletNow.setStubRapprox(2, outerFPGAStub->rapprox());
+  
+      myTripletNow.setStubZapprox(0, innerFPGAStub->zapprox());
+      myTripletNow.setStubZapprox(1, middleFPGAStub->zapprox());
+      myTripletNow.setStubZapprox(2, outerFPGAStub->zapprox());
+  
+      myTripletNow.setStubBend(0, innerFPGAStub->bend().value());
+      myTripletNow.setStubBend(1, middleFPGAStub->bend().value());
+      myTripletNow.setStubBend(2, outerFPGAStub->bend().value());
+  
+//       myTripletNow.setStubRZbin(0, (innervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1)));
+//       myTripletNow.setStubRZbin(1, (middleFPGAStub.rzbinfirst_out_));
+//       myTripletNow.setStubRZbin(2, (outervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1)));
+      
+      myTripletNow.setStubIndex(0, innerFPGAStub->stubindex().value());
+      myTripletNow.setStubIndex(1, middleFPGAStub->stubindex().value());
+      myTripletNow.setStubIndex(2, outerFPGAStub->stubindex().value());
+  
+      myTripletNow.setStubLayerdisk(0, innerFPGAStub->layerdisk());
+      myTripletNow.setStubLayerdisk(1, middleFPGAStub->layerdisk());
+      myTripletNow.setStubLayerdisk(2, outerFPGAStub->layerdisk());
+      
+      myTripletNow.setSector(iSector);
+      myTripletNow.setRegion(iTC_);
+      myTripletNow.setTPDUnit(the_trpunit_being_read);
+
       // check if the seed made from the 3 stubs is valid
       bool accept = false;
       if (iSeed_ == Seed::L2L3L4 || iSeed_ == Seed::L4L5L6)
@@ -237,9 +271,10 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
       else if (iSeed_ == Seed::D1D2L2)
         accept = DDLSeeding(innerFPGAStub, innerStub, middleFPGAStub, middleStub, outerFPGAStub, outerStub);
 
-      if (accept)
+      if (accept){
+        acceptedtriplets_.push_back(myTripletNow);
         countsel++;
-
+      }
       if (trackletpars_->nTracklets() >= settings_.ntrackletmax()) {
         edm::LogVerbatim("Tracklet") << "Will break on number of tracklets in " << getName();
         assert(0);
@@ -266,9 +301,9 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
       }
 //       std::cout << "calling trpunit " << count_trpunits << std::endl;
 //       trpunit.step();
-      trpunit.step(acceptedtriplets_, iSector, iTC_, count_trpunits);
+      trpunit.step(foundtriplets_, iSector, iTC_, count_trpunits);
       count_trpunits++;
-//       std::cout << "[TPD] accepted triplets size: " << acceptedtriplets_.size() << std::endl;
+//       std::cout << "[TPD] accepted triplets size: " << foundtriplets_.size() << std::endl;
       
     }
 
