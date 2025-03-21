@@ -69,6 +69,13 @@ private:
   int region_;
   int tpdunit_;
   
+  int firstbin_out_;
+  int firstbin_in_;
+  int diffmax_out_;
+  int diffmax_in_;
+  int rzeff_out_;
+  int rzeff_in_;
+  
 };
 
 TripletsAnalyzer::TripletsAnalyzer(const edm::ParameterSet& pset)
@@ -103,9 +110,9 @@ void TripletsAnalyzer::beginJob() {
   outTree_->Branch("middle_bend", &middle_bend_, "middle_bend/F");
   outTree_->Branch("outer_bend", &outer_bend_, "outer_stub_bend/F");
 
-  outTree_->Branch("inner_rzbin", &inner_rzbin_, "inner_rzbin/i");
-  outTree_->Branch("middle_rzbin", &middle_rzbin_, "middle_rzbin/i");
-  outTree_->Branch("outer_rzbin", &outer_rzbin_, "outer_stub_rzbin/i");
+  outTree_->Branch("inner_rzbin", &inner_rzbin_, "inner_rzbin/I");
+  outTree_->Branch("middle_rzbin", &middle_rzbin_, "middle_rzbin/I");
+  outTree_->Branch("outer_rzbin", &outer_rzbin_, "outer_stub_rzbin/I");
 
   outTree_->Branch("inner_index", &inner_index_, "inner_index/i");
   outTree_->Branch("middle_index", &middle_index_, "middle_index/i");
@@ -118,6 +125,13 @@ void TripletsAnalyzer::beginJob() {
   outTree_->Branch("sector", &sector_, "sector/i");
   outTree_->Branch("region", &region_, "region/i");
   outTree_->Branch("tpdunit", &tpdunit_, "tpdunit/i");
+
+  outTree_->Branch("firstbin_out", &firstbin_out_, "firstbin_out/I");
+  outTree_->Branch("firstbin_in", &firstbin_in_, "firstbin_in/I");
+  outTree_->Branch("diffmax_out", &diffmax_out_, "diffmax_out/I");
+  outTree_->Branch("diffmax_in", &diffmax_in_, "diffmax_in/I");
+  outTree_->Branch("rzeff_out", &rzeff_out_, "rzeff_out/I");
+  outTree_->Branch("rzeff_in", &rzeff_in_, "rzeff_in/I");
 
 }
 void TripletsAnalyzer::endJob() {
@@ -167,6 +181,13 @@ void TripletsAnalyzer::analyze(const edm::Event& event, const edm::EventSetup& e
     sector_ = iTriplet.getSector();
     region_ = iTriplet.getRegion();
     tpdunit_ = iTriplet.getTPDUnit();
+
+    firstbin_in_ = iTriplet.getFirstBinIn();
+    diffmax_in_  = iTriplet.getDiffMaxIn();
+    rzeff_in_    = iTriplet.getRZEffIn();
+    firstbin_out_= iTriplet.getFirstBinOut();
+    diffmax_out_ = iTriplet.getDiffMaxOut();
+    rzeff_out_   = iTriplet.getRZEffOut();
 
     outTree_->Fill();  // Fill the tree with current cluster data
   }
