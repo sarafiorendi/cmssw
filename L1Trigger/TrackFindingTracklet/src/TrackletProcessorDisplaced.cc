@@ -35,13 +35,13 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
   outerallstubs_.clear();
   innervmstubs_.clear();
   outervmstubs_.clear();
-//   acceptedtriplets_.clear();
 
   // set layer/disk types based on input seed name
   initLayerDisksandISeedDisp(layerdisk1_, layerdisk2_, layerdisk3_, iSeed_);
-
+//   std::cout << "seed : " << iSeed_ << "-> layerdisk1_ = " << layerdisk1_ << std::endl;
   // get projection tables
   unsigned int region = name.back() - 'A';
+//   std::cout << "###### TPD calling initVMR ########" << std::endl;
   innerTable_.initVMRTable(
       layerdisk1_, TrackletLUT::VMRTableType::inner, region, false);  //projection to next layer/disk
   innerThirdTable_.initVMRTable(
@@ -246,10 +246,6 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
       myTripletNow.setStubBend(1, middleFPGAStub->bend().value());
       myTripletNow.setStubBend(2, outerFPGAStub->bend().value());
   
-//       myTripletNow.setStubRZbin(0, (innervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1)));
-//       myTripletNow.setStubRZbin(1, (middleFPGAStub.rzbinfirst_out_));
-//       myTripletNow.setStubRZbin(2, (outervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1)));
-      
       myTripletNow.setStubIndex(0, innerFPGAStub->stubindex().value());
       myTripletNow.setStubIndex(1, middleFPGAStub->stubindex().value());
       myTripletNow.setStubIndex(2, outerFPGAStub->stubindex().value());
@@ -328,21 +324,22 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         edm::LogVerbatim("Tracklet") << "In " << getName() << " have middle stub";
       }
 
+      bool negdisk = (stub->disk().value() < 0);  // check if disk in negative z region
+      bool negside = (stub->zapprox() < 0);       // check if barrel stub but in negative z region
       // get r/z index of the middle stub
       int indexz = (((1 << (stub->z().nbits() - 1)) + stub->z().value()) >> (stub->z().nbits() - nbitszfinebintable_));
       int indexr = -1;
-      bool negdisk = (stub->disk().value() < 0);  // check if disk in negative z region
-      if (layerdisk1_ >= LayerDisk::D1) {         // if a disk
+      if (layerdisk1_ >= LayerDisk::D1) {         // if projecting from a disk
         if (negdisk)
           indexz = (1 << nbitszfinebintable_) - indexz;
         indexr = stub->r().value();
         if (stub->isPSmodule()) {
           indexr = stub->r().value() >> (stub->r().nbits() - nbitsrfinebintable_);
         }
-      } else {  // else a layer
+      } else {  // else if from a layer
         indexr = (((1 << (stub->r().nbits() - 1)) + stub->r().value()) >> (stub->r().nbits() - nbitsrfinebintable_));
       }
-
+      
       // create lookupbits that define projections from middle stub
       int lutval = -1;
       const auto& lutshift = innerTable_.nbits();
@@ -350,35 +347,56 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
       int lutval2 = innerThirdTable_.lookup((indexz << nbitsrfinebintable_) + indexr);
       if (lutval != -1 && lutval2 != -1)
         lutval += (lutval2 << lutshift);
-
+      
       if (lutval != -1) {
-        unsigned int lutwidth = settings_.lutwidthtabextended(0, iSeed_);
+        unsigned int lutwidth = settings_.lutwidthtabextended(0, iSeed_); // always 21
         FPGAWord lookupbits(lutval, lutwidth, true, __LINE__, __FILE__);
+//         if (iSeed_ == Seed::L2L3D1 && negside) std::cout << "lookupbits: " << lookupbits.str() << std::endl;
 
         // get r/z bins for projection into outer layer/disk
-        int nbitsrzbin_out = N_RZBITS;
-        if (iSeed_ == Seed::D1D2L2)
+        int nbitsrzbin_out = N_RZBITS;   // N_RZBITS = 3; //number of bit for the r/z bins. it is 2 for seed 11
+        if (iSeed_ == Seed::D1D2L2)      // because of https://github.com/cms-sw/cmssw/blob/8f4b7032b5948a963a4f253662da07ac9ff5c10a/L1Trigger/TrackFindingTracklet/src/TrackletLUT.cc#L1315
           nbitsrzbin_out--;
-        int rzbinfirst_out = lookupbits.bits(0, NFINERZBITS);
-        int rzdiffmax_out = lookupbits.bits(NFINERZBITS + 1 + nbitsrzbin_out, NFINERZBITS);
-        int start_out = lookupbits.bits(NFINERZBITS + 1, nbitsrzbin_out);  // first rz bin projection
+
+        int rzbinfirst_out = lookupbits.bits(0, NFINERZBITS);   // NFINERZBITS = 3;   //number of bit for r or z within a r/z bin
         int next_out = lookupbits.bits(NFINERZBITS, 1);
-        if (iSeed_ == Seed::D1D2L2 && negdisk)  // if projecting into disk
+        int start_out = lookupbits.bits(NFINERZBITS + 1, nbitsrzbin_out);  // first rz bin projection
+        int rzdiffmax_out = lookupbits.bits(NFINERZBITS + 1 + nbitsrzbin_out, NFINERZBITS);
+        if (iSeed_ == Seed::D1D2L2 && negdisk)  { // if projecting into disk
           start_out += (1 << nbitsrzbin_out);
+        }  
         int last_out = start_out + next_out;  // last rz bin projection
+
 
         // get r/z bins for projection into third (inner) layer/disk
         int nbitsrzbin_in = N_RZBITS;
-        int start_in = lookupbits.bits(lutshift + NFINERZBITS + 1, nbitsrzbin_in);  // first rz bin projection
+        int rzbinfirst_in = lookupbits.bits(lutshift, NFINERZBITS);   // sara
+        
         int next_in = lookupbits.bits(lutshift + NFINERZBITS, 1);
-        if (iSeed_ == Seed::D1D2L2 && negdisk)  // if projecting from disk into layer
-          start_in = settings_.NLONGVMBINS() - 1 - start_in - next_in;
+        int start_in = lookupbits.bits(lutshift + NFINERZBITS + 1, nbitsrzbin_in);  // first rz bin projection
+        int rzdiffmax_in = lookupbits.bits(lutshift+ NFINERZBITS + 1 + nbitsrzbin_in, NFINERZBITS); // sara
+        // LUT doesn't know about z sign. 
+        // So, first, mirror index of large z bin wrt center (as 0-3 bins are for negative z, 4 to 7 on the positive z). 
+        // Then subtract next_in so that we take that into account
+        if (iSeed_ == Seed::D1D2L2 && negdisk){  // if projecting from disk into layer
+//           std::cout << "\t\t rzbinfirst_in: " << std::bitset<3>(rzbinfirst_in) << " -> " << rzbinfirst_in ;
+          start_in = settings_.NLONGVMBINS() - 1 - start_in - next_in; 
+          if (next_in) 
+            rzbinfirst_in = settings_.NLONGVMBINS() - (rzbinfirst_in + rzdiffmax_in - settings_.NLONGVMBINS()); 
+          else
+            rzbinfirst_in = settings_.NLONGVMBINS() - 1 - rzbinfirst_in - rzdiffmax_in; 
+          if (rzbinfirst_in < 0) rzbinfirst_in = 0;  
+//           std::cout << "    now is: " << std::bitset<3>(rzbinfirst_in) << " -> " << rzbinfirst_in << std::endl;
+        } // test
+        
         int last_in = start_in + next_in;  // last rz bin projection
-
+        
         // fill trpdata with projection info of middle stub
         trpdata.stub_ = stub;
         trpdata.rzbinfirst_out_ = rzbinfirst_out;
         trpdata.rzdiffmax_out_ = rzdiffmax_out;
+        trpdata.rzbinfirst_in_ = rzbinfirst_in;
+        trpdata.rzdiffmax_in_ = rzdiffmax_in;
         trpdata.start_out_ = start_out;
         trpdata.start_in_ = start_in;
 
