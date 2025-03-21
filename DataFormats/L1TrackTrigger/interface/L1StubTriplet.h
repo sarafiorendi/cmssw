@@ -43,7 +43,20 @@ public:
   int getTPDUnit() const { return tpdunit_; }
   void setTPDUnit(int i) { tpdunit_ = i; }
   
-//   int rzbin = (outervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1));
+  int getFirstBinOut() const { return firstbin_out_; }
+  void setFirstBinOut(int i) { firstbin_out_ = i; }
+  int getDiffMaxOut() const { return diffmax_out_; }
+  void setDiffMaxOut(int i) { diffmax_out_ = i; }
+  int getRZEffOut() const { return rzeff_out_; }
+  void setRZEffOut(int i) { rzeff_out_ = i; }
+
+  int getFirstBinIn() const { return firstbin_in_; }
+  void setFirstBinIn(int i) { firstbin_in_ = i; }
+  int getDiffMaxIn() const { return diffmax_in_; }
+  void setDiffMaxIn(int i) { diffmax_in_ = i; }
+  int getRZEffIn() const { return rzeff_in_; }
+  void setRZEffIn(int i) { rzeff_in_ = i; }
+
 
 private:
 
@@ -58,6 +71,13 @@ private:
   unsigned int sector_;
   int region_;
   int tpdunit_;
+
+  int firstbin_out_;
+  int firstbin_in_;
+  int diffmax_out_;
+  int diffmax_in_;
+  int rzeff_out_;
+  int rzeff_in_;
   
 };  /// Close class
 #endif

@@ -11,7 +11,13 @@ L1StubTriplet::L1StubTriplet() :
   layerdisk_(3,0),
   sector_(0),
   region_(0),
-  tpdunit_(0)
+  tpdunit_(0),
+  firstbin_out_(0),
+  firstbin_in_(0),
+  diffmax_out_(0),
+  diffmax_in_(0),
+  rzeff_out_(0),
+  rzeff_in_(0)
 {
 }
 
