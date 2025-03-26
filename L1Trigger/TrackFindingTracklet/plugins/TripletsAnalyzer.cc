@@ -75,6 +75,10 @@ private:
   int diffmax_in_;
   int rzeff_out_;
   int rzeff_in_;
+
+  int inner_rval_;
+  int middle_rval_;
+  int outer_rval_;
   
 };
 
@@ -133,6 +137,10 @@ void TripletsAnalyzer::beginJob() {
   outTree_->Branch("rzeff_out", &rzeff_out_, "rzeff_out/I");
   outTree_->Branch("rzeff_in", &rzeff_in_, "rzeff_in/I");
 
+  outTree_->Branch("inner_rval", &inner_rval_, "inner_rval/I");
+  outTree_->Branch("middle_rval", &middle_rval_, "middle_rval/I");
+  outTree_->Branch("outer_rval", &outer_rval_, "outer_stub_rval/I");
+
 }
 void TripletsAnalyzer::endJob() {
 //   outTree_->GetDirectory()->cd();
@@ -188,6 +196,10 @@ void TripletsAnalyzer::analyze(const edm::Event& event, const edm::EventSetup& e
     firstbin_out_= iTriplet.getFirstBinOut();
     diffmax_out_ = iTriplet.getDiffMaxOut();
     rzeff_out_   = iTriplet.getRZEffOut();
+
+    inner_rval_ = iTriplet.getStubRValue(0);
+    middle_rval_ = iTriplet.getStubRValue(1);
+    outer_rval_ = iTriplet.getStubRValue(2);
 
     outTree_->Fill();  // Fill the tree with current cluster data
   }

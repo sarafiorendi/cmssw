@@ -9,6 +9,7 @@ L1StubTriplet::L1StubTriplet() :
   rzbin_(3,0),
   index_(3,0),
   layerdisk_(3,0),
+  rvalue_(3,0),
   sector_(0),
   region_(0),
   tpdunit_(0),

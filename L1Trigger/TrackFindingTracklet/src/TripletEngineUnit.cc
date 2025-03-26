@@ -73,8 +73,12 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
   int rzbin_out = (outervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1));
   int rzbin_in  = (innervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1)); // 3 bits 100//sara
   
-//   if (!innervmstub.stub()->isPSmodule())
-//     std::cout << "inner one is 2S " << std::endl;
+//   if (!innervmstub.stub()->isPSmodule() && trpdata_.stub_->layerdisk() == 1){
+//   if (trpdata_.stub_->layerdisk() == 1){
+//     std::cout << "inner one at " << istub_in_ << " is 2S and has r =" << innervmstub.stub()->rapprox() << std::endl;
+//     std::cout << "innervmstub.vmbits().value() " << innervmstub.vmbits().value() << std::endl;
+//     std::cout << "innervmstub.vmbits().value() " << std::bitset<10>(innervmstub.vmbits().value()) << std::endl;
+//   }  
 //   if (!outervmstub.stub()->isPSmodule())
 //     std::cout << "outer one is 2S " << std::endl;
 
@@ -103,6 +107,10 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
       myTriplet.setStubRapprox(0, innervmstub.stub()->rapprox());
       myTriplet.setStubRapprox(1, trpdata_.stub_->rapprox());
       myTriplet.setStubRapprox(2, outervmstub.stub()->rapprox());
+
+      myTriplet.setStubRValue(0, innervmstub.stub()->r().value());
+      myTriplet.setStubRValue(1, trpdata_.stub_->r().value());
+      myTriplet.setStubRValue(2, outervmstub.stub()->r().value());
   
       myTriplet.setStubZapprox(0, innervmstub.stub()->zapprox());
       myTriplet.setStubZapprox(1, trpdata_.stub_->zapprox());

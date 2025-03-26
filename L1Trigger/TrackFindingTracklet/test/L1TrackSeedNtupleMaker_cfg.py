@@ -14,8 +14,6 @@ process = cms.Process("L1TrackNtuple")
 # edit options here
 ############################################################
 
-# D88 was used for CMSSW_12_6 datasets, and D98 recommended for more recent ones.
-#GEOMETRY = "D88"
 GEOMETRY = "D98"
 
 # Set L1 tracking algorithm:
@@ -40,8 +38,10 @@ process.MessageLogger.L1track = dict(limit = -1)
 process.MessageLogger.Tracklet = dict(limit = -1)
 process.MessageLogger.TrackTriggerHPH = dict(limit = -1)
 
+print ("layerdisk,rapprox,zapprox,indexR,indexZ,inner,iseed,isPS,rvalue,lut")
+
 if GEOMETRY == "D88" or GEOMETRY == 'D98':
-    print("using geometry " + GEOMETRY + " (tilted)")
+#     print("using geometry " + GEOMETRY + " (tilted)")
     process.load('Configuration.Geometry.GeometryExtendedRun4' + GEOMETRY + 'Reco_cff')
     process.load('Configuration.Geometry.GeometryExtendedRun4' + GEOMETRY +'_cff')
 else:
@@ -60,7 +60,7 @@ process.GlobalTag = GlobalTag(process.GlobalTag, '133X_mcRun4_realistic_v1', '')
 # input and output
 ############################################################
 
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(1))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(20))
 
 #--- To use MCsamples scripts, defining functions get*data*() for easy MC access,
 #--- follow instructions in https://github.com/cms-L1TK/MCsamples
@@ -82,7 +82,10 @@ if GEOMETRY == "D98":
   #dataName="/RelValTTbar_14TeV/CMSSW_14_0_0_pre2-PU_133X_mcRun4_realistic_v1_STD_2026D98_PU200_RV229-v1/GEN-SIM-DIGI-RAW"
   #inputMC=getCMSdata(dataName)
 
-  inputMC = ["/store/relval/CMSSW_14_0_0_pre2/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_133X_mcRun4_realistic_v1_STD_2026D98_PU200_RV229-v1/2580000/0b2b0b0b-f312-48a8-9d46-ccbadc69bbfd.root"]
+  inputMC = [
+#     "/store/relval/CMSSW_14_0_0_pre2/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_133X_mcRun4_realistic_v1_STD_2026D98_PU200_RV229-v1/2580000/0b2b0b0b-f312-48a8-9d46-ccbadc69bbfd.root"
+    "/store/mc/Phase2Spring24DIGIRECOMiniAOD/DisplacedSUSY_stopToBottom_M-800_50mm_TuneCP5_14TeV-pythia8/GEN-SIM-DIGI-RAW-MINIAOD/PU200_AllTP_140X_mcRun4_realistic_v4-v1/2810000/f9fb0333-e5ab-4e03-8f79-780b6e2f9534.root"
+    ]
 
 elif GEOMETRY == "D88":
 
@@ -94,16 +97,6 @@ else:
   print("this is not a valid geometry!!!")
 
 process.source = cms.Source("PoolSource", fileNames = cms.untracked.vstring(*inputMC))
-
-#if GEOMETRY == "D76":
-#  # If reading old MC dataset, drop incompatible EDProducts.
-#  process.source.dropDescendantsOfDroppedBranches = cms.untracked.bool(False)
-#  process.source.inputCommands = cms.untracked.vstring()
-#  process.source.inputCommands.append('keep  *_*_*Level1TTTracks*_*')
-#  process.source.inputCommands.append('keep  *_*_*StubAccepted*_*')
-#  process.source.inputCommands.append('keep  *_*_*ClusterAccepted*_*')
-#  process.source.inputCommands.append('keep  *_*_*MergedTrackTruth*_*')
-#  process.source.inputCommands.append('keep  *_genParticles_*_*')
 
 # Use skipEvents to select particular single events for test vectors
 #process.source.skipEvents = cms.untracked.uint32(11)
@@ -225,17 +218,17 @@ else:
 
 
 # Define L1 track ntuple maker
-# from L1Trigger.TrackFindingTracklet.L1TrackNtupleMaker_cfi import *
-# process.L1TrackNtuple = L1TrackNtupleMaker.clone(
-#    L1Tk_nPar = NHELIXPAR, # use 4 or 5-parameter L1 tracking?
-#    L1TrackInputTag = (L1TRK_NAME, L1TRK_LABEL),         # TTTrack input
-#    MCTruthTrackInputTag = (L1TRUTH_NAME, L1TRK_LABEL),  # MCTruth input
-# )
+from L1Trigger.TrackFindingTracklet.L1TrackNtupleMaker_cfi import *
+process.L1TrackNtuple = L1TrackNtupleMaker.clone(
+   L1Tk_nPar = NHELIXPAR, # use 4 or 5-parameter L1 tracking?
+   L1TrackInputTag = (L1TRK_NAME, L1TRK_LABEL),         # TTTrack input
+   MCTruthTrackInputTag = (L1TRUTH_NAME, L1TRK_LABEL),  # MCTruth input
+)
 
 
 # Define the EDAnalyzer with the correct product label
 process.TFileService = cms.Service("TFileService", 
-  fileName = cms.string('testSeeds.root'), 
+  fileName = cms.string('testSeeds_1DisplSUSY.root'), 
   closeFileFast = cms.untracked.bool(True)
 )
 process.L1SeedsNtuple = cms.EDAnalyzer(
@@ -248,7 +241,7 @@ process.L1AcceptedSeedsNtuple = cms.EDAnalyzer(
     'TripletsAnalyzer',
     InputTriplets = cms.InputTag("l1tTTTracksFromExtendedTrackletEmulation", "DisplacedSeedAcceptedTriplets")
 )
-process.ana = cms.Path(process.L1SeedsNtuple + process.L1AcceptedSeedsNtuple)
+process.ana = cms.Path(process.L1SeedsNtuple + process.L1AcceptedSeedsNtuple + process.L1TrackNtuple)
 
 ############################################################
 # final schedule of what is to be run

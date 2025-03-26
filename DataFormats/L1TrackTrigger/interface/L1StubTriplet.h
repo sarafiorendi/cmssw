@@ -57,6 +57,8 @@ public:
   int getRZEffIn() const { return rzeff_in_; }
   void setRZEffIn(int i) { rzeff_in_ = i; }
 
+  int getStubRValue(int i) const { return rvalue_.at(i); }
+  void setStubRValue(int i, int rval) {rvalue_[i] = rval; }
 
 private:
 
@@ -67,6 +69,7 @@ private:
   std::vector<int> rzbin_;
   std::vector<int> index_;
   std::vector<int> layerdisk_;
+  std::vector<int> rvalue_;
 
   unsigned int sector_;
   int region_;
