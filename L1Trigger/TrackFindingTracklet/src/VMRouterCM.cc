@@ -67,6 +67,9 @@ VMRouterCM::VMRouterCM(string name, Settings const& settings, Globals* global)
   nbitsrfinebintable_ = settings_.vmrlutrbits(layerdisk_);
 
   nvmmebins_ = settings_.NLONGVMBINS() * ((layerdisk_ >= N_LAYER) ? 2 : 1);  //number of long z/r bins in VM
+//   std::cout << "init VMRouterCM "  << name 
+//             << "\n\t layerdisk = " << layerdisk_
+//             << "\t nvmmebins_ = " << nvmmebins_ << std::endl;
 }
 
 void VMRouterCM::addOutput(MemoryBase* memory, string output) {
@@ -103,6 +106,7 @@ void VMRouterCM::addOutput(MemoryBase* memory, string output) {
       // seedtype, vmbin, and inner are only used in the case of the triplet
       // seeds.
       char seedtype = memory->getName().substr(11, 1)[0];
+//       std::cout << "[VMR] adding output for " <<  memory->getName() << ", corresponding to seed type " << seedtype  << std::endl;
       unsigned int pos = 12;
       int vmbin = memory->getName().substr(pos, 1)[0] - '0';
       pos++;
@@ -131,7 +135,10 @@ void VMRouterCM::addOutput(MemoryBase* memory, string output) {
       } else {
         throw cms::Exception("LogicError") << __FILE__ << " " << __LINE__ << " Invalid seeding!";
       }
+//       std::cout << "\t layerdisk_:  " << layerdisk_  
+//                 << "\t inner:  " << inner  << std::endl;
 
+//       std::cout << "[VMR] looking at out mem for seed " << iseed  << std::endl;
       int seedindex = -1;
       for (unsigned int k = 0; k < vmstubsTEPHI_.size(); k++) {
         if (vmstubsTEPHI_[k].seednumber == iseed) {
@@ -150,6 +157,13 @@ void VMRouterCM::addOutput(MemoryBase* memory, string output) {
         vmstubsTEPHI_[seedindex].vmstubmem[0].push_back(tmp);
       } else {
         vmstubsTEPHI_[seedindex].vmstubmem[(vmbin - 1) & (settings_.nvmte(inner, iseed) - 1)].push_back(tmp);
+//         std::cout << "[VMRTE] seed index: " << seedindex  
+//                   << "\t iseed: " << iseed  
+//                   << "\t layerdisk: " << layerdisk_   // here layerdisk is the layerdisk of the stub being placed
+//                   << "\t inner: " << inner  
+//                   << "\t vmbin: " << vmbin  
+//                   << "\t position: " << ((vmbin - 1) & (settings_.nvmte(inner, iseed) - 1))
+//                   << std::endl;
       }
 
     } else if (memory->getName().substr(3, 2) == "ME") {
@@ -287,6 +301,8 @@ void VMRouterCM::execute(unsigned int) {
                     settings_.nbitsvmme(layerdisk_));
 
       //Calculate the z and r position for the vmstub
+//       std::cout << "this stub layerdisk " << stub->layerdisk()   
+//                 << std::endl;
 
       //Take the top nbitszfinebintable_ bits of the z coordinate
       int indexz = (stub->z().value() >> (stub->z().nbits() - nbitszfinebintable_)) & ((1 << nbitszfinebintable_) - 1);
@@ -374,36 +390,86 @@ void VMRouterCM::execute(unsigned int) {
         if (!isTripletSeed && layerdisk_ >= N_LAYER && (!stub->isPSmodule()))
           continue;
         unsigned int inner = (!isTripletSeed ? 1 : ivmstubTEPHI.stubposition);
+        
         unsigned int lutwidth = settings_.lutwidthtab(inner, iseed);
         if (settings_.extended()) {
           lutwidth = settings_.lutwidthtabextended(inner, iseed);
         }
 
         int lutval = -999;
+        int mylutval = -999;
+        int stub_rbin = 0;
 
-        if (inner > 0) {
+        if (inner > 0) { 
           if (layerdisk_ < N_LAYER) {
             lutval = (!isTripletSeed ? melut : melutOld);
-          } else {
+          }
+          else { // if layerdisk >= NLayer
+          
             if (inner == 2 && iseed == Seed::L2L3D1) {
               lutval = 0;
-              if (stub->r().value() < 10) {
+              if (stub->r().value() < 10) { // means it is 2S     
+              // in fact constexpr unsigned int N_DSS_MOD = 5;  // # of rings with 2S modules per disk
+              // and before we had 2 * N_DSS_MOD
+
                 lutval = 8 * (1 + (stub->r().value() >> 2));
+                
+                // from https://github.com/cms-L1TK/cmssw/blob/68ae83ab542b996d3e46317c3646e300e3602946/L1Trigger/TrackFindingTracklet/src/Stub.cc#L152
+                constexpr double rminspec = 40.0;
+                int NBINS = settings_.NLONGVMBINS() * settings_.NLONGVMBINS() / 2;  // 8 * 8 / 2  = 32
+                double stub_r_approx = stub->rapprox();
+                if (stub_r_approx < settings_.rmindiskvm()) // TrackletLUT L1340
+                  stub_r_approx = settings_.rmindiskvm();
+
+                stub_rbin = NBINS * (stub_r_approx - rminspec) / (settings_.rmaxdisk() - rminspec);
+                if (stub_rbin < 0)
+                  stub_rbin = 0;
+                if (stub_rbin >= NBINS)
+                  stub_rbin = NBINS - 1;
+                
+//                 std::cout << "mylutval = " << mylutval << " -> " << std::bitset<10>(mylutval)  << std::endl;
+                int value = stub_rbin / 8; //shift right by 3
+                // this is taken into account within addVMStub 
+                // https://github.com/cms-L1TK/cmssw/blob/4b3e9e1c8c0bc1d6d2509fd02f39f1510d6e5184/L1Trigger/TrackFindingTracklet/src/VMStubsTEMemory.cc#L94
+                // if (stub->zapprox() < 0.0)
+                //   value += 4;
+
+                // this was needed in the LUT to include the next bin flag
+                // not needed here, commenting it out
+                // value *= 2;
+                value *= 8;//shift left by 3
+                value += ((stub_rbin) & 7);
+                assert(value / 8 < 15);
+                mylutval = value;
+                lutval = value;
+                
+//                 std::cout << "stub->r().value() = " << stub->r().value() 
+//                           << " -> NBINS " << NBINS 
+//                           << " -> stub_r_approx " << stub_r_approx 
+//                           << " -> delta " << stub_r_approx - rminspec 
+//                           << " -> den " << (settings_.rmaxdisk() - rminspec) 
+//                           << " -> stub_rbin " << stub_rbin 
+//                           << " -> lutval " << std::bitset<10>(value) << std::endl;
               } else {
-                if (stub->r().value() < settings_.rmindiskl3overlapvm() / settings_.kr()) {
+                // double rmaxdiskl1overlapvm_{45.0};
+                // double rmindiskl2overlapvm_{40.0};
+                // double rmindiskl3overlapvm_{50.0};
+                if (stub->rapprox() < settings_.rmindiskl23overlapvm() ) {
+//                 if (stub->r().value() < settings_.rmindiskl2overlapvm() / settings_.kr()) {
                   lutval = -1;
                 }
               }
-            } else {
+            } // end if inner == 2 and seed == 10
+            else {
               lutval = (!isTripletSeed ? diskTable_.lookup((indexz << nbitsrfinebintable_) + indexr)
                                        : diskTableOld_.lookup((indexzOld << nbitsrfinebintable_) + indexrOld));
               if (lutval == 0)
                 continue;
-            }
-          }
+            } // end if inner > 0 and in disk
+          } 
           if (lutval == -1)
             continue;
-        } else {
+        } else {  // inner == 0 
           if (iseed < Seed::L1D1 || iseed > Seed::L2D1) {
             lutval = innerTable_.lookup((indexzOld << nbitsrfinebintable_) + indexrOld);
           } else {
@@ -411,6 +477,7 @@ void VMRouterCM::execute(unsigned int) {
           }
           if (lutval == -1)
             continue;
+          
           if (settings_.extended() &&
               (iseed == Seed::L3L4 || iseed == Seed::L5L6 || iseed == Seed::D1D2 || iseed == Seed::L2L3D1)) {
             int lutval2 = innerThirdTable_.lookup((indexzOld << nbitsrfinebintable_) + indexrOld);
@@ -421,9 +488,14 @@ void VMRouterCM::execute(unsigned int) {
           }
         }
 
+
         assert(lutval >= 0);
 
         FPGAWord binlookup(lutval, lutwidth, true, __LINE__, __FILE__);
+        if (inner == 2 && iseed == Seed::L2L3D1 && stub->r().value() < 10){
+          std::cout << "\t\t binlookup.value(): " << std::bitset<20>(binlookup.value()) <<std::endl;
+          std::cout << "\t\t lutval           : " << std::bitset<20>(lutval) <<std::endl;
+        }  
 
         if (binlookup.value() < 0)
           continue;
@@ -434,14 +506,41 @@ void VMRouterCM::execute(unsigned int) {
 
         int bin = -1;
         if (inner != 0) {
-          bin = binlookup.value() >> settings_.NLONGVMBITS();
-          unsigned int tmp = binlookup.value() & (settings_.NLONGVMBINS() - 1);  //three bits in outer layers
-          binlookup.set(tmp, settings_.NLONGVMBITS(), true, __LINE__, __FILE__);
+          bin = binlookup.value() >> settings_.NLONGVMBITS();  // >> 3  ##  this is the large grain bin
+//           if (inner == 2 && iseed == Seed::L2L3D1 && stub->r().value() < 10){
+//             std::cout << "\t\t before, binlookup.value(): " << std::bitset<20>(binlookup.value()) <<std::endl;
+//             std::cout << "\t\t before, bin: " << std::bitset<20>(binlookup.value() >> settings_.NLONGVMBITS()) <<std::endl;
+//           }  
+          unsigned int tmp = binlookup.value() & (settings_.NLONGVMBINS() - 1);  // & 111
+//           if (inner == 2 && iseed == Seed::L2L3D1 && stub->r().value() < 10)
+//             std::cout << "\t\t tmp: " << std::bitset<20>(tmp) <<std::endl;
+          // not clear why it does that, however seems not to be harmful
+          binlookup.set(tmp, settings_.NLONGVMBITS(), true, __LINE__, __FILE__); // NLONGVMBITS = 3
+//           if (inner == 2 && iseed == Seed::L2L3D1 && stub->r().value() < 10)
+//             std::cout << "\t\t after, binlookup.value(): " << std::bitset<20>(binlookup.value()) <<std::endl;
         }
 
         FPGAWord finephi = stub->iphivmFineBins(settings_.nphireg(inner, iseed), settings_.nfinephi(inner, iseed));
 
         VMStubTE tmpstub(stub, finephi, stub->bend(), binlookup, allStubIndex);
+
+        if (false)
+          std::cout << layerdisk_   
+                  << "," << stub->rapprox() 
+                  << "," << stub->zapprox() 
+                  << "," << indexrOld
+                  << "," << indexzOld
+                  << "," << inner
+                  << "," << iseed
+                  << "," << stub->isPSmodule()
+                  << "," << stub->r().value()
+                  << "," << lutval
+                  << "," << mylutval
+                  << "," << bin
+                  << std::endl;
+
+//         if (inner == 2 && iseed == Seed::L2L3D1)
+//           std::cout << "\t\t\t tmpstub vmsbits: " << tmpstub.vmbits().value() <<std::endl;
 
         unsigned int nmem = ivmstubTEPHI.vmstubmem[!isTripletSeed ? 0 : ivmte].size();
         assert(nmem > 0);
@@ -460,6 +559,7 @@ void VMRouterCM::execute(unsigned int) {
             if (inner == 0) {
               ivmstubTEPHI.vmstubmem[ivmte][l]->addVMStub(tmpstub);
             } else {
+//               std::cout << "\t\t will put the tmpstub in bin : " << bin << " at pos " << ivmte << " of mem " << l <<std::endl;
               ivmstubTEPHI.vmstubmem[ivmte][l]->addVMStub(tmpstub, bin, 0, false);
             }
           }
