@@ -995,6 +995,10 @@ void TrackletLUT::initBendMatch(unsigned int layerdisk) {
   writeTable();
 }
 
+
+
+
+
 void TrackletLUT::initVMRTable(unsigned int layerdisk, VMRTableType type, int region, bool combined) {
   unsigned int zbits = settings_.vmrlutzbits(layerdisk);
   unsigned int rbits = settings_.vmrlutrbits(layerdisk);
@@ -1018,8 +1022,11 @@ void TrackletLUT::initVMRTable(unsigned int layerdisk, VMRTableType type, int re
 
   double dr = (rmax - rmin) / rbins;
   double dz = (zmax - zmin) / zbins;
+  
+  bool print_csv_lut = false;
+//   if (layerdisk == 1) print_csv_lut = true;
 
-  int NBINS = settings_.NLONGVMBINS() * settings_.NLONGVMBINS();
+  int NBINS = settings_.NLONGVMBINS() * settings_.NLONGVMBINS();  // 8 * 8 
 
   for (unsigned int izbin = 0; izbin < zbins; izbin++) {
     for (unsigned int irbin = 0; irbin < rbins; irbin++) {
@@ -1054,8 +1061,10 @@ void TrackletLUT::initVMRTable(unsigned int layerdisk, VMRTableType type, int re
         r = (layerdisk < N_LAYER + 2) ? settings_.rDSSinner(irbin) : settings_.rDSSouter(irbin);
 
       int bin;
+//       double saveZproj = -9999.;
       if (layerdisk < N_LAYER) {
         double zproj = z * settings_.rmean(layerdisk) / r;
+//         saveZproj = zproj;
         bin = NBINS * (zproj + settings_.zlength()) / (2 * settings_.zlength());
       } else {
         double rproj = r * settings_.zmean(layerdisk - N_LAYER) / z;
@@ -1065,6 +1074,13 @@ void TrackletLUT::initVMRTable(unsigned int layerdisk, VMRTableType type, int re
         bin = 0;
       if (bin >= NBINS)
         bin = NBINS - 1;
+
+//       if (print_csv_lut &&  (type == VMRTableType::innerthird))
+//         std::cout << izbin << "," << irbin 
+//                   << "," << r << "," << z 
+//                   << "," << saveZproj 
+//                   << "," << bin
+//                   << std::endl;
 
       if (type == VMRTableType::me) {
         table_.push_back(bin);
@@ -1191,8 +1207,10 @@ void TrackletLUT::initVMRTable(unsigned int layerdisk, VMRTableType type, int re
 }
 
 int TrackletLUT::getVMRLookup(unsigned int layerdisk, double z, double r, double dz, double dr, int iseed) const {
-  double z0cut = settings_.z0cut();
+  double z0cut = settings_.z0cut(); // 15
 
+  bool print_csv_lut = false; 
+  if (iseed == 10) print_csv_lut = true;
   if (layerdisk < N_LAYER) {
     double constexpr zcutL2L3 = 52.0;  //Stubs closer to IP in z will not be used for L2L3 seeds
     if (iseed == Seed::L2L3 && std::abs(z) < zcutL2L3)
@@ -1215,7 +1233,7 @@ int TrackletLUT::getVMRLookup(unsigned int layerdisk, double z, double r, double
     double zmin = std::min({z1, z2, z3, z4, z5, z6, z7, z8});
     double zmax = std::max({z1, z2, z3, z4, z5, z6, z7, z8});
 
-    int NBINS = settings_.NLONGVMBINS() * settings_.NLONGVMBINS();
+    int NBINS = settings_.NLONGVMBINS() * settings_.NLONGVMBINS();  // 8 * 8 
 
     int zbin1 = NBINS * (zmin + settings_.zlength()) / (2 * settings_.zlength());
     int zbin2 = NBINS * (zmax + settings_.zlength()) / (2 * settings_.zlength());
@@ -1240,11 +1258,11 @@ int TrackletLUT::getVMRLookup(unsigned int layerdisk, double z, double r, double
     //        and xxx is only 1,2, or 3
     //        should also reject xxx=0 as this means projection is outside range
 
-    int value = zbin1 / 8;
+    int value = zbin1 / 8;  //right shift by 3 (what about sign)
     value *= 2;
     if (zbin2 / 8 - zbin1 / 8 > 0)
       value += 1;
-    value *= 8;
+    value *= 8;    // left shift by 3 (equivalent of  value << 3 )
     value += (zbin1 & 7);
     assert(value / 8 < 15);
     int deltaz = zbin2 - zbin1;
@@ -1276,8 +1294,8 @@ int TrackletLUT::getVMRLookup(unsigned int layerdisk, double z, double r, double
     double rmin = std::min({r1, r2, r3, r4, r5, r6, r7, r8});
     double rmax = std::max({r1, r2, r3, r4, r5, r6, r7, r8});
 
-    int NBINS = settings_.NLONGVMBINS() * settings_.NLONGVMBINS() / 2;
-
+    int NBINS = settings_.NLONGVMBINS() * settings_.NLONGVMBINS() / 2;  // 8 * 8 / 2  = 32
+    
     double rmindisk = settings_.rmindiskvm();
     double rmaxdisk = settings_.rmaxdiskvm();
 
@@ -1307,10 +1325,21 @@ int TrackletLUT::getVMRLookup(unsigned int layerdisk, double z, double r, double
       rbin2 = NBINS * (rmax - rminspec) / (settings_.rmaxdisk() - rminspec);
     }
 
+    if (print_csv_lut){
+      std::cout << r << "," << z << "," 
+                << rmin << "," << rmax 
+		<< "," << rbin1 << "," << rbin2 ;
+		
+    }
+
     if (rbin2 >= NBINS)
       rbin2 = NBINS - 1;
     if (rbin1 < 0)
       rbin1 = 0;
+
+    if (print_csv_lut)
+      std::cout << "," << rbin1 << "," << rbin2 
+		<< std::endl;
 
     // This is a 9 bit word:
     // xxx|yy|z|rrr
@@ -1324,17 +1353,18 @@ int TrackletLUT::getVMRLookup(unsigned int layerdisk, double z, double r, double
 
     bool overlap = iseed == Seed::L1D1 || iseed == Seed::L2D1 || iseed == Seed::L2L3D1;
 
-    int value = rbin1 / 8;
+    int value = rbin1 / 8; //shift right by 3
     if (overlap) {
       if (z < 0.0)
         value += 4;
     }
-    value *= 2;
+    value *= 2; //shift left by 1
     if (rbin2 / 8 - rbin1 / 8 > 0)
       value += 1;
-    value *= 8;
+    value *= 8; //shift left by 3
     value += (rbin1 & 7);
     assert(value / 8 < 15);
+
     int deltar = rbin2 - rbin1;
     if (deltar > 7)
       deltar = 7;
@@ -1343,7 +1373,6 @@ int TrackletLUT::getVMRLookup(unsigned int layerdisk, double z, double r, double
     } else {
       value += (deltar << 6);
     }
-
     return value;
   }
 }
