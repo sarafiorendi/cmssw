@@ -56,6 +56,9 @@ public:
   void setDiffMaxIn(int i) { diffmax_in_ = i; }
   int getRZEffIn() const { return rzeff_in_; }
   void setRZEffIn(int i) { rzeff_in_ = i; }
+  int getLargeBinIn() const { return start_in_; }
+  void setLargeBinIn(int i) { start_in_ = i; }
+
 
   int getStubRValue(int i) const { return rvalue_.at(i); }
   void setStubRValue(int i, int rval) {rvalue_[i] = rval; }
@@ -81,6 +84,7 @@ private:
   int diffmax_in_;
   int rzeff_out_;
   int rzeff_in_;
+  int start_in_;
   
 };  /// Close class
 #endif

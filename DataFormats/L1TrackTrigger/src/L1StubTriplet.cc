@@ -18,7 +18,8 @@ L1StubTriplet::L1StubTriplet() :
   diffmax_out_(0),
   diffmax_in_(0),
   rzeff_out_(0),
-  rzeff_in_(0)
+  rzeff_in_(0),
+  start_in_(0)
 {
 }
 

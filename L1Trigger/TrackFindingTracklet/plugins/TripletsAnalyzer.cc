@@ -79,6 +79,7 @@ private:
   int inner_rval_;
   int middle_rval_;
   int outer_rval_;
+  int inner_largebin_;
   
 };
 
@@ -141,6 +142,9 @@ void TripletsAnalyzer::beginJob() {
   outTree_->Branch("middle_rval", &middle_rval_, "middle_rval/I");
   outTree_->Branch("outer_rval", &outer_rval_, "outer_stub_rval/I");
 
+  outTree_->Branch("inner_largebin", &inner_largebin_, "inner_largebin/I");
+  
+
 }
 void TripletsAnalyzer::endJob() {
 //   outTree_->GetDirectory()->cd();
@@ -200,6 +204,8 @@ void TripletsAnalyzer::analyze(const edm::Event& event, const edm::EventSetup& e
     inner_rval_ = iTriplet.getStubRValue(0);
     middle_rval_ = iTriplet.getStubRValue(1);
     outer_rval_ = iTriplet.getStubRValue(2);
+    
+    inner_largebin_ = iTriplet.getLargeBinIn();
 
     outTree_->Fill();  // Fill the tree with current cluster data
   }

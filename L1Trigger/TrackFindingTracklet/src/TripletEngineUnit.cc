@@ -74,13 +74,11 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
   int rzbin_in  = (innervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1)); // 3 bits 100//sara
   
 //   if (!innervmstub.stub()->isPSmodule() && trpdata_.stub_->layerdisk() == 1){
-//   if (trpdata_.stub_->layerdisk() == 1){
-//     std::cout << "inner one at " << istub_in_ << " is 2S and has r =" << innervmstub.stub()->rapprox() << std::endl;
-//     std::cout << "innervmstub.vmbits().value() " << innervmstub.vmbits().value() << std::endl;
-//     std::cout << "innervmstub.vmbits().value() " << std::bitset<10>(innervmstub.vmbits().value()) << std::endl;
+// //     std::cout << "inner one at " << istub_in_ << " is 2S and has r =" << innervmstub.stub()->rapprox() << std::endl;
+//     std::cout << "inner one at " << istub_in_ << " z =" << innervmstub.stub()->zapprox() << std::endl;
+//     std::cout << "innervmstub.vmbits().value() " << innervmstub.vmbits().value() 
+//               << " ->  " << std::bitset<10>(innervmstub.vmbits().value()) << std::endl;
 //   }  
-//   if (!outervmstub.stub()->isPSmodule())
-//     std::cout << "outer one is 2S " << std::endl;
 
   if (trpdata_.start_out_ != ibin_out)
     rzbin_out += 8;
@@ -142,6 +140,7 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
       myTriplet.setDiffMaxIn(trpdata_.rzdiffmax_in_);
       myTriplet.setRZEffOut(rzbin_out);
       myTriplet.setRZEffIn(rzbin_in);
+      myTriplet.setLargeBinIn(ibin_in);
       
       
       foundtriplets.push_back(myTriplet);
