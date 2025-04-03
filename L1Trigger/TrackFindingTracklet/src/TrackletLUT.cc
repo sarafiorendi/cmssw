@@ -1210,7 +1210,7 @@ int TrackletLUT::getVMRLookup(unsigned int layerdisk, double z, double r, double
   double z0cut = settings_.z0cut(); // 15
 
   bool print_csv_lut = false; 
-  if (iseed == 10) print_csv_lut = true;
+//   if (iseed == 10) print_csv_lut = true;
   if (layerdisk < N_LAYER) {
     double constexpr zcutL2L3 = 52.0;  //Stubs closer to IP in z will not be used for L2L3 seeds
     if (iseed == Seed::L2L3 && std::abs(z) < zcutL2L3)
@@ -1338,8 +1338,7 @@ int TrackletLUT::getVMRLookup(unsigned int layerdisk, double z, double r, double
       rbin1 = 0;
 
     if (print_csv_lut)
-      std::cout << "," << rbin1 << "," << rbin2 
-		<< std::endl;
+      std::cout << "," << rbin1 << "," << rbin2 ;
 
     // This is a 9 bit word:
     // xxx|yy|z|rrr
@@ -1352,6 +1351,10 @@ int TrackletLUT::getVMRLookup(unsigned int layerdisk, double z, double r, double
     //        should also reject xxx=0 as this means projection is outside range
 
     bool overlap = iseed == Seed::L1D1 || iseed == Seed::L2D1 || iseed == Seed::L2L3D1;
+
+    if (print_csv_lut)
+      std::cout << "," << (rbin1 & 7) 
+		<< std::endl;
 
     int value = rbin1 / 8; //shift right by 3
     if (overlap) {
@@ -1366,6 +1369,8 @@ int TrackletLUT::getVMRLookup(unsigned int layerdisk, double z, double r, double
     assert(value / 8 < 15);
 
     int deltar = rbin2 - rbin1;
+    if (iseed == Seed::L2L3D1)
+      deltar = deltar%2 ? (deltar+1)/2 : deltar / 2;
     if (deltar > 7)
       deltar = 7;
     if (overlap) {

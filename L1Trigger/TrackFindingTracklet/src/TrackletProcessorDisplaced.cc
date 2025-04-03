@@ -351,7 +351,6 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
       if (lutval != -1) {
         unsigned int lutwidth = settings_.lutwidthtabextended(0, iSeed_); // always 21
         FPGAWord lookupbits(lutval, lutwidth, true, __LINE__, __FILE__);
-//         if (iSeed_ == Seed::L2L3D1 && negside) std::cout << "lookupbits: " << lookupbits.str() << std::endl;
 
         // get r/z bins for projection into outer layer/disk
         int nbitsrzbin_out = N_RZBITS;   // N_RZBITS = 3; //number of bit for the r/z bins. it is 2 for seed 11
@@ -379,18 +378,20 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         // So, first, mirror index of large z bin wrt center (as 0-3 bins are for negative z, 4 to 7 on the positive z). 
         // Then subtract next_in so that we take that into account
         if (iSeed_ == Seed::D1D2L2 && negdisk){  // if projecting from disk into layer
-//           std::cout << "\t\t rzbinfirst_in: " << std::bitset<3>(rzbinfirst_in) << " -> " << rzbinfirst_in ;
           start_in = settings_.NLONGVMBINS() - 1 - start_in - next_in; 
           if (next_in) 
             rzbinfirst_in = settings_.NLONGVMBINS() - (rzbinfirst_in + rzdiffmax_in - settings_.NLONGVMBINS()); 
           else
             rzbinfirst_in = settings_.NLONGVMBINS() - 1 - rzbinfirst_in - rzdiffmax_in; 
           if (rzbinfirst_in < 0) rzbinfirst_in = 0;  
-//           std::cout << "    now is: " << std::bitset<3>(rzbinfirst_in) << " -> " << rzbinfirst_in << std::endl;
-        } // test
-        
+        } 
+
+        if (iSeed_ == Seed::L2L3D1){  // multiply by two, given how deltaR is saved in the LUT
+          rzdiffmax_in = 2 * rzdiffmax_in;  
+        }
+
         int last_in = start_in + next_in;  // last rz bin projection
-        
+
         // fill trpdata with projection info of middle stub
         trpdata.stub_ = stub;
         trpdata.rzbinfirst_out_ = rzbinfirst_out;
