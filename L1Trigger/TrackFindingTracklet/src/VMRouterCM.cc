@@ -408,17 +408,18 @@ void VMRouterCM::execute(unsigned int) {
           
             if (inner == 2 && iseed == Seed::L2L3D1) {
               lutval = 0;
-              if (stub->r().value() < 10) { // means it is 2S     
+//               if (stub->r().value() < 10 ) { // means it is 2S     
+              if (stub->r().value() < 10 || (stub->r().value() > settings_.rmindiskl2overlapvm() / settings_.kr()) ) { // means it is 2S or PS above some r    
               // in fact constexpr unsigned int N_DSS_MOD = 5;  // # of rings with 2S modules per disk
               // and before we had 2 * N_DSS_MOD
 
-                lutval = 8 * (1 + (stub->r().value() >> 2));
+//                 lutval = 8 * (1 + (stub->r().value() >> 2));
                 
                 // from https://github.com/cms-L1TK/cmssw/blob/68ae83ab542b996d3e46317c3646e300e3602946/L1Trigger/TrackFindingTracklet/src/Stub.cc#L152
                 constexpr double rminspec = 40.0;
                 int NBINS = settings_.NLONGVMBINS() * settings_.NLONGVMBINS() / 2;  // 8 * 8 / 2  = 32
                 double stub_r_approx = stub->rapprox();
-                if (stub_r_approx < settings_.rmindiskvm()) // TrackletLUT L1340
+                if (stub_r_approx < settings_.rmindiskvm()) // TrackletLUT L1340, 22.5 cm
                   stub_r_approx = settings_.rmindiskvm();
 
                 stub_rbin = NBINS * (stub_r_approx - rminspec) / (settings_.rmaxdisk() - rminspec);
@@ -454,10 +455,9 @@ void VMRouterCM::execute(unsigned int) {
                 // double rmaxdiskl1overlapvm_{45.0};
                 // double rmindiskl2overlapvm_{40.0};
                 // double rmindiskl3overlapvm_{50.0};
-                if (stub->rapprox() < settings_.rmindiskl23overlapvm() ) {
-//                 if (stub->r().value() < settings_.rmindiskl2overlapvm() / settings_.kr()) {
+                if (stub->r().value() < settings_.rmindiskl2overlapvm() / settings_.kr()) {
                   lutval = -1;
-                }
+                } 
               }
             } // end if inner == 2 and seed == 10
             else {
@@ -492,10 +492,10 @@ void VMRouterCM::execute(unsigned int) {
         assert(lutval >= 0);
 
         FPGAWord binlookup(lutval, lutwidth, true, __LINE__, __FILE__);
-        if (inner == 2 && iseed == Seed::L2L3D1 && stub->r().value() < 10){
-          std::cout << "\t\t binlookup.value(): " << std::bitset<20>(binlookup.value()) <<std::endl;
-          std::cout << "\t\t lutval           : " << std::bitset<20>(lutval) <<std::endl;
-        }  
+//         if (inner == 2 && iseed == Seed::L2L3D1 && stub->r().value() < 10){
+//           std::cout << "\t\t binlookup.value(): " << std::bitset<20>(binlookup.value()) <<std::endl;
+//           std::cout << "\t\t lutval           : " << std::bitset<20>(lutval) <<std::endl;
+//         }  
 
         if (binlookup.value() < 0)
           continue;
@@ -539,9 +539,9 @@ void VMRouterCM::execute(unsigned int) {
                   << "," << bin
                   << std::endl;
 
-//         if (inner == 2 && iseed == Seed::L2L3D1)
+//         if (inner == 2 && iseed == Seed::L2L3D1 && stub->isPSmodule()){
 //           std::cout << "\t\t\t tmpstub vmsbits: " << tmpstub.vmbits().value() <<std::endl;
-
+//         }
         unsigned int nmem = ivmstubTEPHI.vmstubmem[!isTripletSeed ? 0 : ivmte].size();
         assert(nmem > 0);
 
@@ -560,6 +560,8 @@ void VMRouterCM::execute(unsigned int) {
               ivmstubTEPHI.vmstubmem[ivmte][l]->addVMStub(tmpstub);
             } else {
 //               std::cout << "\t\t will put the tmpstub in bin : " << bin << " at pos " << ivmte << " of mem " << l <<std::endl;
+//               if (inner == 2 && iseed == Seed::L2L3D1 && stub->isPSmodule())
+//                 std::cout << "\t\t will put the tmpstub in bin : " << bin << " at pos " << ivmte << " of mem " << l <<std::endl;
               ivmstubTEPHI.vmstubmem[ivmte][l]->addVMStub(tmpstub, bin, 0, false);
             }
           }
