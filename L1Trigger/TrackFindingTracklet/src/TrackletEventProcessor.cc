@@ -159,6 +159,8 @@ void TrackletEventProcessor::event(SLHCEvent& ev,
   globals_->event() = &ev;
 
   tracks_.clear();
+  foundtriplets_.clear();
+  acceptedtriplets_.clear();
   eventnum_++;
   bool first = (eventnum_ == 1);
 
@@ -278,7 +280,7 @@ void TrackletEventProcessor::event(SLHCEvent& ev,
 
     // tracklet processor displaced
     TPDTimer_.start();
-    sector_->executeTPD();
+    sector_->executeTPD(foundtriplets_, acceptedtriplets_);
     TPDTimer_.stop();
 
     // projection calculator

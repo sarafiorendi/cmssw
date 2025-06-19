@@ -48,7 +48,8 @@ void TripletEngineUnit::reset() {
   candtriplets_.reset();
 }
 
-void TripletEngineUnit::step() {
+// void TripletEngineUnit::step() {
+void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned int iSector, int iTC, int count_trpunits) {
   if (goodtriplet__) {
     candtriplets_.store(candtriplet__);
   }
@@ -91,6 +92,49 @@ void TripletEngineUnit::step() {
       candtriplet_ =
           std::tuple<const Stub*, const Stub*, const Stub*>(innervmstub.stub(), trpdata_.stub_, outervmstub.stub());
       goodtriplet_ = true;
+      
+      L1StubTriplet myTriplet;
+      myTriplet.setStubRapprox(0, innervmstub.stub()->rapprox());
+      myTriplet.setStubRapprox(1, trpdata_.stub_->rapprox());
+      myTriplet.setStubRapprox(2, outervmstub.stub()->rapprox());
+
+      myTriplet.setStubRValue(0, innervmstub.stub()->r().value());
+      myTriplet.setStubRValue(1, trpdata_.stub_->r().value());
+      myTriplet.setStubRValue(2, outervmstub.stub()->r().value());
+
+      myTriplet.setStubZapprox(0, innervmstub.stub()->zapprox());
+      myTriplet.setStubZapprox(1, trpdata_.stub_->zapprox());
+      myTriplet.setStubZapprox(2, outervmstub.stub()->zapprox());
+
+      myTriplet.setStubBend(0, innervmstub.stub()->bend().value());
+      myTriplet.setStubBend(1, trpdata_.stub_->bend().value());
+      myTriplet.setStubBend(2, outervmstub.stub()->bend().value());
+
+      myTriplet.setStubRZbin(0, (innervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1)));
+      myTriplet.setStubRZbin(1, 0); // dummy fill
+      myTriplet.setStubRZbin(2, (outervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1)));
+
+      myTriplet.setStubIndex(0, innervmstub.stub()->stubindex().value());
+      myTriplet.setStubIndex(1, trpdata_.stub_->stubindex().value());
+      myTriplet.setStubIndex(2, outervmstub.stub()->stubindex().value());
+
+      myTriplet.setStubLayerdisk(0, innervmstub.stub()->layerdisk());
+      myTriplet.setStubLayerdisk(1, trpdata_.stub_->layerdisk());
+      myTriplet.setStubLayerdisk(2, outervmstub.stub()->layerdisk());
+
+      myTriplet.setSector(iSector);
+      myTriplet.setRegion(iTC);
+      myTriplet.setTPDUnit(count_trpunits);
+
+      myTriplet.setFirstBinOut(trpdata_.rzbinfirst_out_);
+      myTriplet.setFirstBinIn(trpdata_.rzbinfirst_in_);
+      myTriplet.setDiffMaxOut(trpdata_.rzdiffmax_out_);
+      myTriplet.setDiffMaxIn(trpdata_.rzdiffmax_in_);
+      myTriplet.setRZEffOut(rzbin_out);
+      myTriplet.setRZEffIn(rzbin_in);
+      myTriplet.setLargeBinIn(ibin_in);
+
+      foundtriplets.push_back(myTriplet);      
     }
   }
 

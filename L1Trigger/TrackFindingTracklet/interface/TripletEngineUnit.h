@@ -4,6 +4,7 @@
 #include "L1Trigger/TrackFindingTracklet/interface/VMStubsTEMemory.h"
 #include "L1Trigger/TrackFindingTracklet/interface/CircularBuffer.h"
 #include "L1Trigger/TrackFindingTracklet/interface/TrackletLUT.h"
+#include "DataFormats/L1TrackTrigger/interface/L1StubTriplet.h"
 
 #include <cassert>
 #include <vector>
@@ -54,7 +55,8 @@ namespace trklet {
 
     void reset();
 
-    void step();
+//     void step();
+    void step(std::vector<L1StubTriplet>&, unsigned int, int, int);    
 
     const Stub* innerStub() const { return trpdata_.stub_; }
 
