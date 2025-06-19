@@ -16,5 +16,6 @@
 #include "DataFormats/L1TrackTrigger/interface/TTDTC.h"
 #include "DataFormats/Common/interface/RefVector.h"
 #include "DataFormats/Common/interface/RefProd.h"
+#include "DataFormats/L1TrackTrigger/interface/L1StubTriplet.h"
 
 #endif

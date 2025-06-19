@@ -53,5 +53,9 @@
   <class name="edm::Wrapper<TTDTC>"/>
   <class name="std::vector<std::pair<double, double>>"/>
   <class name="edm::Wrapper<std::vector<std::pair<double, double>>>"/>
+  <class name="L1StubTriplet"/>
+  <class name="std::vector<L1StubTriplet>"/>
+  <class name="std::pair<L1StubTriplet, L1StubTriplet>"/>
+  <class name="edm::Wrapper<std::vector<L1StubTriplet>>"/>
 </lcgdict>
 
