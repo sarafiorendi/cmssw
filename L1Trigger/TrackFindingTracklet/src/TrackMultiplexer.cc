@@ -197,10 +197,14 @@ namespace trklet {
           }
         }
         // create fake seed stubs, since TrackBuilder doesn't output these stubs, required by the KF.
-        for (int seedingLayer = 0; seedingLayer < numS; seedingLayer++) {
+        for (int seedingLayer = 0; seedingLayer < channelAssignment_->numSeedingLayers(channel); seedingLayer++) {
           const int channelStub = numP + seedingLayer;
           const FrameStub& frameStub = streamsStub[offsetStub + channelStub][frame];
           const TTStubRef& ttStubRef = frameStub.first;
+          if (!ttStubRef.isNonnull()) {
+            edm::LogError("TrackMultiplexer") << "No ttStubRef for the seeding stub at seedingLayer " << seedingLayer << " found!";
+            return;
+          }
           const int trackletLayerId = setup_->trackletLayerId(ttStubRef);
           const int layerId = channelAssignment_->layerId(channel, channelStub);
           const int stubId = TTBV(frameStub.second).val(channelAssignment_->tmWidthStubId());

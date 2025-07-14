@@ -47,6 +47,8 @@ namespace trklet {
     // sets layerId (0-7 in sequence the seed type projects to) of given TTStubRef and seedType, returns false if seeed stub
     bool layerId(int seedType, const TTStubRef& ttStubRef, int& layerId) const;
     // number layers a given seed type projects to
+    int numSeedingLayers(int seedType) const { return (int)seedTypesSeedLayers_.at(seedType).size(); }
+    // number layers a given seed type projects to
     int numProjectionLayers(int seedType) const { return (int)seedTypesProjectionLayers_.at(seedType).size(); }
     // max. no. layers that any seed type projects to
     int maxNumProjectionLayers() const { return maxNumProjectionLayers_; }
