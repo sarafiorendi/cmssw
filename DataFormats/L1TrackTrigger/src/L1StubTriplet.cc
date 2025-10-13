@@ -15,11 +15,14 @@ L1StubTriplet::L1StubTriplet() :
   tpdunit_(0),
   firstbin_out_(0),
   firstbin_in_(0),
+  firstbin_out_pair_(0),
   diffmax_out_(0),
   diffmax_in_(0),
+  diffmax_out_pair_(0),
   rzeff_out_(0),
   rzeff_in_(0),
-  start_in_(0)
+  start_in_(0),
+  start_out_pair_(0)
 {
 }
 

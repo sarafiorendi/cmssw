@@ -50,6 +50,8 @@ TrackletProcessor::TrackletProcessor(string name, Settings const& settings, Glob
 
   init(iSeed_);
 
+  // rmin and rmax correspond to the radius of the two layers/disks of the seed 
+  // dphimax is the max delta phi between the two stubs of the pair to form that seed in order to satisfy the min pt cut (maxrinv)
   double dphimax = asin(0.5 * settings_.maxrinv() * rmax) - asin(0.5 * settings_.maxrinv() * rmin);
 
   //number of fine phi bins in sector
@@ -62,6 +64,14 @@ TrackletProcessor::TrackletProcessor(string name, Settings const& settings, Glob
   int nbins = 2.0 * (dphimax / dfinephi + 1.0);
 
   nbitsfinephidiff_ = log(nbins) / log(2.0) + 1;
+  
+  std::cout << "[TP] iseed = " << iSeed_
+            << "\t dphimax = " << dphimax 
+            << "\t nfinephibins = " << nfinephibins
+            << "\t nbitsfinephi_ = " << nbitsfinephi_
+            << "\t nbins = " << nbins
+            << "\t nbitsfinephidiff_ = " << nbitsfinephidiff_
+            << std::endl;
 
   nbitszfinebintable_ = settings_.vmrlutzbits(layerdisk1_);
   nbitsrfinebintable_ = settings_.vmrlutrbits(layerdisk1_);
@@ -242,8 +252,8 @@ void TrackletProcessor::execute(unsigned int iSector, double phimin, double phim
       CircularBuffer<TEData>& tedatabuffer = std::get<0>(tebuffer_);
       unsigned int& istub = std::get<1>(tebuffer_);
       unsigned int& imem = std::get<2>(tebuffer_);
-      cout << "istep=" << istep << " TEBuffer: " << istub << " " << imem << " " << tedatabuffer.rptr() << " "
-           << tedatabuffer.wptr();
+//       cout << "istep=" << istep << " TEBuffer: " << istub << " " << imem << " " << tedatabuffer.rptr() << " "
+//            << tedatabuffer.wptr();
       int k = -1;
       for (auto& teunit : teunits_) {
         k++;

@@ -42,7 +42,8 @@ process.MessageLogger.TrackTriggerHPH = dict(limit = -1)
 
 # print ("layerdisk,rapprox,zapprox,indexR,indexZ,inner,iseed,isPS,rvalue,lut")
 # print ("r,z,dr,dz,zmean,rmin,rmax,rbin1,rbin2,rbin1lut,rbin2lut")
-print ("r,z,zmin,zmax,zbin1,zbin2,zbin1lut,zbin2lut")
+# print ("r,z,zmin,zmax,zbin1,zbin2,zbin1lut,zbin2lut")
+print ("r,z,ri,zi,zmin,zmax,zbin1,zbin2,zbin1lut,zbin2lut,deltaZLUT")
 
 if GEOMETRY == "D88" or GEOMETRY == 'D98':
 #     print("using geometry " + GEOMETRY + " (tilted)")
@@ -232,7 +233,7 @@ process.L1TrackNtuple = L1TrackNtupleMaker.clone(
 
 # Define the EDAnalyzer with the correct product label
 process.TFileService = cms.Service("TFileService", 
-  fileName = cms.string('testSeeds_1DisplSUSY_addNewLUT_noNewCut.root'), 
+  fileName = cms.string('testSeeds_1DisplSUSY_addNewLUT_onlyPrintLUT.root'), 
   closeFileFast = cms.untracked.bool(True)
 )
 process.L1SeedsNtuple = cms.EDAnalyzer(

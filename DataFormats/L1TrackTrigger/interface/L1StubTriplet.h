@@ -59,6 +59,12 @@ public:
   int getLargeBinIn() const { return start_in_; }
   void setLargeBinIn(int i) { start_in_ = i; }
 
+  int getFirstBinOutPair() const { return firstbin_out_pair_; }
+  void setFirstBinOutPair(int i) { firstbin_out_pair_ = i; }
+  int getDiffMaxOutPair() const { return diffmax_out_pair_; }
+  void setDiffMaxOutPair(int i) { diffmax_out_pair_ = i; }
+  int getLargeBinOutPair() const { return start_out_pair_; }
+  void setLargeBinOutPair(int i) { start_out_pair_ = i; }
 
   int getStubRValue(int i) const { return rvalue_.at(i); }
   void setStubRValue(int i, int rval) {rvalue_[i] = rval; }
@@ -80,11 +86,14 @@ private:
 
   int firstbin_out_;
   int firstbin_in_;
+  int firstbin_out_pair_;
   int diffmax_out_;
   int diffmax_in_;
+  int diffmax_out_pair_;
   int rzeff_out_;
   int rzeff_in_;
   int start_in_;
+  int start_out_pair_;
   
 };  /// Close class
 #endif

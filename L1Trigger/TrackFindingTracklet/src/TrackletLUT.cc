@@ -283,6 +283,9 @@ void TrackletLUT::initmatchcut(unsigned int layerdisk, MatchType type, unsigned 
   writeTable();
 }
 
+// build a lookup table that determines if a stub in a given region 
+// is consistent with a track of transverse momentum above a threshold 
+// and within the expected bending range
 void TrackletLUT::initTPlut(bool fillInner,
                             unsigned int iSeed,
                             unsigned int layerdisk1,
@@ -327,21 +330,29 @@ void TrackletLUT::initTPlut(bool fillInner,
 
   for (int iphibin = 0; iphibin < nbinsfinephidiff; iphibin++) {
     int iphidiff = iphibin;
+    // if iphibin larger than half the range,
+    // convert the upper half of the phi bins into negative indices
+    // making the phi difference signed and symmetric wrt zero
     if (iphibin >= nbinsfinephidiff / 2) {
       iphidiff = iphibin - nbinsfinephidiff;
     }
-    //min and max dphi
-    //ramge of dphi to consider due to resolution
+    
+    // min and max dphi 
+    // range of dphi to consider due to resolution
+    // add a factor of \pm 1.5 times the width of the fine delta phi bin (dfinephi)
     double deltaphi = 1.5;
     dphi[0] = (iphidiff - deltaphi) * dfinephi;
     dphi[1] = (iphidiff + deltaphi) * dfinephi;
+    
     for (int irouterbin = 0; irouterbin < outerrbins; irouterbin++) {
+    
+      // if disks in the seed, consider a radial range
       if (iSeed == Seed::D1D2 || iSeed == Seed::D3D4 || iSeed == Seed::L1D1 || iSeed == Seed::L2D1) {
         router[0] =
             settings_.rmindiskvm() + irouterbin * (settings_.rmaxdiskvm() - settings_.rmindiskvm()) / outerrbins;
         router[1] =
             settings_.rmindiskvm() + (irouterbin + 1) * (settings_.rmaxdiskvm() - settings_.rmindiskvm()) / outerrbins;
-      } else {
+      } else { // otherwise just set radius to the one of the outer layer
         router[0] = settings_.rmean(layerdisk2);
         router[1] = settings_.rmean(layerdisk2);
       }
@@ -358,6 +369,8 @@ void TrackletLUT::initTPlut(bool fillInner,
           double outer_tan_max = tan_theta(settings_.rmean(layerdisk2), settings_.zlength(), z0, true);
           std::array<double, 2> tan_range = {{0, outer_tan_max}};
 
+          // find all the sensor modules lying between 0 and tan_theta = tan_max
+          // should cover displaced tracks, as z0 > 0 (z0 cut = 15 cm)
           smouter = getSensorModules(layerdisk2, isPSouter, tan_range);
           sminner = getSensorModules(layerdisk1, isPSinner, tan_range);
 
@@ -380,10 +393,10 @@ void TrackletLUT::initTPlut(bool fillInner,
           sminner = getSensorModules(layerdisk1, isPSinner, tan_range);
         }
 
-        bend_cuts_inner = getBendCut(layerdisk1, sminner, isPSinner, settings_.bendcutTE(iSeed, true));
+        bend_cuts_inner = getBendCut(layerdisk1, sminner, isPSinner, settings_.bendcutTE(iSeed, true)); //double bendcutTE(unsigned int seed, bool inner)
         bend_cuts_outer = getBendCut(layerdisk2, smouter, isPSouter, settings_.bendcutTE(iSeed, false));
 
-      } else {
+      } else { // if not useCalcBendCuts
         for (int ibend = 0; ibend < (1 << nbendbitsinner); ibend++) {
           double mid = settings_.benddecode(ibend, layerdisk1, isPSinner);
           double cut = settings_.bendcutte(ibend, layerdisk1, isPSinner);
@@ -416,6 +429,17 @@ void TrackletLUT::initTPlut(bool fillInner,
             if (rinner >= router[i3])
               continue;
           }
+          
+          // following line is using https://github.com/cms-L1TK/cmssw/blob/4acb969e508f82222976ea103740bbbdbc4a1ad6/L1Trigger/TrackFindingTracklet/interface/Util.h#L66C1-L73C4
+          //  inline double rinv(double phi1, double phi2, double r1, double r2) {
+          //    assert(r1 < r2);  //Can not form tracklet should not call function with r2<=r1
+          //
+          //    double dphi = phi2 - phi1;
+          //    double dr = r2 - r1;
+          //
+          //    return 2.0 * sin(dphi) / dr / sqrt(1.0 + 2 * r1 * r2 * (1.0 - cos(dphi)) / (dr * dr));
+          //  }
+          // assumes ORIGIN
           double rinv1 = (rinner < router[i3]) ? rinv(0.0, -dphi[i2], rinner, router[i3]) : 20.0;
           double pitchinner = (rinner < settings_.rcrit()) ? settings_.stripPitch(true) : settings_.stripPitch(false);
           double pitchouter =
@@ -498,6 +522,9 @@ void TrackletLUT::initTPlut(bool fillInner,
   writeTable();
 }
 
+// given an inner stub in layerdisk1 (so its phi and bend) and a seed, 
+// define which phi regions (which outputs of the VM router) could
+// contain an outer stub with deltaphi within a range
 void TrackletLUT::initTPregionlut(unsigned int iSeed,
                                   unsigned int layerdisk1,
                                   unsigned int layerdisk2,
@@ -517,16 +544,24 @@ void TrackletLUT::initTPregionlut(unsigned int iSeed,
     nbendbitsinner = 4;
   }
 
+  // loop on all possible inner stub phi and bend values
   for (int innerfinephi = 0; innerfinephi < (1 << nbitsfinephi); innerfinephi++) {
     for (int innerbend = 0; innerbend < (1 << nbendbitsinner); innerbend++) {
+      // loop on all possible inner stub radius (could be just one value for barrel)
       for (int ir = 0; ir < (1 << nirbits); ir++) {
-        unsigned int usereg = 0;
+        unsigned int usereg = 0;  // will be used to save which phi regions to look at 
+        // loop on all phi regions of that seed (as from vm router) and check, for each of them,
+        // if there's at least one outer stub which combined with the inner one has dphi and dbend values
+        // that are compatible
         for (unsigned int ireg = 0; ireg < settings_.nvmte(1, iSeed); ireg++) {
           bool match = false;
           for (int ifinephiouter = 0; ifinephiouter < (1 << settings_.nfinephi(1, iSeed)); ifinephiouter++) {
             int outerfinephi = iAllStub * (1 << (nbitsfinephi - settings_.nbitsallstubs(layerdisk2))) +
                                ireg * (1 << settings_.nfinephi(1, iSeed)) + ifinephiouter;
             int idphi = outerfinephi - innerfinephi;
+            // here the actual cut, defined by dphi < XX and dphi > -XX
+            // cut defined by nbitsfinephidiff  that in tracklet processor is
+            // nbitsfinephidiff_ = log(nbins) / log(2.0) + 1;
             bool inrange = (idphi < (1 << (nbitsfinephidiff - 1))) && (idphi >= -(1 << (nbitsfinephidiff - 1)));
             if (idphi < 0)
               idphi = idphi + (1 << nbitsfinephidiff);
@@ -534,7 +569,8 @@ void TrackletLUT::initTPregionlut(unsigned int iSeed,
             if (iSeed >= 4)
               idphi1 = (idphi << 3) + ir;
             int ptinnerindexnew = (idphi1 << nbendbitsinner) + innerbend;
-            match = match || (inrange && tplutinner.lookup(ptinnerindexnew));
+            // if both bend and phi are compatible, set match to true
+            match = match || (inrange && tplutinner.lookup(ptinnerindexnew));  
           }
           if (match) {
             usereg = usereg | (1 << ireg);
@@ -1348,6 +1384,320 @@ int TrackletLUT::getVMRLookup(unsigned int layerdisk, double z, double r, double
   }
 }
 
+
+
+
+
+
+void TrackletLUT::initVMRTableTriplet(unsigned int layerdisk_middle, unsigned int layerdisk_inner, VMRTableType type, int region, bool combined) {
+
+  unsigned int zbits_middle = settings_.vmrlutzbits(layerdisk_middle); // {7, 7, 7, 7, 7, 7, 3, 3, 3, 3, 3}};
+  unsigned int rbits_middle = settings_.vmrlutrbits(layerdisk_middle); // {4, 4, 4, 4, 4, 4, 8, 8, 8, 8, 8}}
+
+  unsigned int zbits_inner = settings_.vmrlutzbits(layerdisk_inner); // {7, 7, 7, 7, 7, 7, 3, 3, 3, 3, 3}};
+  unsigned int rbits_inner = settings_.vmrlutrbits(layerdisk_inner); // {4, 4, 4, 4, 4, 4, 8, 8, 8, 8, 8}}
+
+  unsigned int rbins_middle = (1 << rbits_middle);  // for layers:   16    for disks: 256
+  unsigned int zbins_middle = (1 << zbits_middle);  //              128               8  
+  unsigned int rbins_inner = (1 << rbits_inner);  // for layers:   16    for disks: 256
+  unsigned int zbins_inner = (1 << zbits_inner);  //              128               8  
+
+  double zmin_m, zmax_m, rmin_m, rmax_m;
+  double zmin_i, zmax_i, rmin_i, rmax_i;
+
+  if (layerdisk_middle < N_LAYER) {
+    zmin_m = -settings_.zlength();
+    zmax_m = settings_.zlength();
+    rmin_m = settings_.rmean(layerdisk_middle) - settings_.drmax();
+    rmax_m = settings_.rmean(layerdisk_middle) + settings_.drmax();
+  } else {
+    rmin_m = 0;
+    rmax_m = settings_.rmaxdisk();
+    zmin_m = settings_.zmean(layerdisk_middle - N_LAYER) - settings_.dzmax();
+    zmax_m = settings_.zmean(layerdisk_middle - N_LAYER) + settings_.dzmax();
+  }
+
+  // move this into an IF
+  if (layerdisk_inner < N_LAYER) {
+    zmin_i = -settings_.zlength();
+    zmax_i = settings_.zlength();
+    rmin_i = settings_.rmean(layerdisk_inner) - settings_.drmax();
+    rmax_i = settings_.rmean(layerdisk_inner) + settings_.drmax();
+  } else {
+    zmin_i = 0;
+    zmax_i = settings_.rmaxdisk();
+    rmin_i = settings_.zmean(layerdisk_inner - N_LAYER) - settings_.dzmax();
+    rmax_i = settings_.zmean(layerdisk_inner - N_LAYER) + settings_.dzmax();
+  }  
+  
+  double dr_m = (rmax_m - rmin_m) / rbins_middle;
+  double dz_m = (zmax_m - zmin_m) / zbins_middle;
+  double dr_i = (rmax_i - rmin_i) / rbins_inner;
+  double dz_i = (zmax_i - zmin_i) / zbins_inner;
+  
+  int NBINS = settings_.NLONGVMBINS() * settings_.NLONGVMBINS();  // 8 * 8 
+//   if (layerdisk_inner == 1 && layerdisk_middle == 2){
+//     std::cout << "NBINS seed 8: " << NBINS << std::endl;
+//     std::cout << "rbins_middle: " << rbins_middle << std::endl;
+//     std::cout << "zbins_middle: " << zbins_middle << std::endl;
+//     std::cout << "rbins_inner: " << rbins_inner << std::endl;
+//     std::cout << "zbins_inner: " << zbins_inner << std::endl;
+//     std::cout << "dr_m = " << dr_m  << "   inner = " << dr_i << std::endl;
+//     std::cout << "dz_m = " << dz_m  << "   inner = " << dz_i << std::endl;
+//   }  
+  // same number also for layer 4
+
+  for (unsigned int mzbin = 0; mzbin < zbins_middle; mzbin++) {
+    for (unsigned int mrbin = 0; mrbin < rbins_middle; mrbin++) {
+      double r_m = rmin_m + (mrbin + 0.5) * dr_m;
+      double z_m = zmin_m + (mzbin + 0.5) * dz_m;
+      
+      for (unsigned int izbin = 0; izbin < zbins_inner; izbin++) {
+        for (unsigned int irbin = 0; irbin < rbins_inner; irbin++) {
+          double r_i = rmin_i + (irbin + 0.5) * dr_i;
+          double z_i = zmin_i + (izbin + 0.5) * dz_i;
+          
+          if (type == VMRTableType::outerfrompair) {
+            if (layerdisk_middle == LayerDisk::L3 && layerdisk_inner == LayerDisk::L2 ) {  //projection from L2+L3 to L4 for L3L4L2 seeding
+              table_.push_back(getVMRLookupTriplet(LayerDisk::L4, z_i, r_i, dz_i, dr_i, z_m, r_m, dz_m, dr_m, Seed::L2L3L4)); 
+            }
+            if (layerdisk_middle == LayerDisk::L5 && layerdisk_inner == LayerDisk::L4 ) {  //projection from L4+L5 to L6 for L4L5L6 seeding
+              table_.push_back(getVMRLookupTriplet(LayerDisk::L6, z_i, r_i, dz_i, dr_i, z_m, r_m, dz_m, dr_m, Seed::L4L5L6)); 
+            }
+            if (layerdisk_middle == LayerDisk::L2 && layerdisk_inner == LayerDisk::D1 ) {  //projection from L2+D1 to L3 for L2L3D1 seeding
+              table_.push_back(getVMRLookupTriplet(LayerDisk::L6, z_i, r_i, dz_i, dr_i, z_m, r_m, dz_m, dr_m, Seed::L2L3D1)); 
+            }
+            if (layerdisk_middle == LayerDisk::D1 && layerdisk_inner == LayerDisk::L2 ) {  //projection from L2+D1 to D2 for D1D2L2 seeding
+              table_.push_back(getVMRLookupTriplet(LayerDisk::L6, z_i, r_i, dz_i, dr_i, z_m, r_m, dz_m, dr_m, Seed::L2L3D1)); 
+            }
+          }
+        }
+      } // end loop on inner bins
+    }
+  }
+}
+
+int TrackletLUT::getVMRLookupTriplet(unsigned int layerdisk_outer, double z_inner, double r_inner, double dz_inner, double dr_inner, 
+                                     double z_middle, double r_middle, double dz_middle, double dr_middle,  
+                                     int iseed) const {
+
+// int TrackletLUT::getVMRLookupTriplet(unsigned int layerdisk, double z, double r, double dz, double dr, int iseed) const {
+  double z0cut = settings_.z0cut(); // 15
+
+  bool print_csv_lut = false; 
+//   if (iseed == 8 && r_middle > 40.5 && r_middle < 54.  ) print_csv_lut = true;
+//   if (iseed == 8 && z_middle < -60 && r_middle < 50.5) print_csv_lut = true;
+//   if (iseed == 8 && r_middle < 50.5) print_csv_lut = true;
+//   if (iseed == 8 && r_middle > 50.5 && r_middle < 52.5) print_csv_lut = true;
+//   if (iseed == 8 && r_middle > 52.5 && r_middle < 54.5) print_csv_lut = true;
+//   if (iseed == 8 && r_middle > 52.5) print_csv_lut = true;
+//   std::cout << iseed << "in getVMRLookup for layerdisk_outer " << layerdisk_outer << " " << r_middle << std::endl;
+
+  double inner_radius_minus  = r_inner  - 0.5 * dr_inner;
+  double inner_radius_plus   = r_inner  + 0.5 * dr_inner;
+  double inner_z_minus  = z_inner - 0.5 * dz_inner;
+  double inner_z_plus   = z_inner + 0.5 * dz_inner;
+
+  double middle_radius_minus = r_middle - 0.5 * dr_middle;
+  double middle_radius_plus  = r_middle + 0.5 * dr_middle;
+  double middle_z_minus = z_middle - 0.5 * dz_middle;
+  double middle_z_plus  = z_middle + 0.5 * dz_middle;
+
+  if (layerdisk_outer < N_LAYER) {
+
+    double rmean = settings_.rmean(layerdisk_outer);
+    
+    
+//     std::cout << "test input coords: " 
+//               << rmean << "\t\t" 
+//               << inner_radius_minus << ",  " << inner_z_minus << ",  "
+//               << middle_radius_minus << ",  " << middle_z_minus << " -> proj z = "
+//               << Calc_proj_z_from_pair(rmean, inner_radius_minus, inner_z_minus, middle_radius_minus, middle_z_minus)
+//               << std::endl;
+    
+    double z1  = Calc_proj_z_from_pair(rmean, inner_radius_minus, inner_z_minus, middle_radius_minus, middle_z_minus);
+    double z2  = Calc_proj_z_from_pair(rmean, inner_radius_plus,  inner_z_minus, middle_radius_minus, middle_z_minus);
+    double z3  = Calc_proj_z_from_pair(rmean, inner_radius_minus, inner_z_plus,  middle_radius_minus, middle_z_minus);
+    double z4  = Calc_proj_z_from_pair(rmean, inner_radius_plus,  inner_z_plus,  middle_radius_minus, middle_z_minus);
+    double z5  = Calc_proj_z_from_pair(rmean, inner_radius_minus, inner_z_minus, middle_radius_plus,  middle_z_minus);
+    double z6  = Calc_proj_z_from_pair(rmean, inner_radius_plus,  inner_z_minus, middle_radius_plus,  middle_z_minus);
+    double z7  = Calc_proj_z_from_pair(rmean, inner_radius_minus, inner_z_plus,  middle_radius_plus,  middle_z_minus);
+    double z8  = Calc_proj_z_from_pair(rmean, inner_radius_plus,  inner_z_plus,  middle_radius_plus,  middle_z_minus);
+    double z9  = Calc_proj_z_from_pair(rmean, inner_radius_minus, inner_z_minus, middle_radius_minus, middle_z_plus);
+    double z10 = Calc_proj_z_from_pair(rmean, inner_radius_plus,  inner_z_minus, middle_radius_minus, middle_z_plus);
+    double z11 = Calc_proj_z_from_pair(rmean, inner_radius_minus, inner_z_plus,  middle_radius_minus, middle_z_plus);
+    double z12 = Calc_proj_z_from_pair(rmean, inner_radius_plus,  inner_z_plus,  middle_radius_minus, middle_z_plus);
+    double z13 = Calc_proj_z_from_pair(rmean, inner_radius_minus, inner_z_minus, middle_radius_plus,  middle_z_plus);
+    double z14 = Calc_proj_z_from_pair(rmean, inner_radius_plus,  inner_z_minus, middle_radius_plus,  middle_z_plus);
+    double z15 = Calc_proj_z_from_pair(rmean, inner_radius_minus, inner_z_plus,  middle_radius_plus,  middle_z_plus);
+    double z16 = Calc_proj_z_from_pair(rmean, inner_radius_plus,  inner_z_plus,  middle_radius_plus,  middle_z_plus);
+
+
+    double zmin = std::min({z1, z2, z3, z4, z5, z6, z7, z8, z9, z10, z11, z12, z13, z14, z15, z16});
+    double zmax = std::max({z1, z2, z3, z4, z5, z6, z7, z8, z9, z10, z11, z12, z13, z14, z15, z16});
+
+    // add 20% more to the allowed window
+//     zmin = zmin - 0.25*(zmax - zmin);
+//     zmax = zmax + 0.5*(zmax - zmin);
+    
+    int NBINS = settings_.NLONGVMBINS() * settings_.NLONGVMBINS();  // 8 * 8 
+    int zbin1 = NBINS * (zmin + settings_.zlength()) / (2 * settings_.zlength());   //zlength = 120
+    int zbin2 = NBINS * (zmax + settings_.zlength()) / (2 * settings_.zlength());
+
+    if (print_csv_lut){
+      std::cout << r_middle << "," << z_middle << "," 
+                << r_inner << "," << z_inner << "," 
+                << zmin << "," << zmax 
+		<< "," << zbin1 << "," << zbin2 ;
+		
+    }
+
+    if (zbin1 >= NBINS){
+      if (print_csv_lut) std::cout << "," << 999 << "," << 999 << "," << -999 << std::endl ;
+      return -1;
+    }  
+    if (zbin2 < 0){
+      if (print_csv_lut) std::cout << "," << -999 << "," << -999 << "," << -999 << std::endl ;
+      return -1;
+    }  
+
+    if (zbin2 >= NBINS)
+      zbin2 = NBINS - 1;
+    if (zbin1 < 0){
+      zbin1 = 0;
+      }
+
+    if (print_csv_lut)
+      std::cout << "," << zbin1 << "," << zbin2  ;
+
+    // This is a 10 bit word:
+    // xxx|yyy|z|rrr
+    // xxx is the delta z window
+    // yyy is the z bin
+    // z is flag to look in next bin
+    // rrr first fine z bin
+    // NOTE : this encoding is not efficient z is one if xxx+rrr is greater than 8
+    //        and xxx is only 1,2, or 3
+    //        should also reject xxx=0 as this means projection is outside range
+
+    int value = zbin1 / 8;  //right shift by 3 (what about sign)
+    value *= 2;
+    if (zbin2 / 8 - zbin1 / 8 > 0)
+      value += 1;
+    value *= 8;    // left shift by 3 (equivalent of  value << 3 )
+    value += (zbin1 & 7);
+    assert(value / 8 < 15);
+    int deltaz = zbin2 - zbin1;
+    if (deltaz > 7) {
+      deltaz = 7;
+    }
+    assert(deltaz < 8);
+    value += (deltaz << 7);
+
+    if (print_csv_lut)
+      std::cout << "," << deltaz << std::endl ;
+
+    return value;
+
+  } else {
+//     std::cout << "writing LUT for seed 10" << std::endl;  
+    if (std::abs(z_middle) < 2.0 * z0cut)
+      return -1;
+//     std::cout << "writing LUT for seed 10" << std::endl;  
+
+    double zmean = settings_.zmean(layerdisk_outer - N_LAYER);
+    if (z_middle < 0.0)
+      zmean = -zmean;
+
+    double r1  = Calc_proj_r_from_pair(zmean, inner_radius_minus, inner_z_minus, middle_radius_minus, middle_z_minus);
+    double r2  = Calc_proj_r_from_pair(zmean, inner_radius_plus,  inner_z_minus, middle_radius_minus, middle_z_minus);
+    double r3  = Calc_proj_r_from_pair(zmean, inner_radius_minus, inner_z_plus,  middle_radius_minus, middle_z_minus);
+    double r4  = Calc_proj_r_from_pair(zmean, inner_radius_plus,  inner_z_plus,  middle_radius_minus, middle_z_minus);
+    double r5  = Calc_proj_r_from_pair(zmean, inner_radius_minus, inner_z_minus, middle_radius_plus,  middle_z_minus);
+    double r6  = Calc_proj_r_from_pair(zmean, inner_radius_plus,  inner_z_minus, middle_radius_plus,  middle_z_minus);
+    double r7  = Calc_proj_r_from_pair(zmean, inner_radius_minus, inner_z_plus,  middle_radius_plus,  middle_z_minus);
+    double r8  = Calc_proj_r_from_pair(zmean, inner_radius_plus,  inner_z_plus,  middle_radius_plus,  middle_z_minus);
+    double r9  = Calc_proj_r_from_pair(zmean, inner_radius_minus, inner_z_minus, middle_radius_minus, middle_z_plus);
+    double r10 = Calc_proj_r_from_pair(zmean, inner_radius_plus,  inner_z_minus, middle_radius_minus, middle_z_plus);
+    double r11 = Calc_proj_r_from_pair(zmean, inner_radius_minus, inner_z_plus,  middle_radius_minus, middle_z_plus);
+    double r12 = Calc_proj_r_from_pair(zmean, inner_radius_plus,  inner_z_plus,  middle_radius_minus, middle_z_plus);
+    double r13 = Calc_proj_r_from_pair(zmean, inner_radius_minus, inner_z_minus, middle_radius_plus,  middle_z_plus);
+    double r14 = Calc_proj_r_from_pair(zmean, inner_radius_plus,  inner_z_minus, middle_radius_plus,  middle_z_plus);
+    double r15 = Calc_proj_r_from_pair(zmean, inner_radius_minus, inner_z_plus,  middle_radius_plus,  middle_z_plus);
+    double r16 = Calc_proj_r_from_pair(zmean, inner_radius_plus,  inner_z_plus,  middle_radius_plus,  middle_z_plus);
+
+    double rmin = std::min({r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16});
+    double rmax = std::max({r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16});
+
+    int NBINS = settings_.NLONGVMBINS() * settings_.NLONGVMBINS() / 2;
+
+    double rmindisk = settings_.rmindiskvm();
+    double rmaxdisk = settings_.rmaxdiskvm();
+
+    if (iseed == Seed::L2L3D1)
+      rmaxdisk = settings_.rmaxdisk();
+
+    if (rmin > rmaxdisk)
+      return -1;
+    if (rmax > rmaxdisk)
+      rmax = rmaxdisk;
+
+    if (rmax < rmindisk)
+      return -1;
+    if (rmin < rmindisk)
+      rmin = rmindisk;
+
+    int rbin1 = NBINS * (rmin - settings_.rmindiskvm()) / (settings_.rmaxdiskvm() - settings_.rmindiskvm());
+    int rbin2 = NBINS * (rmax - settings_.rmindiskvm()) / (settings_.rmaxdiskvm() - settings_.rmindiskvm());
+
+    if (iseed == Seed::L2L3D1) {
+      constexpr double rminspec = 40.0;
+      rbin1 = NBINS * (rmin - rminspec) / (settings_.rmaxdisk() - rminspec);
+      rbin2 = NBINS * (rmax - rminspec) / (settings_.rmaxdisk() - rminspec);
+    }
+
+    if (rbin2 >= NBINS)
+      rbin2 = NBINS - 1;
+    if (rbin1 < 0)
+      rbin1 = 0;
+
+    // This is a 9 bit word:
+    // xxx|yy|z|rrr
+    // xxx is the delta r window
+    // yy is the r bin yy is three bits for overlaps
+    // z is flag to look in next bin
+    // rrr fine r bin
+    // NOTE : this encoding is not efficient z is one if xxx+rrr is greater than 8
+    //        and xxx is only 1,2, or 3
+    //        should also reject xxx=0 as this means projection is outside range
+
+    bool overlap = iseed == Seed::L2L3D1;
+
+    int value = rbin1 / 8;
+    if (overlap) {
+      if (z_middle < 0.0)
+        value += 4;
+    }
+    value *= 2;
+    if (rbin2 / 8 - rbin1 / 8 > 0)
+      value += 1;
+    value *= 8;
+    value += (rbin1 & 7);
+    assert(value / 8 < 15);
+    int deltar = rbin2 - rbin1;
+    if (deltar > 7)
+      deltar = 7;
+    if (overlap) {
+      value += (deltar << 7);
+    } else {
+      value += (deltar << 6);
+    }
+
+    return value;
+  }
+}
+
+
 void TrackletLUT::initPhiCorrTable(unsigned int layerdisk, unsigned int rbits) {
   bool psmodule = layerdisk < N_PSLAYER;
 
@@ -1471,3 +1821,14 @@ int TrackletLUT::lookup(unsigned int index) const {
   assert(index < table_.size());
   return table_[index];
 }
+
+double TrackletLUT::Calc_proj_z_from_pair(double rmean, double tmp_inner_r, double tmp_inner_z, double tmp_middle_r, double tmp_middle_z ) const{
+  double tmp_z = (rmean - tmp_inner_r) * (tmp_middle_z - tmp_inner_z) / (tmp_middle_r - tmp_inner_r) + tmp_inner_z;
+  return tmp_z;
+}    
+
+double TrackletLUT::Calc_proj_r_from_pair(double zmean, double tmp_inner_r, double tmp_inner_z, double tmp_middle_r, double tmp_middle_z ) const{
+  double tmp_r = (zmean - tmp_inner_z) * (tmp_middle_r - tmp_inner_r) / (tmp_middle_z - tmp_inner_z) + tmp_inner_r;
+  return tmp_r;
+}    
+

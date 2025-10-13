@@ -71,8 +71,10 @@ private:
   
   int firstbin_out_;
   int firstbin_in_;
+  int firstbin_out_pair_;
   int diffmax_out_;
   int diffmax_in_;
+  int diffmax_out_pair_;
   int rzeff_out_;
   int rzeff_in_;
 
@@ -80,6 +82,7 @@ private:
   int middle_rval_;
   int outer_rval_;
   int inner_largebin_;
+  int outer_pair_largebin_;
   
 };
 
@@ -133,8 +136,10 @@ void TripletsAnalyzer::beginJob() {
 
   outTree_->Branch("firstbin_out", &firstbin_out_, "firstbin_out/I");
   outTree_->Branch("firstbin_in", &firstbin_in_, "firstbin_in/I");
+  outTree_->Branch("firstbin_out_pair", &firstbin_out_pair_, "firstbin_out_pair/I");
   outTree_->Branch("diffmax_out", &diffmax_out_, "diffmax_out/I");
   outTree_->Branch("diffmax_in", &diffmax_in_, "diffmax_in/I");
+  outTree_->Branch("diffmax_out_pair", &diffmax_out_pair_, "diffmax_out_pair/I");
   outTree_->Branch("rzeff_out", &rzeff_out_, "rzeff_out/I");
   outTree_->Branch("rzeff_in", &rzeff_in_, "rzeff_in/I");
 
@@ -143,6 +148,7 @@ void TripletsAnalyzer::beginJob() {
   outTree_->Branch("outer_rval", &outer_rval_, "outer_stub_rval/I");
 
   outTree_->Branch("inner_largebin", &inner_largebin_, "inner_largebin/I");
+  outTree_->Branch("outer_pair_largebin", &outer_pair_largebin_, "outer_pair_largebin_/I");
   
 
 }
@@ -201,11 +207,15 @@ void TripletsAnalyzer::analyze(const edm::Event& event, const edm::EventSetup& e
     diffmax_out_ = iTriplet.getDiffMaxOut();
     rzeff_out_   = iTriplet.getRZEffOut();
 
+    firstbin_out_pair_ = iTriplet.getFirstBinOutPair();
+    diffmax_out_pair_ = iTriplet.getDiffMaxOutPair();
+
     inner_rval_ = iTriplet.getStubRValue(0);
     middle_rval_ = iTriplet.getStubRValue(1);
     outer_rval_ = iTriplet.getStubRValue(2);
     
     inner_largebin_ = iTriplet.getLargeBinIn();
+    outer_pair_largebin_ = iTriplet.getLargeBinOutPair();
 
     outTree_->Fill();  // Fill the tree with current cluster data
   }

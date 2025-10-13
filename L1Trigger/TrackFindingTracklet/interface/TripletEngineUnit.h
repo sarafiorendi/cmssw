@@ -25,6 +25,7 @@ namespace trklet {
     int rzdiffmax_in_;
     std::vector<std::tuple<int, int, int> > projbin_out_;  // next z/r bin; outer stub mem; nstub
     std::vector<std::tuple<int, int, int> > projbin_in_;   // next z/r bin; inner stub mem; nstub
+    TrackletLUT* outerpairtable_;
   };
 
   class TripletEngineUnit {

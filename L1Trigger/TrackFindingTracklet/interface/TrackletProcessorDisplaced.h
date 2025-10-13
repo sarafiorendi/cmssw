@@ -58,6 +58,7 @@ namespace trklet {
 
     TrackletLUT innerTable_;       //projection to next layer/disk
     TrackletLUT innerThirdTable_;  //projection to third disk/layer
+    TrackletLUT outerPairTable_;   //projection to outer disk/layer
 
     std::vector<VMStubsTEMemory*> innervmstubs_;
     std::vector<VMStubsTEMemory*> outervmstubs_;

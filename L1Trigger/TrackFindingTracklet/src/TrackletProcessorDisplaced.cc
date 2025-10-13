@@ -27,7 +27,8 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
     : TrackletCalculatorDisplaced(name, settings, globals),
       trpbuffer_(CircularBuffer<TrpEData>(3), 0, 0, 0, 0),
       innerTable_(settings),
-      innerThirdTable_(settings) {
+      innerThirdTable_(settings),
+      outerPairTable_(settings) {
   innerallstubs_.clear();
   middleallstubs_.clear();
   outerallstubs_.clear();
@@ -36,6 +37,9 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
 
   // set layer/disk types based on input seed name
   initLayerDisksandISeedDisp(layerdisk1_, layerdisk2_, layerdisk3_, iSeed_);
+  
+//   if (iSeed_ == 10) std::cout << "ld123:" <<  layerdisk1_ << " " << layerdisk2_ << " " << layerdisk3_ << std::endl;
+//   ld123:1 2 6
 
   // get projection tables
   unsigned int region = name.back() - 'A';
@@ -43,7 +47,15 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
       layerdisk1_, TrackletLUT::VMRTableType::inner, region, false);  //projection to next layer/disk
   innerThirdTable_.initVMRTable(
       layerdisk1_, TrackletLUT::VMRTableType::innerthird, region, false);  //projection to third layer/disk
+//   if ((layerdisk1_== 2 && layerdisk2_== 3) || 
+//       (layerdisk1_== 4 && layerdisk2_== 5) || 
+//       (layerdisk1_== 1 && layerdisk2_== 2 && layerdisk3_== 6)
+//       ) 
+    outerPairTable_.initVMRTableTriplet(
+        layerdisk1_, layerdisk3_, TrackletLUT::VMRTableType::outerfrompair, region, false);  //projection to outer layer/disk from inner pair
 
+//   if ((layerdisk1_== 1 && layerdisk2_== 2 && layerdisk3_== 6))
+//     std::cout << "size of lut " << outerPairTable_.size() << std::endl;
   nbitszfinebintable_ = settings_.vmrlutzbits(layerdisk1_);
   nbitsrfinebintable_ = settings_.vmrlutrbits(layerdisk1_);
 
@@ -176,9 +188,11 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
     trpunit.reset();
   }
 
-  // reset the tebuffer
+  // reset the Circular buffer (first element of trpbuffer_)
   std::get<0>(trpbuffer_).reset();
+  // reset the first int to 0
   std::get<1>(trpbuffer_) = 0;
+  // copy fourth element into the third
   std::get<2>(trpbuffer_) = std::get<3>(trpbuffer_);
 
   TrpEData trpdata;
@@ -192,6 +206,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
   for (unsigned int istep = 0; istep < maxStep_; istep++) {
     CircularBuffer<TrpEData>& trpdatabuffer = std::get<0>(trpbuffer_);
     trpbuffernearfull = trpdatabuffer.nearfull();
+//     std::cout << "istep: " << istep << " , nearfull " << trpbuffernearfull << std::endl;
 
     //
     // First block here checks if there is a trpunit with data that should be used
@@ -330,6 +345,8 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
       } else {  // else if from a layer
         indexr = (((1 << (stub->r().nbits() - 1)) + stub->rvalue()) >> (stub->r().nbits() - nbitsrfinebintable_));
       }
+//       if (iSeed_ == Seed::L2L3L4) 
+//         std::cout << "[TPD] middle r/z indices: " << indexr << " / " << indexz << std::endl; 
 
       // create lookupbits that define projections from middle stub
       int lutval = -1;
@@ -383,6 +400,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         trpdata.rzdiffmax_in_ = rzdiffmax_in;
         trpdata.start_out_ = start_out;
         trpdata.start_in_ = start_in;
+        trpdata.outerpairtable_ = &outerPairTable_; // &outerPairTable_;
 
         // fill projection bins info for single engine unit
         trpdata.projbin_out_.clear();
@@ -446,6 +464,8 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
       break;
     }
   }
+
+//   std::cout << iSeed_ << "," << iTC_ << "," << countall << "," << countsel  << std::endl;
 
   if (settings_.writeMonitorData("TPD")) {
     globals_->ofstream("trackletprocessordisplaced.txt")
