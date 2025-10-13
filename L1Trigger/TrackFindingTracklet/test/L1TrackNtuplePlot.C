@@ -51,12 +51,13 @@ void L1TrackNtuplePlot(TString type,
                        int TP_select_eventid = 0,
                        bool useTightCuts = false,
                        bool useDeadRegion = false,
-                       float TP_minPt = 2.0,
+                       float TP_minPt = 3.0,
                        float TP_maxPt = 100.0,
-                       float TP_maxEta = 2.4,
-                       float TP_maxLxy = 1.0,
-                       float TP_maxD0 = 1.0,
-                       bool doDetailedPlots = false) {
+                       float TP_maxEta = 2.0,
+                       float TP_maxLxy = 10.0,
+                       float TP_maxD0 = 10.0,
+                       bool doDetailedPlots = true, 
+                       int iSeed = 0) {
   // type:              this is the name of the input file you want to process (minus ".root" extension)
   // type_dir:          this is the directory containing the input file you want to process. Note that this must end with a "/", as in "EventSets/"
   // TP_select_pdgid:   if non-zero, only select TPs with a given PDG ID
@@ -102,7 +103,7 @@ void L1TrackNtuplePlot(TString type,
   bool doLooseMatch = false;  //looser MC truth matching
 
   // tracklet variables
-  int L1Tk_seed = 0;
+  int L1Tk_seed = iSeed;
 
   //some counters for integrated efficiencies
   int n_all_eta2p5 = 0;

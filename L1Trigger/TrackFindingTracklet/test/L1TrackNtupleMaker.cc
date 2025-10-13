@@ -174,6 +174,12 @@ private:
   std::vector<int>* m_trk_lhits;
   std::vector<int>* m_trk_dhits;
   std::vector<int>* m_trk_seed;
+  std::vector<float>* m_trk_seed_middle_z;
+  std::vector<float>* m_trk_seed_inner_z;
+  std::vector<float>* m_trk_seed_outer_z;
+  std::vector<float>* m_trk_seed_middle_r;
+  std::vector<float>* m_trk_seed_inner_r;
+  std::vector<float>* m_trk_seed_outer_r;
   std::vector<int>* m_trk_hitpattern;
   std::vector<int>* m_trk_lhits_hitpattern;  // 6-digit hit mask (barrel layer only) dervied from hitpattern
   std::vector<int>* m_trk_dhits_hitpattern;  // disk only
@@ -240,6 +246,21 @@ private:
   std::vector<int>* m_matchtrk_lhits;
   std::vector<int>* m_matchtrk_dhits;
   std::vector<int>* m_matchtrk_seed;
+  std::vector<float>* m_matchtrk_seed_middle_z;
+  std::vector<float>* m_matchtrk_seed_inner_z;
+  std::vector<float>* m_matchtrk_seed_outer_z;
+  std::vector<float>* m_matchtrk_seed_middle_r;
+  std::vector<float>* m_matchtrk_seed_inner_r;
+  std::vector<float>* m_matchtrk_seed_outer_r;
+  std::vector<float>* m_matchtrk_seed_middle_bendFE;
+  std::vector<float>* m_matchtrk_seed_middle_bendRaw;
+  std::vector<float>* m_matchtrk_seed_middle_bendOff;
+  std::vector<float>* m_matchtrk_seed_inner_bendFE;
+  std::vector<float>* m_matchtrk_seed_inner_bendRaw;
+  std::vector<float>* m_matchtrk_seed_inner_bendOff;
+  std::vector<float>* m_matchtrk_seed_outer_bendFE;
+  std::vector<float>* m_matchtrk_seed_outer_bendRaw;
+  std::vector<float>* m_matchtrk_seed_outer_bendOff;
   std::vector<int>* m_matchtrk_hitpattern;
   std::vector<int>* m_matchtrk_charge;
   std::vector<int>* m_matchtrk_injet;
@@ -356,6 +377,12 @@ void L1TrackNtupleMaker::endJob() {
   delete m_trk_lhits;
   delete m_trk_dhits;
   delete m_trk_seed;
+  delete m_trk_seed_middle_z;
+  delete m_trk_seed_inner_z;
+  delete m_trk_seed_outer_z;
+  delete m_trk_seed_middle_r;
+  delete m_trk_seed_inner_r;
+  delete m_trk_seed_outer_r;
   delete m_trk_hitpattern;
   delete m_trk_lhits_hitpattern;
   delete m_trk_dhits_hitpattern;
@@ -418,7 +445,24 @@ void L1TrackNtupleMaker::endJob() {
   delete m_matchtrk_nstub;
   delete m_matchtrk_dhits;
   delete m_matchtrk_lhits;
+
   delete m_matchtrk_seed;
+  delete m_matchtrk_seed_middle_z;
+  delete m_matchtrk_seed_inner_z;
+  delete m_matchtrk_seed_outer_z;
+  delete m_matchtrk_seed_middle_r;
+  delete m_matchtrk_seed_inner_r;
+  delete m_matchtrk_seed_outer_r;
+  delete m_matchtrk_seed_middle_bendFE;
+  delete m_matchtrk_seed_middle_bendRaw;
+  delete m_matchtrk_seed_middle_bendOff;
+  delete m_matchtrk_seed_inner_bendFE;
+  delete m_matchtrk_seed_inner_bendRaw;
+  delete m_matchtrk_seed_inner_bendOff;
+  delete m_matchtrk_seed_outer_bendFE;
+  delete m_matchtrk_seed_outer_bendRaw;
+  delete m_matchtrk_seed_outer_bendOff;
+
   delete m_matchtrk_hitpattern;
   delete m_matchtrk_charge;
   delete m_matchtrk_injet;
@@ -479,6 +523,12 @@ void L1TrackNtupleMaker::beginJob() {
   m_trk_lhits = new std::vector<int>;
   m_trk_dhits = new std::vector<int>;
   m_trk_seed = new std::vector<int>;
+  m_trk_seed_middle_z = new std::vector<float>;
+  m_trk_seed_inner_z = new std::vector<float>;
+  m_trk_seed_outer_z = new std::vector<float>;
+  m_trk_seed_middle_r = new std::vector<float>;
+  m_trk_seed_inner_r = new std::vector<float>;
+  m_trk_seed_outer_r = new std::vector<float>;
   m_trk_hitpattern = new std::vector<int>;
   m_trk_lhits_hitpattern = new std::vector<int>;
   m_trk_dhits_hitpattern = new std::vector<int>;
@@ -543,6 +593,21 @@ void L1TrackNtupleMaker::beginJob() {
   m_matchtrk_dhits = new std::vector<int>;
   m_matchtrk_lhits = new std::vector<int>;
   m_matchtrk_seed = new std::vector<int>;
+  m_matchtrk_seed_middle_z = new std::vector<float>;
+  m_matchtrk_seed_inner_z = new std::vector<float>;
+  m_matchtrk_seed_outer_z = new std::vector<float>;
+  m_matchtrk_seed_middle_r = new std::vector<float>;
+  m_matchtrk_seed_inner_r = new std::vector<float>;
+  m_matchtrk_seed_outer_r = new std::vector<float>;
+  m_matchtrk_seed_middle_bendFE = new std::vector<float>;
+  m_matchtrk_seed_middle_bendRaw = new std::vector<float>;
+  m_matchtrk_seed_middle_bendOff = new std::vector<float>;
+  m_matchtrk_seed_inner_bendFE = new std::vector<float>;
+  m_matchtrk_seed_inner_bendRaw = new std::vector<float>;
+  m_matchtrk_seed_inner_bendOff = new std::vector<float>;
+  m_matchtrk_seed_outer_bendFE = new std::vector<float>;
+  m_matchtrk_seed_outer_bendRaw = new std::vector<float>;
+  m_matchtrk_seed_outer_bendOff = new std::vector<float>;
   m_matchtrk_hitpattern = new std::vector<int>;
   m_matchtrk_charge = new std::vector<int>;
   m_matchtrk_injet = new std::vector<int>;
@@ -596,6 +661,12 @@ void L1TrackNtupleMaker::beginJob() {
     eventTree->Branch("trk_lhits", &m_trk_lhits);
     eventTree->Branch("trk_dhits", &m_trk_dhits);
     eventTree->Branch("trk_seed", &m_trk_seed);
+    eventTree->Branch("trk_seed_middle_z", &m_trk_seed_middle_z);
+    eventTree->Branch("trk_seed_inner_z", &m_trk_seed_inner_z);
+    eventTree->Branch("trk_seed_outer_z", &m_trk_seed_outer_z);
+    eventTree->Branch("trk_seed_middle_r", &m_trk_seed_middle_r);
+    eventTree->Branch("trk_seed_inner_r", &m_trk_seed_inner_r);
+    eventTree->Branch("trk_seed_outer_r", &m_trk_seed_outer_r);
     eventTree->Branch("trk_hitpattern", &m_trk_hitpattern);
     eventTree->Branch("trk_lhits_hitpattern", &m_trk_lhits_hitpattern);
     eventTree->Branch("trk_dhits_hitpattern", &m_trk_dhits_hitpattern);
@@ -665,6 +736,24 @@ void L1TrackNtupleMaker::beginJob() {
   eventTree->Branch("matchtrk_lhits", &m_matchtrk_lhits);
   eventTree->Branch("matchtrk_dhits", &m_matchtrk_dhits);
   eventTree->Branch("matchtrk_seed", &m_matchtrk_seed);
+  eventTree->Branch("matchtrk_seed_middle_z", &m_matchtrk_seed_middle_z);
+  eventTree->Branch("matchtrk_seed_inner_z", &m_matchtrk_seed_inner_z);
+  eventTree->Branch("matchtrk_seed_outer_z", &m_matchtrk_seed_outer_z);
+  eventTree->Branch("matchtrk_seed_middle_r", &m_matchtrk_seed_middle_r);
+  eventTree->Branch("matchtrk_seed_inner_r", &m_matchtrk_seed_inner_r);
+  eventTree->Branch("matchtrk_seed_outer_r", &m_matchtrk_seed_outer_r);
+  eventTree->Branch("matchtrk_seed_outer_r", &m_matchtrk_seed_outer_r);
+  eventTree->Branch("matchtrk_seed_middle_bendFE", &m_matchtrk_seed_middle_bendFE);
+  eventTree->Branch("matchtrk_seed_middle_bendRaw", &m_matchtrk_seed_middle_bendRaw);
+  eventTree->Branch("matchtrk_seed_middle_bendOff", &m_matchtrk_seed_middle_bendOff);
+  eventTree->Branch("matchtrk_seed_inner_bendFE", &m_matchtrk_seed_inner_bendFE);
+  eventTree->Branch("matchtrk_seed_inner_bendRaw", &m_matchtrk_seed_inner_bendRaw);
+  eventTree->Branch("matchtrk_seed_inner_bendOff", &m_matchtrk_seed_inner_bendOff);
+  eventTree->Branch("matchtrk_seed_outer_bendFE", &m_matchtrk_seed_outer_bendFE);
+  eventTree->Branch("matchtrk_seed_outer_bendRaw", &m_matchtrk_seed_outer_bendRaw);
+  eventTree->Branch("matchtrk_seed_outer_bendOff", &m_matchtrk_seed_outer_bendOff);
+
+
   eventTree->Branch("matchtrk_hitpattern", &m_matchtrk_hitpattern);
   eventTree->Branch("matchtrk_charge", &m_matchtrk_charge);
   if (TrackingInJets) {
@@ -742,6 +831,12 @@ void L1TrackNtupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup
     m_trk_lhits->clear();
     m_trk_dhits->clear();
     m_trk_seed->clear();
+    m_trk_seed_middle_z->clear();
+    m_trk_seed_inner_z->clear();
+    m_trk_seed_outer_z->clear();
+    m_trk_seed_middle_r->clear();
+    m_trk_seed_inner_r->clear();
+    m_trk_seed_outer_r->clear();
     m_trk_hitpattern->clear();
     m_trk_lhits_hitpattern->clear();
     m_trk_dhits_hitpattern->clear();
@@ -807,6 +902,23 @@ void L1TrackNtupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup
   m_matchtrk_lhits->clear();
   m_matchtrk_dhits->clear();
   m_matchtrk_seed->clear();
+  m_matchtrk_seed_middle_z->clear();
+  m_matchtrk_seed_inner_z->clear();
+  m_matchtrk_seed_outer_z->clear();
+  m_matchtrk_seed_middle_r->clear();
+  m_matchtrk_seed_inner_r->clear();
+  m_matchtrk_seed_outer_r->clear();
+  
+  m_matchtrk_seed_middle_bendFE->clear();
+  m_matchtrk_seed_middle_bendRaw->clear();
+  m_matchtrk_seed_middle_bendOff->clear();
+  m_matchtrk_seed_inner_bendFE->clear();
+  m_matchtrk_seed_inner_bendRaw->clear();
+  m_matchtrk_seed_inner_bendOff->clear();
+  m_matchtrk_seed_outer_bendFE->clear();
+  m_matchtrk_seed_outer_bendRaw->clear();
+  m_matchtrk_seed_outer_bendOff->clear();
+  
   m_matchtrk_hitpattern->clear();
   m_matchtrk_charge->clear();
   m_matchtrk_injet->clear();
@@ -1124,6 +1236,13 @@ void L1TrackNtupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup
       std::vector<edm::Ref<edmNew::DetSetVector<TTStub<Ref_Phase2TrackerDigi_>>, TTStub<Ref_Phase2TrackerDigi_>>>
           stubRefs = iterL1Track->getStubRefs();
       int tmp_trk_nstub = (int)stubRefs.size();
+      // trial sara
+//       for (int istub = 0; istub < tmp_trk_nstub; istub++){
+//         std::cout << stubRefs.at(istub)->l1tstub()->layerdisk() << std::endl;
+        // need layer disk
+        // then find the z of the middle stub
+//         stubRefs.at(is)->// clusterRef(0)
+//       }
       int ndof = 2 * tmp_trk_nstub - L1Tk_nPar;
       int ndofrphi = tmp_trk_nstub - L1Tk_nPar + 2;
       int ndofrz = tmp_trk_nstub - 2;
@@ -1143,6 +1262,12 @@ void L1TrackNtupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup
       //float tmp_trk_bend_chi2 = 0;
       int tmp_trk_dhits = 0;
       int tmp_trk_lhits = 0;
+      float tmp_trk_seed_middle_z = -999.;
+      float tmp_trk_seed_inner_z = -999.;
+      float tmp_trk_seed_outer_z = -999.;
+      float tmp_trk_seed_middle_r = -999.;
+      float tmp_trk_seed_inner_r = -999.;
+      float tmp_trk_seed_outer_r = -999.;
 
       if (true) {
         // loop over stubs
@@ -1165,6 +1290,22 @@ void L1TrackNtupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup
               edm::LogVerbatim("Tracklet")
                   << "   stub in layer " << layer << " at position x y z = " << x << " " << y << " " << z;
             tmp_trk_lhits += pow(10, layer - 1);
+
+            if (tmp_trk_seed == 8 && layer == 3) {// sara 
+              tmp_trk_seed_middle_z = posStub.z();
+              tmp_trk_seed_middle_r = sqrt(posStub.x()*posStub.x() + posStub.y()*posStub.y());
+            }  
+            else if (tmp_trk_seed == 8 && layer == 2) { // sara
+              tmp_trk_seed_inner_z = posStub.z();
+              tmp_trk_seed_inner_r = sqrt(posStub.x()*posStub.x() + posStub.y()*posStub.y());
+//               std::cout << "inner r: " << sqrt(posStub.x()*posStub.x() + posStub.y()*posStub.y()) <<  std::endl;
+            }  
+            else if (tmp_trk_seed == 8 && layer == 4) {// sara
+              tmp_trk_seed_outer_z = posStub.z();
+              tmp_trk_seed_outer_r = sqrt(posStub.x()*posStub.x() + posStub.y()*posStub.y());
+//               std::cout << "outer r: " << sqrt(posStub.x()*posStub.x() + posStub.y()*posStub.y()) <<  std::endl;
+            }
+
           } else if (detIdStub.subdetId() == StripSubdetector::TID) {
             layer = static_cast<int>(tTopo->layer(detIdStub));
             if (DebugMode)
@@ -1224,6 +1365,12 @@ void L1TrackNtupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup
       m_trk_dhits->push_back(tmp_trk_dhits);
       m_trk_lhits->push_back(tmp_trk_lhits);
       m_trk_seed->push_back(tmp_trk_seed);
+      m_trk_seed_middle_z->push_back(tmp_trk_seed_middle_z);
+      m_trk_seed_inner_z->push_back(tmp_trk_seed_inner_z);
+      m_trk_seed_outer_z->push_back(tmp_trk_seed_outer_z);
+      m_trk_seed_middle_r->push_back(tmp_trk_seed_middle_r);
+      m_trk_seed_inner_r->push_back(tmp_trk_seed_inner_r);
+      m_trk_seed_outer_r->push_back(tmp_trk_seed_outer_r);
       m_trk_hitpattern->push_back(tmp_trk_hitpattern);
       m_trk_lhits_hitpattern->push_back(tmp_trk_lhits_hitpattern);
       m_trk_dhits_hitpattern->push_back(tmp_trk_dhits_hitpattern);
@@ -1644,6 +1791,23 @@ void L1TrackNtupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup
     int tmp_matchtrk_dhits = -999;
     int tmp_matchtrk_lhits = -999;
     int tmp_matchtrk_seed = -999;
+    float tmp_matchtrk_seed_middle_z = -999.;
+    float tmp_matchtrk_seed_inner_z = -999.;
+    float tmp_matchtrk_seed_outer_z = -999.;
+    float tmp_matchtrk_seed_middle_r = -999.;
+    float tmp_matchtrk_seed_inner_r = -999.;
+    float tmp_matchtrk_seed_outer_r = -999.;
+
+    float tmp_matchtrk_seed_middle_bendFE = -999.;
+    float tmp_matchtrk_seed_middle_bendRaw = -999.;
+    float tmp_matchtrk_seed_middle_bendOff = -999.;
+    float tmp_matchtrk_seed_inner_bendFE = -999.;
+    float tmp_matchtrk_seed_inner_bendRaw = -999.;
+    float tmp_matchtrk_seed_inner_bendOff = -999.;
+    float tmp_matchtrk_seed_outer_bendFE = -999.;
+    float tmp_matchtrk_seed_outer_bendRaw = -999.;
+    float tmp_matchtrk_seed_outer_bendOff = -999.;
+
     int tmp_matchtrk_hitpattern = -999;
 
     if (nMatch > 1 && DebugMode)
@@ -1691,6 +1855,9 @@ void L1TrackNtupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup
 
       for (int is = 0; is < tmp_nstub; is++) {
         DetId detIdStub = theTrackerGeom->idToDet((stubRefs.at(is)->clusterRef(0))->getDetId())->geographicalId();
+	MeasurementPoint coords = stubRefs.at(is)->clusterRef(0)->findAverageLocalCoordinatesCentered();
+	const GeomDet* theGeomDet = theTrackerGeom->idToDet(detIdStub);
+	Global3DPoint posStub = theGeomDet->surface().toGlobal( theGeomDet->topology().localPosition(coords) );
         /*
 	MeasurementPoint coords = stubRefs.at(is)->clusterRef(0)->findAverageLocalCoordinatesCentered();
 	const GeomDet* theGeomDet = theTrackerGeom->idToDet(detIdStub);
@@ -1701,9 +1868,36 @@ void L1TrackNtupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup
         if (detIdStub.subdetId() == StripSubdetector::TOB) {
           layer = static_cast<int>(tTopo->layer(detIdStub));
           tmp_matchtrk_lhits += pow(10, layer - 1);
+//           if (tmp_matchtrk_seed == 8 ){
+//             std::cout << tmp_matchtrk_pt << "\t" << layer << "\t" << posStub.z() << std::endl;
+//           }  
+          if (tmp_matchtrk_seed == 8 && layer==3) { // sara
+            tmp_matchtrk_seed_middle_z = posStub.z();
+            tmp_matchtrk_seed_middle_r = sqrt(posStub.x()*posStub.x() + posStub.y()*posStub.y());
+            tmp_matchtrk_seed_middle_bendFE = stubRefs.at(is)->bendFE();
+            tmp_matchtrk_seed_middle_bendRaw = stubRefs.at(is)->rawBend();
+            tmp_matchtrk_seed_middle_bendOff = stubRefs.at(is)->bendOffset();
+          }
+          else if (tmp_matchtrk_seed == 8 && layer==2){  // sara
+            tmp_matchtrk_seed_inner_z = posStub.z();
+            tmp_matchtrk_seed_inner_r = sqrt(posStub.x()*posStub.x() + posStub.y()*posStub.y());
+            tmp_matchtrk_seed_inner_bendFE = stubRefs.at(is)->bendFE();
+            tmp_matchtrk_seed_inner_bendRaw = stubRefs.at(is)->rawBend();
+            tmp_matchtrk_seed_inner_bendOff = stubRefs.at(is)->bendOffset();
+          }
+          else if (tmp_matchtrk_seed == 8 && layer==4){ // sara
+            tmp_matchtrk_seed_outer_z = posStub.z();
+            tmp_matchtrk_seed_outer_r = sqrt(posStub.x()*posStub.x() + posStub.y()*posStub.y());
+            tmp_matchtrk_seed_outer_bendFE = stubRefs.at(is)->bendFE();
+            tmp_matchtrk_seed_outer_bendRaw = stubRefs.at(is)->rawBend();
+            tmp_matchtrk_seed_outer_bendOff = stubRefs.at(is)->bendOffset();
+          }
         } else if (detIdStub.subdetId() == StripSubdetector::TID) {
           layer = static_cast<int>(tTopo->layer(detIdStub));
           tmp_matchtrk_dhits += pow(10, layer - 1);
+//           if (tmp_matchtrk_seed == 8 ){
+//             std::cout << "TID: " <<  tmp_matchtrk_pt << "\t" << layer << "\t" << posStub.z() << std::endl;
+//           }  
         }
 
         // ------------------------------------------------------------------------------------------
@@ -1738,6 +1932,24 @@ void L1TrackNtupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup
     m_matchtrk_dhits->push_back(tmp_matchtrk_dhits);
     m_matchtrk_lhits->push_back(tmp_matchtrk_lhits);
     m_matchtrk_seed->push_back(tmp_matchtrk_seed);
+    m_matchtrk_seed_middle_z->push_back(tmp_matchtrk_seed_middle_z);
+    m_matchtrk_seed_inner_z->push_back(tmp_matchtrk_seed_inner_z);
+    m_matchtrk_seed_outer_z->push_back(tmp_matchtrk_seed_outer_z);
+    m_matchtrk_seed_middle_r->push_back(tmp_matchtrk_seed_middle_r);
+    m_matchtrk_seed_inner_r->push_back(tmp_matchtrk_seed_inner_r);
+    m_matchtrk_seed_outer_r->push_back(tmp_matchtrk_seed_outer_r);
+
+    m_matchtrk_seed_middle_bendFE->push_back(tmp_matchtrk_seed_middle_bendFE);
+    m_matchtrk_seed_middle_bendRaw->push_back(tmp_matchtrk_seed_middle_bendRaw);
+    m_matchtrk_seed_middle_bendOff->push_back(tmp_matchtrk_seed_middle_bendOff);
+    m_matchtrk_seed_inner_bendFE->push_back(tmp_matchtrk_seed_inner_bendFE);
+    m_matchtrk_seed_inner_bendRaw->push_back(tmp_matchtrk_seed_inner_bendRaw);
+    m_matchtrk_seed_inner_bendOff->push_back(tmp_matchtrk_seed_inner_bendOff);
+    m_matchtrk_seed_outer_bendFE->push_back(tmp_matchtrk_seed_outer_bendFE);
+    m_matchtrk_seed_outer_bendRaw->push_back(tmp_matchtrk_seed_outer_bendRaw);
+    m_matchtrk_seed_outer_bendOff->push_back(tmp_matchtrk_seed_outer_bendOff);
+
+
     m_matchtrk_hitpattern->push_back(tmp_matchtrk_hitpattern);
     m_matchtrk_charge->push_back(tmp_matchtrk_charge);
     m_matchtrk_chi2_dof->push_back(tmp_matchtrk_chi2_dof);
