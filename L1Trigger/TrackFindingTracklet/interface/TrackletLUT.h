@@ -75,6 +75,16 @@ namespace trklet {
                          const TrackletLUT& tplutinner,
                          unsigned int iTP);
 
+    // trial for displaced
+    void initDisplacedTPregionlut(unsigned int iSeed,
+                         unsigned int layerdisk1,
+                         unsigned int layerdisk2,
+                         unsigned int iAllStub,
+                         unsigned int nbitsfinephidiff,
+                         unsigned int nbitsfinephi,
+//                          const TrackletLUT& tplutinner,
+                         unsigned int iTP);
+
     //Stub pt consistency for tracklet engine
     void initteptlut(bool fillInner,
                      bool fillTEMem,

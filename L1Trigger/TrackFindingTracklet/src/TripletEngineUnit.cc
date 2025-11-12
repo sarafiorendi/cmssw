@@ -16,6 +16,7 @@ TripletEngineUnit::TripletEngineUnit(const Settings* const settings,
                                      unsigned int layerdisk2,
                                      unsigned int layerdisk3,
                                      unsigned int iSeed,
+                                     unsigned int iAllStub,
                                      std::vector<VMStubsTEMemory*> innervmstubs,
                                      std::vector<VMStubsTEMemory*> outervmstubs)
     : settings_(settings), candtriplets_(3) {
@@ -24,6 +25,7 @@ TripletEngineUnit::TripletEngineUnit(const Settings* const settings,
   layerdisk2_ = layerdisk2;
   layerdisk3_ = layerdisk3;
   iSeed_ = iSeed;
+  iAllStub_ = iAllStub;
   innervmstubs_ = innervmstubs;
   outervmstubs_ = outervmstubs;
 }
@@ -69,51 +71,33 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
   const VMStubTE& outervmstub = outervmstubs_[outmem_]->getVMStubTEBinned(ibin_out, istub_out_);
   const VMStubTE& innervmstub = innervmstubs_[inmem_]->getVMStubTEBinned(ibin_in, istub_in_);
 
+//   std::cout << "\t\t [TEU] ibin_out/istub_out_ " << ibin_out << "/" << istub_out_ 
+//             << "           ibin_in/istub_in_ " << ibin_in << "/" << istub_in_ 
+//             << std::endl;
+
   // see d10 is: in 6, mid 1, out 2
 
-  bool applyPairCut = false; 
+  bool applyPairCut = true; 
   bool lut_ok = false; // FIXME
   int rzbinfirst_out_new = 0;
   int rzdiffmax_out_new = 999;
-//   // retrieve here the LUT for the triplet in case we are in seed 8
-//   if ((trpdata_.stub_->layerdisk() == 2 && innervmstub.stub()->layerdisk() == 1) || 
-//       (trpdata_.stub_->layerdisk() == 4 && innervmstub.stub()->layerdisk() == 3) ||
-//       (trpdata_.stub_->layerdisk() == 1 && innervmstub.stub()->layerdisk() == 6) 
-//      ) {
 
-//     if (innervmstub.stub()->layerdisk() == 6) 
-//       std::cout << "inside retrieving LUT for seed " 
-//                 << innervmstub.stub()->layerdisk() << " " 
-//                 << trpdata_.stub_->layerdisk() << " " 
-//                 << outervmstub.stub()->layerdisk() << " " 
-//                 << std::endl;   
+  int middle_indexz = (((1 << (trpdata_.stub_->z().nbits() - 1)) + trpdata_.stub_->z().value()) >> (trpdata_.stub_->z().nbits() - settings_->vmrlutzbits(trpdata_.stub_->layerdisk()) ));
+  int middle_indexr = (((1 << (trpdata_.stub_->r().nbits() - 1)) + trpdata_.stub_->r().value()) >> (trpdata_.stub_->r().nbits() - settings_->vmrlutrbits(trpdata_.stub_->layerdisk()) ));
+  int inner_indexz = (((1 << (innervmstub.stub()->z().nbits() - 1)) + innervmstub.stub()->z().value()) >> (innervmstub.stub()->z().nbits() - settings_->vmrlutzbits(innervmstub.stub()->layerdisk()) ));
+  int inner_indexr = (((1 << (innervmstub.stub()->r().nbits() - 1)) + innervmstub.stub()->r().value()) >> (innervmstub.stub()->r().nbits() - settings_->vmrlutrbits(innervmstub.stub()->layerdisk()) ));
+  int shift_middle = settings_->vmrlutrbits(innervmstub.stub()->layerdisk()) + settings_->vmrlutzbits(innervmstub.stub()->layerdisk());
 
-    int middle_indexz = (((1 << (trpdata_.stub_->z().nbits() - 1)) + trpdata_.stub_->z().value()) >> (trpdata_.stub_->z().nbits() - settings_->vmrlutzbits(trpdata_.stub_->layerdisk()) ));
-    int middle_indexr = (((1 << (trpdata_.stub_->r().nbits() - 1)) + trpdata_.stub_->r().value()) >> (trpdata_.stub_->r().nbits() - settings_->vmrlutrbits(trpdata_.stub_->layerdisk()) ));
-    int inner_indexz = (((1 << (innervmstub.stub()->z().nbits() - 1)) + innervmstub.stub()->z().value()) >> (innervmstub.stub()->z().nbits() - settings_->vmrlutzbits(innervmstub.stub()->layerdisk()) ));
-    int inner_indexr = (((1 << (innervmstub.stub()->r().nbits() - 1)) + innervmstub.stub()->r().value()) >> (innervmstub.stub()->r().nbits() - settings_->vmrlutrbits(innervmstub.stub()->layerdisk()) ));
-    int shift_middle = settings_->vmrlutrbits(innervmstub.stub()->layerdisk()) + settings_->vmrlutzbits(innervmstub.stub()->layerdisk());
-//     std::cout << ((middle_indexz << (settings_->vmrlutrbits(trpdata_.stub_->layerdisk()) + shift_middle)) + 
-//                  (middle_indexr << shift_middle) + 
-//                  (inner_indexz << settings_->vmrlutrbits(innervmstub.stub()->layerdisk())) + 
-//                  inner_indexr )
-//               << std::endl;
-    int lutval_pair = trpdata_.outerpairtable_->lookup(
-      (middle_indexz << (settings_->vmrlutrbits(trpdata_.stub_->layerdisk()) + shift_middle)) + 
-      (middle_indexr << shift_middle) + 
-      (inner_indexz << settings_->vmrlutrbits(innervmstub.stub()->layerdisk())) + 
-      inner_indexr
-    );
-//       if (innervmstub.stub()->layerdisk() == 6) 
-//         std::cout << "seed 10, lut = "  << lutval_pair
-//                   << std::endl;   
-//     
+  int lutval_pair = trpdata_.outerpairtable_->lookup(
+    (middle_indexz << (settings_->vmrlutrbits(trpdata_.stub_->layerdisk()) + shift_middle)) + 
+    (middle_indexr << shift_middle) + 
+    (inner_indexz << settings_->vmrlutrbits(innervmstub.stub()->layerdisk())) + 
+    inner_indexr
+  );
 
     if (lutval_pair != -1) {
       lut_ok = true;
-//       if (innervmstub.stub()->layerdisk() == 6) 
-//         std::cout << "seed 10, lut is ok" 
-//                   << std::endl;   
+
       // retrieve cut value
       unsigned int lutwidth = settings_->lutwidthtabextended(0, 8); // always 21
       FPGAWord lookupbits(lutval_pair, lutwidth, true, __LINE__, __FILE__);
@@ -183,15 +167,34 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
                 std::tuple<const Stub*, const Stub*, const Stub*>(innervmstub.stub(), trpdata_.stub_, outervmstub.stub());
             goodtriplet_ = true;
             
-            FPGAWord phicorr = innervmstub.stub()->phicorr();
-            int innerfinephi = phicorr.bits(phicorr.nbits() - 8, 8);
+            FPGAWord inner_phicorr = innervmstub.stub()->phicorr();
+            int innerfinephi = inner_phicorr.bits(inner_phicorr.nbits() - 8, 8); // this is what is passed in the trackletProcessor
+
+            FPGAWord middle_phicorr = trpdata_.stub_->phicorr();
+            int middlefinephi = middle_phicorr.bits(middle_phicorr.nbits() - 8, 8);
             
-            std::cout << innervmstub.finephi().value() << " "
-                      << (innervmstub.stub()->phicorr().value()) << " "
-                      << (innerfinephi)
-//                       << innervmstub.stub()->phicorr().bits()
-//       int innerfinephi = phicorr.bits(phicorr.nbits() - nbitsfinephi_, nbitsfinephi_);
-                      << std::endl;
+            /*
+            // for the outer stub, what it does for calculating deltaPhi wrt inner is 
+            FPGAWord iphiouterbin = outervmstub.finephi();
+            //New code to calculate lut value
+            int outerfinephi = iAllStub_ * (1 << (nbitsfinephi_ - settings_->nbitsallstubs(layerdisk2_))) +
+                     ireg_ * (1 << settings_->nfinephi(1, iSeed_)) + iphiouterbin.value();
+            //
+            // so I'll try to do the same for the inner   
+            */ 
+            FPGAWord iphiinnerbin = innervmstub.finephi();
+            // nbitsfinephi_ == 8
+            int innerfinephi_newCalc = iAllStub_ * (1 << (8 - settings_->nbitsallstubs(layerdisk1_))) ;//+
+//                                        ireg_ * (1 << settings_->nfinephi(1, iSeed_)) + iphiinnerbin.value();
+            
+//             std::cout << innervmstub.finephi().value() << " "
+//                       << (innervmstub.stub()->phicorr().value()) << " "
+//                       << (innerfinephi) << "\t middle: " 
+//                       << trpdata_.stub_->phi().value() << " "
+//                       << trpdata_.stub_->phicorr().value() << " "
+//                       << (middlefinephi) 
+// //       int innerfinephi = phicorr.bits(phicorr.nbits() - nbitsfinephi_, nbitsfinephi_);
+//                       << std::endl;
                                               
             L1StubTriplet myTriplet;
             myTriplet.setStubRapprox(0, innervmstub.stub()->rapprox());
@@ -209,6 +212,10 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
             myTriplet.setStubBend(0, innervmstub.stub()->bend().value());
             myTriplet.setStubBend(1, trpdata_.stub_->bend().value());
             myTriplet.setStubBend(2, outervmstub.stub()->bend().value());
+
+            myTriplet.setStubPhi(0, innervmstub.stub()->phicorr().value());
+            myTriplet.setStubPhi(1, trpdata_.stub_->phicorr().value());
+            myTriplet.setStubPhi(2, outervmstub.stub()->phicorr().value());
           
             myTriplet.setStubRZbin(0, (innervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1)));
             myTriplet.setStubRZbin(1, 0); // dummy fill
@@ -261,6 +268,10 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
             myTriplet.setStubBend(0, innervmstub.stub()->bend().value());
             myTriplet.setStubBend(1, trpdata_.stub_->bend().value());
             myTriplet.setStubBend(2, outervmstub.stub()->bend().value());
+
+            myTriplet.setStubPhi(0, innervmstub.stub()->phicorr().value());
+            myTriplet.setStubPhi(1, trpdata_.stub_->phicorr().value());
+            myTriplet.setStubPhi(2, outervmstub.stub()->phicorr().value());
           
             myTriplet.setStubRZbin(0, (innervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1)));
             myTriplet.setStubRZbin(1, 0); // dummy fill

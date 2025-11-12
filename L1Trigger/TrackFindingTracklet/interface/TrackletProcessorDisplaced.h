@@ -38,8 +38,13 @@ namespace trklet {
 
     void execute(unsigned int iSector, double phimin, double phimax, std::vector<L1StubTriplet>&, std::vector<L1StubTriplet>&);
 
+    double calc_phi_tmp(double r, double rho, double d0);
+    double calc_deltaPhi(double rho, double d0, double r1, double r2);
+    std::vector<float> linspace(float A, float B, int N);
+
   private:
     int iTC_;
+    int iAllStub_;
     unsigned int maxStep_;
 
     std::tuple<CircularBuffer<TrpEData>, unsigned int, unsigned int, unsigned int, unsigned int> trpbuffer_;
@@ -53,12 +58,17 @@ namespace trklet {
     int secondphibits_;
     int thirdphibits_;
 
+    int nbitsfinephi_; //sara
+    int nbitsfinephidiff_; //sara
+
     int nbitszfinebintable_;
     int nbitsrfinebintable_;
 
     TrackletLUT innerTable_;       //projection to next layer/disk
     TrackletLUT innerThirdTable_;  //projection to third disk/layer
     TrackletLUT outerPairTable_;   //projection to outer disk/layer
+
+    TrackletLUT useregiontable_;   // phi LUT
 
     std::vector<VMStubsTEMemory*> innervmstubs_;
     std::vector<VMStubsTEMemory*> outervmstubs_;

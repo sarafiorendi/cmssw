@@ -546,7 +546,7 @@ void TrackletLUT::initTPregionlut(unsigned int iSeed,
 
   // loop on all possible inner stub phi and bend values
   for (int innerfinephi = 0; innerfinephi < (1 << nbitsfinephi); innerfinephi++) {
-    for (int innerbend = 0; innerbend < (1 << nbendbitsinner); innerbend++) {
+    for (int innerbend = 0; innerbend < (1 << nbendbitsinner); innerbend++) {  // this should be ENCODED BEND (3(4) bits in PS (2S) modules, not depending on assumptions on track)
       // loop on all possible inner stub radius (could be just one value for barrel)
       for (int ir = 0; ir < (1 << nirbits); ir++) {
         unsigned int usereg = 0;  // will be used to save which phi regions to look at 
@@ -559,6 +559,10 @@ void TrackletLUT::initTPregionlut(unsigned int iSeed,
             int outerfinephi = iAllStub * (1 << (nbitsfinephi - settings_.nbitsallstubs(layerdisk2))) +
                                ireg * (1 << settings_.nfinephi(1, iSeed)) + ifinephiouter;
             int idphi = outerfinephi - innerfinephi;
+//             std::cout << "[TrackletLUT] idphi = " << idphi 
+//                       << "outerfinephi = " << outerfinephi 
+//                       << "innerfinephi = " << innerfinephi 
+//                       << std::endl;
             // here the actual cut, defined by dphi < XX and dphi > -XX
             // cut defined by nbitsfinephidiff  that in tracklet processor is
             // nbitsfinephidiff_ = log(nbins) / log(2.0) + 1;
@@ -1475,6 +1479,8 @@ void TrackletLUT::initVMRTableTriplet(unsigned int layerdisk_middle, unsigned in
       } // end loop on inner bins
     }
   }
+  writeTable();
+
 }
 
 int TrackletLUT::getVMRLookupTriplet(unsigned int layerdisk_outer, double z_inner, double r_inner, double dz_inner, double dr_inner, 
@@ -1698,6 +1704,94 @@ int TrackletLUT::getVMRLookupTriplet(unsigned int layerdisk_outer, double z_inne
 }
 
 
+
+// given an inner stub in layerdisk1 (so its phi and bend) and a seed, 
+// define which phi regions (which outputs of the VM router) could
+// contain an outer stub with deltaphi within a range
+void TrackletLUT::initDisplacedTPregionlut(unsigned int iSeed,
+                                  unsigned int layerdisk1,
+                                  unsigned int layerdisk2,
+                                  unsigned int iAllStub,
+                                  unsigned int nbitsfinephidiff,
+                                  unsigned int nbitsfinephi,
+//                                   const TrackletLUT& tplutinner,
+                                  unsigned int iTP) {
+  int nirbits = 0;
+  if (iSeed == Seed::L2L3D1 || iSeed == Seed::D1D2L2) {
+    nirbits = 3;
+  }
+
+  unsigned int nbendbitsmiddle = 3;
+
+  if (iSeed == Seed::L4L5L6) {
+    nbendbitsmiddle = 4;
+  }
+
+  // loop on all possible inner stub phi and bend values
+  for (int innerfinephi = 0; innerfinephi < (1 << nbitsfinephi); innerfinephi++) {
+    for (int innerbend = 0; innerbend < (1 << nbendbitsmiddle); innerbend++) {  // this should be ENCODED BEND (3(4) bits in PS (2S) modules, not depending on assumptions on track)
+      // loop on all possible inner stub radius (could be just one value for barrel)
+      for (int ir = 0; ir < (1 << nirbits); ir++) {
+        unsigned int usereg = 0;  // will be used to save which phi regions to look at 
+        // loop on all phi regions of that seed (as from vm router) and check, for each of them,
+        // if there's at least one outer stub which combined with the inner one has dphi and dbend values
+        // that are compatible
+        for (unsigned int ireg = 0; ireg < settings_.nvmte(1, iSeed); ireg++) {
+        
+          // for reference     unsigned int nvmte(unsigned int inner, unsigned int iSeed) const { return (1 << nbitsvmte(inner, iSeed)); }
+          //                   std::array<std::array<unsigned int, N_SEED>, 3> nbitsvmte_{
+          //                       {{{2, 2, 2, 2, 2, 2, 1, 1, 2, 2, 3, 2}},  // (3 = #stubs/triplet, only row 1+2 used for tracklet)
+          //                        {{3, 2, 3, 3, 2, 2, 2, 2, 3, 3, 2, 2}},
+          //                        {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1}}}}; 
+        
+          bool match = false;
+          for (int ifinephiouter = 0; ifinephiouter < (1 << settings_.nfinephi(1, iSeed)); ifinephiouter++) {
+            int outerfinephi = iAllStub * (1 << (nbitsfinephi - settings_.nbitsallstubs(layerdisk2))) +
+                               ireg * (1 << settings_.nfinephi(1, iSeed)) + ifinephiouter;
+            int idphi = outerfinephi - innerfinephi;
+            // here the actual cut, defined by dphi < XX and dphi > -XX
+            // cut defined by nbitsfinephidiff  that in tracklet processor is
+            // nbitsfinephidiff_ = log(nbins) / log(2.0) + 1;
+            bool inrange = (idphi < (1 << (nbitsfinephidiff - 1))) && (idphi >= -(1 << (nbitsfinephidiff - 1)));
+//             if (iSeed == 9){
+//               std::cout << "[TrackletLUT] idphi = " << idphi 
+//                         << "  outerfinephi = " << outerfinephi 
+//                         << "  innerfinephi = " << innerfinephi 
+//                         << "  nbitsfinephidiff = " << nbitsfinephidiff 
+//                         << " --> inrange = " << inrange 
+//                         << std::endl;
+//             }          
+            if (idphi < 0)
+              idphi = idphi + (1 << nbitsfinephidiff);
+//             int idphi1 = idphi;
+//             if (iSeed >= 4 && iSeed < 8) // should be re-activaated for seed 10 nd 11 maybe. in any case, idphi1 is not used
+//               idphi1 = (idphi << 3) + ir;
+//             int ptinnerindexnew = (idphi1 << nbendbitsmiddle) + innerbend;
+            // if both bend and phi are compatible, set match to true
+            match = match || (inrange );//&& tplutinner.lookup(ptinnerindexnew));  
+          }
+          if (match) {
+            usereg = usereg | (1 << ireg);
+          }
+        }
+
+        table_.push_back(usereg);
+      }
+    }
+  }
+
+  positive_ = false;
+  nbits_ = 8;
+  char cTP = 'A' + iTP;
+
+  name_ = "TP_" + TrackletConfigBuilder::LayerName(layerdisk1) + TrackletConfigBuilder::LayerName(layerdisk2) + cTP +
+          "_usedisplacedreg.tab";
+
+  writeTable();
+}
+
+
+
 void TrackletLUT::initPhiCorrTable(unsigned int layerdisk, unsigned int rbits) {
   bool psmodule = layerdisk < N_PSLAYER;
 
@@ -1746,6 +1840,13 @@ int TrackletLUT::getphiCorrValue(
 
   //calculate the phi correction - this is a somewhat approximate formula
   double drnom = 0.18;  //This is the nominal module separation for which bend is referenced
+  
+  // A stub bend corresponds to a difference in hit positions between two sensors separated by drnom (1.8 mm).
+  // If a stub is at a radius offset Delta from the nominal, that bend corresponds to a slightly different angular shift (because the geometry changes with r).
+  // bend = measured stub bend (in half-strip units typically),
+  // stripPitch = conversion from half-strips to mm,
+  // rmean = mean radius of the module,
+  // Delta / drnom rescales the bend to this module's actual geometry.
   double dphi = (Delta / drnom) * bend * settings_.stripPitch(psmodule) / rmean;
 
   double kphi = psmodule ? settings_.kphi() : settings_.kphi1();
@@ -1765,10 +1866,12 @@ void TrackletLUT::writeTable() const {
     throw cms::Exception("LogicError") << "Error in " << __FILE__ << " nbits_ == 0 ";
   }
 
+//   std::cout << "[Settings] write table: " << settings_.writeTable() << std::endl;
   if (!settings_.writeTable()) {
     return;
   }
 
+//   std::cout << "[Settings] path: " << settings_.tablePath() << std::endl;
   ofstream out = openfile(settings_.tablePath(), name_, __FILE__, __LINE__);
 
   out << "{" << endl;

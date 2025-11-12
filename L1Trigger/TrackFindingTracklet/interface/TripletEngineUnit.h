@@ -35,6 +35,7 @@ namespace trklet {
                       unsigned int layerdisk2,
                       unsigned int layerdisk3,
                       unsigned int iSeed,
+                      unsigned int iAllStub,
                       std::vector<VMStubsTEMemory*> innervmstubs,
                       std::vector<VMStubsTEMemory*> outervmstubs);
 
@@ -71,6 +72,7 @@ namespace trklet {
     unsigned int layerdisk3_;
     unsigned int iSeed_;
     bool nearfull_;  //initialized at start of each processing step
+    unsigned int iAllStub_;
 
     //unsigned int memory slot
     unsigned int nmem_out_;

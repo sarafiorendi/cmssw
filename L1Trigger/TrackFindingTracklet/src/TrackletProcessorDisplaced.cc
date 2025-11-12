@@ -28,16 +28,88 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
       trpbuffer_(CircularBuffer<TrpEData>(3), 0, 0, 0, 0),
       innerTable_(settings),
       innerThirdTable_(settings),
-      outerPairTable_(settings) {
+      outerPairTable_(settings),
+      useregiontable_(settings) {
+
   innerallstubs_.clear();
   middleallstubs_.clear();
   outerallstubs_.clear();
   innervmstubs_.clear();
   outervmstubs_.clear();
 
+  iAllStub_ = -1;
   // set layer/disk types based on input seed name
   initLayerDisksandISeedDisp(layerdisk1_, layerdisk2_, layerdisk3_, iSeed_);
+
+  // as done in the prompt version, find min and max radii
+  double rmin = -1.0;
+  double rmax = -1.0;
+
+  if (iSeed_ == Seed::L2L3L4 || iSeed_ == Seed::L4L5L6) {
+    rmin = settings_.rmean(layerdisk1_); // middle
+    rmax = settings_.rmean(layerdisk2_); // outer
+  } else {
+    if (iSeed_ == Seed::L2L3D1) {
+      rmax = settings_.rmaxdiskvm();
+      rmin = settings_.rmean(layerdisk1_);
+//     } else if (iSeed_ == Seed::L2D1) {
+//       rmax = settings_.rmaxdiskvm();
+//       rmin = settings_.rmean(layerdisk1_);
+//     } else {
+//       rmax = settings_.rmaxdiskvm();
+//       rmin = rmax * settings_.zmean(layerdisk2_ - N_LAYER - 1) / settings_.zmean(layerdisk2_ - N_LAYER);
+    }
+  }
+// seed 11 missing
+
+  // rmin and rmax correspond to the radius of the two layers/disks of the seed 
+  // dphimax (in radians) is the max delta phi between the two stubs of the pair to form that seed in order to satisfy the min pt cut (maxrinv)
+//   double dphimax = asin(0.5 * settings_.maxrinv() * rmax) - asin(0.5 * settings_.maxrinv() * rmin);
+  // I'll replace this with my calculation
+  double B = 3.8;                      // Tesla
+  double q = 1.0;                      // charge sign
+  double min_pT = 2;                       // GeV
+  double local_c_light = 0.00299792;
+  double rinv = 0.3 * local_c_light * B * q / min_pT; 
+  std::vector<float> d0_vals = linspace(-10,10,101);
   
+  int len_d0_vals = d0_vals.size();
+  std::vector<double> dphi_vals_p;//, dphi_vals_m;
+  dphi_vals_p.reserve(2 * len_d0_vals);
+  for (double d0 : d0_vals){
+      dphi_vals_p.push_back(calc_deltaPhi( 1/rinv, d0, rmin, rmax));  
+      dphi_vals_p.push_back(calc_deltaPhi(-1/rinv, d0, rmin, rmax));  
+//       std::cout << "[TPD] d0 = " << d0 << " -> dphi = "  << deltaPhi_sara(1/rinv, d0, rmin, rmax) << std::endl;
+  }    
+  std::vector<double>::iterator max_value;      
+  max_value = std::max_element(dphi_vals_p.begin(), dphi_vals_p.end(), [](double a, double b)
+  {
+      return std::abs(a) < std::abs(b);
+  });  
+//   max_value = std::max_element(dphi_vals.begin(), dphi_vals.end());
+  double dphimax = *max_value;
+  dphimax = abs(dphimax);
+//   std::cout << "[TPD] max dphi = " << dphimax 
+//             << " for seed " << iSeed_ 
+//             << " (r_middle, r_outer) " << rmin << "," << rmax  
+//             << std::endl;
+
+  // number of fine phi bins in sector for the outer layer
+  int nfinephibins =
+      settings_.nallstubs(layerdisk2_) * settings_.nvmte(1, iSeed_) * (1 << settings_.nfinephi(1, iSeed_));
+  double dfinephi = settings_.dphisectorHG() / nfinephibins;
+  nbitsfinephi_ = settings_.nbitsallstubs(layerdisk2_) + settings_.nbitsvmte(1, iSeed_) + settings_.nfinephi(1, iSeed_);
+  int nbins = 2.0 * (dphimax / dfinephi + 1.0);
+  // find the number of bits needed to represent nbins
+  nbitsfinephidiff_ = log(nbins) / log(2.0) + 1;
+  // end copying from prompt
+
+//   std::cout << "[TPD] nfinephibins = " << nfinephibins 
+//             << "   dfinephi " << dfinephi 
+//             << "   nbitsfinephi_ " << nbitsfinephi_ 
+//             << "   nbitsfinephidiff_ " << nbitsfinephidiff_  
+//             << std::endl;
+    
 //   if (iSeed_ == 10) std::cout << "ld123:" <<  layerdisk1_ << " " << layerdisk2_ << " " << layerdisk3_ << std::endl;
 //   ld123:1 2 6
 
@@ -47,12 +119,8 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
       layerdisk1_, TrackletLUT::VMRTableType::inner, region, false);  //projection to next layer/disk
   innerThirdTable_.initVMRTable(
       layerdisk1_, TrackletLUT::VMRTableType::innerthird, region, false);  //projection to third layer/disk
-//   if ((layerdisk1_== 2 && layerdisk2_== 3) || 
-//       (layerdisk1_== 4 && layerdisk2_== 5) || 
-//       (layerdisk1_== 1 && layerdisk2_== 2 && layerdisk3_== 6)
-//       ) 
-    outerPairTable_.initVMRTableTriplet(
-        layerdisk1_, layerdisk3_, TrackletLUT::VMRTableType::outerfrompair, region, false);  //projection to outer layer/disk from inner pair
+  outerPairTable_.initVMRTableTriplet(
+      layerdisk1_, layerdisk3_, TrackletLUT::VMRTableType::outerfrompair, region, false);  //projection to outer layer/disk from inner pair
 
 //   if ((layerdisk1_== 1 && layerdisk2_== 2 && layerdisk3_== 6))
 //     std::cout << "size of lut " << outerPairTable_.size() << std::endl;
@@ -162,6 +230,30 @@ void TrackletProcessorDisplaced::addInput(MemoryBase* memory, string input) {
     auto* tmp = dynamic_cast<VMStubsTEMemory*>(memory);
     assert(tmp != nullptr);
     outervmstubs_.push_back(tmp);
+    
+    iAllStub_ = tmp->getName()[11] - 'A';
+//     std::cout << "[TPD] adding input for memory " << tmp->getName() << std::endl;
+//     if (iSeed_ == Seed::L2L3)
+//       iAllStub_ = tmp->getName()[11] - 'I';
+    if (iSeed_ == Seed::L2L3D1 || iSeed_ == Seed::D1D2L2) {
+      if (tmp->getName()[11] == 'X')
+        iAllStub_ = 0;
+      if (tmp->getName()[11] == 'Y')
+        iAllStub_ = 1;
+      if (tmp->getName()[11] == 'Z')
+        iAllStub_ = 2;
+      if (tmp->getName()[11] == 'W')
+        iAllStub_ = 3;
+    }
+    unsigned int iTP = getName()[7] - 'A';
+//     std::cout << "\t and iTP " << iTP << std::endl;
+
+    useregiontable_.initDisplacedTPregionlut(
+      iSeed_, layerdisk1_, layerdisk2_, iAllStub_, nbitsfinephidiff_, nbitsfinephi_, iTP);
+      // iTP is only used in the name of the LUT table, if written out
+      // iAllStub is used to define the outerfinephi
+
+    
     return;
   }
 
@@ -176,9 +268,23 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
   unsigned int countall = 0;
   unsigned int countsel = 0;
   int donecount = 0;
+  
+//   std::cout << "TPD: iSector = " << iSector 
+//             << "\nTPD: iSeed_ = " << iSeed_ 
+//             << "\nTPD: iAllStub_ = " << iAllStub_ 
+//             << "\nTPD: iTC_ = " << iTC_ 
+//             << "\nTPD: TCIndex_ = " << TCIndex_ 
+//             << std::endl;
 
   // set the triplet engine units and buffer
-  TripletEngineUnit trpunit(&settings_, layerdisk1_, layerdisk2_, layerdisk3_, iSeed_, innervmstubs_, outervmstubs_);
+  TripletEngineUnit trpunit(&settings_, 
+                            layerdisk1_, 
+                            layerdisk2_, 
+                            layerdisk3_, 
+                            iSeed_, 
+                            iAllStub_,
+                            innervmstubs_, 
+                            outervmstubs_);
   trpunits_.resize(settings_.trpunits(iSeed_), trpunit);
   trpbuffer_ = tuple<CircularBuffer<TrpEData>, unsigned int, unsigned int, unsigned int, unsigned int>(
       CircularBuffer<TrpEData>(3), 0, 0, 0, middleallstubs_.size());
@@ -206,7 +312,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
   for (unsigned int istep = 0; istep < maxStep_; istep++) {
     CircularBuffer<TrpEData>& trpdatabuffer = std::get<0>(trpbuffer_);
     trpbuffernearfull = trpdatabuffer.nearfull();
-//     std::cout << "istep: " << istep << " , nearfull " << trpbuffernearfull << std::endl;
+    std::cout << "istep: " << istep << " , nearfull " << trpbuffernearfull << std::endl;
 
     //
     // First block here checks if there is a trpunit with data that should be used
@@ -255,6 +361,10 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
       myTripletNow.setStubBend(0, innerFPGAStub->bend().value());
       myTripletNow.setStubBend(1, middleFPGAStub->bend().value());
       myTripletNow.setStubBend(2, outerFPGAStub->bend().value());
+
+      myTripletNow.setStubPhi(0, innerFPGAStub->phicorr().value());
+      myTripletNow.setStubPhi(1, middleFPGAStub->phicorr().value());
+      myTripletNow.setStubPhi(2, outerFPGAStub->phicorr().value());
 
       myTripletNow.setStubIndex(0, innerFPGAStub->stubindex().value());
       myTripletNow.setStubIndex(1, middleFPGAStub->stubindex().value());
@@ -323,7 +433,9 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
     unsigned int& midmem = std::get<2>(trpbuffer_);
     unsigned int midmemend = std::get<4>(trpbuffer_);
 
+    std::cout << "istep: " << istep << " , looking at middle stub " << istub << std::endl;
     if ((!trpbuffernearfull) && midmem < midmemend && istub < middleallstubs_[midmem]->nStubs()) {
+      
       const Stub* stub = middleallstubs_[midmem]->getStub(istub);
 
       if (settings_.debugTracklet()) {
@@ -331,6 +443,16 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
       }
 
       bool negdisk = (stub->disk().value() < 0);  // check if disk in negative z region
+
+      // sara, trial to retrieve phi
+//       FPGAWord phicorr = stub->phi();
+      FPGAWord phicorr = stub->phicorr();
+      // nbitsallstubs is the same for all layers except L1
+      // the other two pars only depend on the seed, not on the layer 
+      nbitsfinephi_ = settings_.nbitsallstubs(layerdisk2_) + settings_.nbitsvmte(1, iSeed_) + settings_.nfinephi(1, iSeed_);
+      int middlefinephi = phicorr.bits(phicorr.nbits() - nbitsfinephi_, nbitsfinephi_);
+      FPGAWord middlebend = stub->bend();
+
 
       // get r/z index of the middle stub
       int indexz = (((1 << (stub->z().nbits() - 1)) + stub->z().value()) >> (stub->z().nbits() - nbitszfinebintable_));
@@ -345,8 +467,6 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
       } else {  // else if from a layer
         indexr = (((1 << (stub->r().nbits() - 1)) + stub->rvalue()) >> (stub->r().nbits() - nbitsrfinebintable_));
       }
-//       if (iSeed_ == Seed::L2L3L4) 
-//         std::cout << "[TPD] middle r/z indices: " << indexr << " / " << indexz << std::endl; 
 
       // create lookupbits that define projections from middle stub
       int lutval = -1;
@@ -392,6 +512,16 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         }
         int last_in = start_in + next_in;  // last large rz-bin projection
 
+
+        // try this instead of  middlebend.nbits()
+        unsigned int nbendbitsmiddle = 3;
+        if (iSeed_ == Seed::L4L5L6) {
+          nbendbitsmiddle = 4;
+        }
+        unsigned int useregindex = (middlefinephi << nbendbitsmiddle) + middlebend.value();
+        unsigned int usereg = useregiontable_.lookup(useregindex);
+//         std::cout << "usereg " << usereg << " for seed " << iSeed_ << std::endl;
+        
         // fill trpdata with projection info of middle stub
         trpdata.stub_ = stub;
         trpdata.rzbinfirst_out_ = rzbinfirst_out;
@@ -405,9 +535,30 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         // fill projection bins info for single engine unit
         trpdata.projbin_out_.clear();
         trpdata.projbin_in_.clear();
+        
+        
         for (int ibin_out = start_out; ibin_out <= last_out; ibin_out++) {
           for (unsigned int outmem = 0; outmem < outervmstubs_.size(); outmem++) {
+//             if (iSeed_ == Seed::L2L3L4) {
+            if (iSeed_ == Seed::L2L3L4 || iSeed_ == Seed::L4L5L6){
+              if (!(usereg & (1 << outmem))) {
+//                 std::cout << "excluding outmem " << outmem << " for seed " << iSeed_ << std::endl;
+                continue;
+              }
+            }  
+          
+            // I should add here a "usemem" mask to see if we want to use this memory, based on 
+            // the phi region of the stubs that it contains
+            // the usemem mask should have been previously set from the phi LUT
+            // something like
+            //  if (!(usemem & (1 << outmem))) {
+            //   continue;
+            // }
+            // then do the same for the inner stub
+
             int nstubs_out = outervmstubs_[outmem]->nVMStubsBinned(ibin_out);
+//             std::cout << "\t\t nstubs_out " << nstubs_out  << std::endl;
+
             if (nstubs_out > 0)
               trpdata.projbin_out_.emplace_back(tuple<int, int, int>(ibin_out - start_out, outmem, nstubs_out));
           }
@@ -415,6 +566,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         for (int ibin_in = start_in; ibin_in <= last_in; ibin_in++) {
           for (unsigned int inmem = 0; inmem < innervmstubs_.size(); inmem++) {
             int nstubs_in = innervmstubs_[inmem]->nVMStubsBinned(ibin_in);
+//             std::cout << "\t\t nstubs_in " << nstubs_in  << std::endl;
             if (nstubs_in > 0)
               trpdata.projbin_in_.emplace_back(tuple<int, int, int>(ibin_in - start_in, inmem, nstubs_in));
           }
@@ -471,4 +623,29 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
     globals_->ofstream("trackletprocessordisplaced.txt")
         << getName() << " " << countall << " " << countsel << std::endl;
   }
+}
+
+
+double TrackletProcessorDisplaced::calc_phi_tmp(double r, double rho, double d0){
+    
+    double phi1 = -r/2/rho + d0/r + d0*d0/2/r/rho -2*d0*r/4/rho/rho + 1/6*pow(-r/2/rho + d0/r,3);
+    return phi1;
+}
+double TrackletProcessorDisplaced::calc_deltaPhi(double rho, double d0, double r1, double r2){
+  
+  if (r1 <= 0 || r2 <= 0 || r1 >= r2)
+    return std::numeric_limits<double>::quiet_NaN();
+    
+  double phi1 = calc_phi_tmp(r1, rho, d0);
+  double phi2 = calc_phi_tmp(r2, rho, d0);
+  double delta_phi = phi1 - phi2;
+    
+  return delta_phi;
+}
+std::vector<float> TrackletProcessorDisplaced::linspace(float A, float B, int N) {
+    std::vector<float> v(N);
+    float step = (B - A) / (N - 1);
+    float val = A;
+    std::generate(v.begin(), v.end(), [&]{ float tmp = val; val += step; return tmp; });
+    return v;
 }
