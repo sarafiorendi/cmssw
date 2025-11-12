@@ -6,6 +6,7 @@ L1StubTriplet::L1StubTriplet() :
   rapprox_(3,0),
   zapprox_(3,0),
   bend_(3,0),
+  phi_(3,0),
   rzbin_(3,0),
   index_(3,0),
   layerdisk_(3,0),

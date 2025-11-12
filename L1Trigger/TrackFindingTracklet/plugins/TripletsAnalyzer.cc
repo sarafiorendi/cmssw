@@ -53,6 +53,10 @@ private:
   float middle_bend_;
   float outer_bend_;
 
+  float inner_phi_;
+  float middle_phi_;
+  float outer_phi_;
+
   int inner_rzbin_;
   int middle_rzbin_;
   int outer_rzbin_;
@@ -117,6 +121,10 @@ void TripletsAnalyzer::beginJob() {
   outTree_->Branch("inner_bend", &inner_bend_, "inner_bend/F");
   outTree_->Branch("middle_bend", &middle_bend_, "middle_bend/F");
   outTree_->Branch("outer_bend", &outer_bend_, "outer_stub_bend/F");
+
+  outTree_->Branch("inner_phi", &inner_phi_, "inner_phi/F");
+  outTree_->Branch("middle_phi", &middle_phi_, "middle_phi/F");
+  outTree_->Branch("outer_phi", &outer_phi_, "outer_stub_phi/F");
 
   outTree_->Branch("inner_rzbin", &inner_rzbin_, "inner_rzbin/I");
   outTree_->Branch("middle_rzbin", &middle_rzbin_, "middle_rzbin/I");
@@ -183,6 +191,10 @@ void TripletsAnalyzer::analyze(const edm::Event& event, const edm::EventSetup& e
     inner_bend_ = iTriplet.getStubBend(0);
     middle_bend_ = iTriplet.getStubBend(1);
     outer_bend_ = iTriplet.getStubBend(2);
+
+    inner_phi_ = iTriplet.getStubPhi(0);
+    middle_phi_ = iTriplet.getStubPhi(1);
+    outer_phi_ = iTriplet.getStubPhi(2);
 
     inner_rzbin_ = iTriplet.getStubRZbin(0);
     middle_rzbin_ = iTriplet.getStubRZbin(1);

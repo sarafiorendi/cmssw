@@ -25,6 +25,9 @@ public:
   float getStubBend(int i) const { return bend_.at(i); }
   void setStubBend(int i, float bend) {bend_[i] = bend; }
 
+  float getStubPhi(int i) const { return phi_.at(i); }
+  void setStubPhi(int i, float phi) {phi_[i] = phi; }
+
   int getStubRZbin(int i) const { return rzbin_.at(i); }
   void setStubRZbin(int i, int rzbin) {rzbin_[i] = rzbin; }
 
@@ -75,6 +78,7 @@ private:
   std::vector<float> rapprox_;
   std::vector<float> zapprox_;
   std::vector<float> bend_;
+  std::vector<float> phi_;
   std::vector<int> rzbin_;
   std::vector<int> index_;
   std::vector<int> layerdisk_;
