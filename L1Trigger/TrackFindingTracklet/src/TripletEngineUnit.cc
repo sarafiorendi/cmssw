@@ -167,11 +167,11 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
                 std::tuple<const Stub*, const Stub*, const Stub*>(innervmstub.stub(), trpdata_.stub_, outervmstub.stub());
             goodtriplet_ = true;
             
-            FPGAWord inner_phicorr = innervmstub.stub()->phicorr();
-            int innerfinephi = inner_phicorr.bits(inner_phicorr.nbits() - 8, 8); // this is what is passed in the trackletProcessor
+//             FPGAWord inner_phicorr = innervmstub.stub()->phicorr();
+//             int innerfinephi = inner_phicorr.bits(inner_phicorr.nbits() - 8, 8); // this is what is passed in the trackletProcessor
 
-            FPGAWord middle_phicorr = trpdata_.stub_->phicorr();
-            int middlefinephi = middle_phicorr.bits(middle_phicorr.nbits() - 8, 8);
+//             FPGAWord middle_phicorr = trpdata_.stub_->phicorr();
+//             int middlefinephi = middle_phicorr.bits(middle_phicorr.nbits() - 8, 8);
             
             /*
             // for the outer stub, what it does for calculating deltaPhi wrt inner is 
@@ -182,10 +182,10 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
             //
             // so I'll try to do the same for the inner   
             */ 
-            FPGAWord iphiinnerbin = innervmstub.finephi();
+//             FPGAWord iphiinnerbin = innervmstub.finephi();
             // nbitsfinephi_ == 8
-            int innerfinephi_newCalc = iAllStub_ * (1 << (8 - settings_->nbitsallstubs(layerdisk1_))) ;//+
-//                                        ireg_ * (1 << settings_->nfinephi(1, iSeed_)) + iphiinnerbin.value();
+//             int innerfinephi_newCalc = iAllStub_ * (1 << (8 - settings_->nbitsallstubs(layerdisk1_))) ;//+
+// //                                        ireg_ * (1 << settings_->nfinephi(1, iSeed_)) + iphiinnerbin.value();
             
 //             std::cout << innervmstub.finephi().value() << " "
 //                       << (innervmstub.stub()->phicorr().value()) << " "
@@ -213,9 +213,12 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
             myTriplet.setStubBend(1, trpdata_.stub_->bend().value());
             myTriplet.setStubBend(2, outervmstub.stub()->bend().value());
 
-            myTriplet.setStubPhi(0, innervmstub.stub()->phicorr().value());
-            myTriplet.setStubPhi(1, trpdata_.stub_->phicorr().value());
-            myTriplet.setStubPhi(2, outervmstub.stub()->phicorr().value());
+            myTriplet.setStubPhi(0, innervmstub.stub()->phiapprox(0, 0));
+            myTriplet.setStubPhi(1, trpdata_.stub_->phiapprox(0, 0));
+            myTriplet.setStubPhi(2, outervmstub.stub()->phiapprox(0, 0));
+//             myTriplet.setStubPhi(0, innervmstub.stub()->phicorr().value());
+//             myTriplet.setStubPhi(1, trpdata_.stub_->phicorr().value());
+//             myTriplet.setStubPhi(2, outervmstub.stub()->phicorr().value());
           
             myTriplet.setStubRZbin(0, (innervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1)));
             myTriplet.setStubRZbin(1, 0); // dummy fill
@@ -269,9 +272,9 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
             myTriplet.setStubBend(1, trpdata_.stub_->bend().value());
             myTriplet.setStubBend(2, outervmstub.stub()->bend().value());
 
-            myTriplet.setStubPhi(0, innervmstub.stub()->phicorr().value());
-            myTriplet.setStubPhi(1, trpdata_.stub_->phicorr().value());
-            myTriplet.setStubPhi(2, outervmstub.stub()->phicorr().value());
+            myTriplet.setStubPhi(0, innervmstub.stub()->phiapprox(0., 0));
+            myTriplet.setStubPhi(1, trpdata_.stub_->phiapprox(0., 0));
+            myTriplet.setStubPhi(2, outervmstub.stub()->phiapprox(0., 0));
           
             myTriplet.setStubRZbin(0, (innervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1)));
             myTriplet.setStubRZbin(1, 0); // dummy fill

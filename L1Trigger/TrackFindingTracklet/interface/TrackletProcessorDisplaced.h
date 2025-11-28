@@ -58,8 +58,9 @@ namespace trklet {
     int secondphibits_;
     int thirdphibits_;
 
-    int nbitsfinephi_; //sara
-    int nbitsfinephidiff_; //sara
+    int nbitsfinephi_; 
+    int nbitsfinephiouterdiff_; 
+    int nbitsfinephiinnerdiff_; 
 
     int nbitszfinebintable_;
     int nbitsrfinebintable_;

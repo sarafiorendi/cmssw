@@ -76,7 +76,7 @@ namespace trklet {
                          unsigned int iTP);
 
     // trial for displaced
-    void initDisplacedTPregionlut(unsigned int iSeed,
+    void initDisplacedOuterTPregionlut(unsigned int iSeed,
                          unsigned int layerdisk1,
                          unsigned int layerdisk2,
                          unsigned int iAllStub,
