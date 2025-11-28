@@ -1721,18 +1721,12 @@ void TrackletLUT::initDisplacedOuterTPregionlut(unsigned int iSeed,
     nirbits = 3;
   }
 
-//   unsigned int nbendbitsmiddle = 3;
-//   if (iSeed == Seed::L4L5L6) {
-//     nbendbitsmiddle = 4;
-//   }
-
 //   std::cout << "LUT: max middlefinephi = " << (1 << nbitsfinephi) << std::endl; == 256
 //   std::cout << "LUT: max outerfinephi = " << (1 << settings_.nfinephi(1, iSeed)) << std::endl;  == 8
   // loop on all possible inner stub phi and bend values
   int count_index = 0;
   for (int middlefinephi = 0; middlefinephi < (1 << nbitsfinephi); middlefinephi++) { // all possible 256 finephi bins of a sector 
     float middlefinephi_val = middlefinephi * (settings_.dphisectorHG() / (1 << nbitsfinephi) );
-//     for (int middlebend = 0; middlebend < (1 << nbendbitsmiddle); middlebend++) {  // this should be ENCODED BEND (3(4) bits in PS (2S) modules, not depending on assumptions on track)
       // loop on all possible inner stub radius (could be just one value for barrel)
       for (int ir = 0; ir < (1 << nirbits); ir++) {
         unsigned int usereg = 0;  // will be used to save which phi regions to look at 
@@ -1751,7 +1745,6 @@ void TrackletLUT::initDisplacedOuterTPregionlut(unsigned int iSeed,
           for (int ifinephiouter = 0; ifinephiouter < (1 << settings_.nfinephi(1, iSeed)); ifinephiouter++) {
             int outerfinephi = iAllStub * (1 << (nbitsfinephi - settings_.nbitsallstubs(layerdisk2))) +
                                ireg * (1 << settings_.nfinephi(1, iSeed)) + ifinephiouter;
-//             int outerfinephi = ireg * (1 << settings_.nfinephi(1, iSeed)) + ifinephiouter;
             
             // here the actual cut, defined by dphi < XX and dphi > -XX
             // cut defined by nbitsfinephidiff  that in tracklet processor is
@@ -1761,14 +1754,12 @@ void TrackletLUT::initDisplacedOuterTPregionlut(unsigned int iSeed,
             
             float outerfinephi_val = outerfinephi * (settings_.dphisectorHG() / (1 << nbitsfinephi) );
             
-//             if (iSeed == 8 && middlefinephi == 167 && middlebend == 0 ){
 //             if (iSeed == 8 && middlefinephi == 167 ){
 //               std::cout << "[LUT] idphi = " << idphi 
 //                         << "\t outerfinephi = " << outerfinephi 
 //                         << " ( " << outerfinephi_val << " ) " 
 //                         << "\t middlefinephi = " << middlefinephi 
 //                         << " ( " << middlefinephi_val << " ) " 
-// //                         << "\t middlebend = " << middlebend 
 //                         << "   delta = " << outerfinephi_val - middlefinephi_val  
 // // //                         << "  nbitsfinephidiff = " << nbitsfinephidiff 
 // // //                         << "  higher edge = " << (1 << (nbitsfinephidiff - 1)) 
@@ -1780,7 +1771,7 @@ void TrackletLUT::initDisplacedOuterTPregionlut(unsigned int iSeed,
 //                         << std::endl;
 //             }          
             // if phi are compatible, set match to true
-            match = match || inrange;//&& tplutinner.lookup(ptinnerindexnew));  
+            match = match || inrange;
           }
           if (match) {
             usereg = usereg | (1 << ireg);
@@ -1796,7 +1787,6 @@ void TrackletLUT::initDisplacedOuterTPregionlut(unsigned int iSeed,
         table_.push_back(usereg);
         count_index = count_index + 1;
       } // loop on r bits
-//     } // loop on bend values
   }
 
   positive_ = false;
