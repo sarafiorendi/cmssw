@@ -595,13 +595,24 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
 
                 // the LUT is currently evaluated only for 
                 if (iSeed_ == Seed::L2L3L4) {
-                  if ((outervmstubs_[outmem]->getName()[11] ) == (middleallstubs_[midmem]->getName()[8] )) {
-                    if (usereg_out != -1) {
-                      if (! (usereg_out & (1 << out_phi_region) )) {
-                        mask = "0" + mask;
+                  if (outervmstubs_[outmem]->getName()[11] == middleallstubs_[midmem]->getName()[8]) {
+                    if (usereg_out != -1  && (!(usereg_out & (1 << out_phi_region))) ) {
 //                         std::cout << " ********** excluding outmem " << outmem << " ********** " << std::endl;
-                        continue;
-                      }
+                      continue;
+                    } 
+                  }  
+                  else if (outervmstubs_[outmem]->getName()[11] == (middleallstubs_[midmem]->getName()[8] + 1) ) {
+                    out_phi_region = out_phi_region + 8;
+                    if (usereg_out != -1  && (!(usereg_out & (1 << out_phi_region))) ) {
+//                         std::cout << " ********** excluding outmem " << outmem << " ********** " << std::endl;
+                      continue;
+                    } 
+                  }  
+                  else if (outervmstubs_[outmem]->getName()[11] == (middleallstubs_[midmem]->getName()[8] - 1) ) {
+                    out_phi_region = out_phi_region + 16;
+                    if (usereg_out != -1  && (!(usereg_out & (1 << out_phi_region))) ) {
+//                         std::cout << " ********** excluding outmem " << outmem << " ********** " << std::endl;
+                      continue;
                     } 
                   }  
                 }
@@ -624,10 +635,20 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
             // for each memory, check if its region is compatible 
             unsigned int in_phi_region = (innervmstubs_[inmem]->phibin() - 1) - (innervmstubs_[inmem]->getName()[11] - 'A') * 8;
             if (iSeed_ == Seed::L2L3L4) {
-              if ((innervmstubs_[inmem]->getName()[11] ) == (middleallstubs_[midmem]->getName()[8] )) {
-                if (usereg_in != -1 && (!(usereg_in & (1 << in_phi_region))) ) {
+              char mem_reg_in  = innervmstubs_[inmem]->getName()[11];
+              char mem_reg_mid = middleallstubs_[midmem]->getName()[8];
+
+              int diff_reg = mem_reg_in - mem_reg_mid;
+              if (diff_reg == 1) {
+                  in_phi_region += 8;
+              } 
+              else if (diff_reg == -1) {
+                  in_phi_region += 16;
+              } 
+              if (abs(diff_reg) < 2){
+                if (usereg_in != -1 && !(usereg_in & (1 << in_phi_region))) {
                   continue;
-                } 
+                }  
               }  
             }
 //             std::cout << "\t\t nstubs_in " << nstubs_in  << std::endl;
@@ -682,7 +703,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
     }
   }
 
-//   std::cout << iSeed_ << "," << iTC_ << "," << countall << "," << countsel  << std::endl;
+  std::cout << iSeed_ << "," << iTC_ << "," << countall << "," << countsel  << std::endl;
 
   if (settings_.writeMonitorData("TPD")) {
     globals_->ofstream("trackletprocessordisplaced.txt")

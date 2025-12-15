@@ -1733,7 +1733,8 @@ void TrackletLUT::initDisplacedOuterTPregionlut(unsigned int iSeed,
         // loop on all phi regions of that seed (as from vm router) and check, for each of them,
         // if there's at least one outer stub which combined with the inner one has dphi and dbend values
         // that are compatible
-        for (unsigned int ireg = 0; ireg < settings_.nvmte(1, iSeed); ireg++) {
+        // consider also the neighbouring regions, this motivates the times 3 factor
+        for (unsigned int ireg = 0; ireg < 3 * settings_.nvmte(1, iSeed); ireg++) {
         
           // for reference     unsigned int nvmte(unsigned int inner, unsigned int iSeed) const { return (1 << nbitsvmte(inner, iSeed)); }
           //                   std::array<std::array<unsigned int, N_SEED>, 3> nbitsvmte_{
@@ -1745,14 +1746,20 @@ void TrackletLUT::initDisplacedOuterTPregionlut(unsigned int iSeed,
           for (int ifinephiouter = 0; ifinephiouter < (1 << settings_.nfinephi(1, iSeed)); ifinephiouter++) {
             int outerfinephi = iAllStub * (1 << (nbitsfinephi - settings_.nbitsallstubs(layerdisk2))) +
                                ireg * (1 << settings_.nfinephi(1, iSeed)) + ifinephiouter;
+                               
+            // case for the left neighbouring region
+            if (ireg >= 2 * settings_.nvmte(1, iSeed))
+              outerfinephi = iAllStub * (1 << (nbitsfinephi - settings_.nbitsallstubs(layerdisk2))) +
+                             (ireg - 24) * (1 << settings_.nfinephi(1, iSeed)) + ifinephiouter; // 24 = 3 * settings_.nvmte(1, iSeed) 
+                                           
             
             // here the actual cut, defined by dphi < XX and dphi > -XX
-            // cut defined by nbitsfinephidiff  that in tracklet processor is
+            // XX value defined by nbitsfinephidiff  that in tracklet processor is
             // nbitsfinephidiff_ = log(nbins) / log(2.0) + 1;
             int idphi = outerfinephi - middlefinephi;
             bool inrange = (idphi < (1 << (nbitsfinephidiff - 1))) && (idphi >= -(1 << (nbitsfinephidiff - 1)));
             
-            float outerfinephi_val = outerfinephi * (settings_.dphisectorHG() / (1 << nbitsfinephi) );
+//             float outerfinephi_val = outerfinephi * (settings_.dphisectorHG() / (1 << nbitsfinephi) );
             
 //             if (iSeed == 8 && middlefinephi == 167 ){
 //               std::cout << "[LUT] idphi = " << idphi 
