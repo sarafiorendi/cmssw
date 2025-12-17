@@ -328,7 +328,10 @@ void TrackletLUT::initTPlut(bool fillInner,
 
   int nbinsfinephidiff = (1 << nbitsfinephidiff);
 
+//     std::cout << "[LUT] pttable middle L331" << std::endl;
+
   for (int iphibin = 0; iphibin < nbinsfinephidiff; iphibin++) {
+//     std::cout << "\t iphibin " << iphibin << std::endl;
     int iphidiff = iphibin;
     // if iphibin larger than half the range,
     // convert the upper half of the phi bins into negative indices
@@ -346,6 +349,7 @@ void TrackletLUT::initTPlut(bool fillInner,
     
     for (int irouterbin = 0; irouterbin < outerrbins; irouterbin++) {
     
+//       std::cout << "\t irouterbin " << irouterbin << std::endl;
       // if disks in the seed, consider a radial range
       if (iSeed == Seed::D1D2 || iSeed == Seed::D3D4 || iSeed == Seed::L1D1 || iSeed == Seed::L2D1) {
         router[0] =
@@ -362,10 +366,11 @@ void TrackletLUT::initTPlut(bool fillInner,
       std::vector<std::array<double, 2>> bend_cuts_outer;
 
       if (settings_.useCalcBendCuts) {
+//         std::cout << "\t useCalcBendCuts "  << std::endl;
         std::vector<const tt::SensorModule*> sminner;
         std::vector<const tt::SensorModule*> smouter;
 
-        if (iSeed == Seed::L1L2 || iSeed == Seed::L2L3 || iSeed == Seed::L3L4 || iSeed == Seed::L5L6) {
+        if (iSeed == Seed::L1L2 || iSeed == Seed::L2L3 || iSeed == Seed::L3L4 || iSeed == Seed::L5L6 || iSeed == Seed::L2L3L4 || iSeed == Seed::L4L5L6 || iSeed == Seed::L2L3D1) {
           double outer_tan_max = tan_theta(settings_.rmean(layerdisk2), settings_.zlength(), z0, true);
           std::array<double, 2> tan_range = {{0, outer_tan_max}};
 
@@ -1759,8 +1764,7 @@ void TrackletLUT::initDisplacedOuterTPregionlut(unsigned int iSeed,
             int idphi = outerfinephi - middlefinephi;
             bool inrange = (idphi < (1 << (nbitsfinephidiff - 1))) && (idphi >= -(1 << (nbitsfinephidiff - 1)));
             
-//             float outerfinephi_val = outerfinephi * (settings_.dphisectorHG() / (1 << nbitsfinephi) );
-            
+//             float outerfinephi_val = outerfinephi * (settings_.dphisectorHG() / (1 << nbitsfinephi) );            
 //             if (iSeed == 8 && middlefinephi == 167 ){
 //               std::cout << "[LUT] idphi = " << idphi 
 //                         << "\t outerfinephi = " << outerfinephi 

@@ -23,7 +23,9 @@ namespace trklet {
     int rzdiffmax_out_;
     int rzbinfirst_in_;
     int rzdiffmax_in_;
-    std::vector<std::tuple<int, int, int> > projbin_out_;  // next z/r bin; outer stub mem; nstub
+    int middlefinephi_;
+    FPGAWord middlebend_;
+    std::vector<std::tuple<int, int, int, int> > projbin_out_;  // next z/r bin; outer stub mem; nstub; outer stub phi region
     std::vector<std::tuple<int, int, int> > projbin_in_;   // next z/r bin; inner stub mem; nstub
     TrackletLUT* outerpairtable_;
   };
@@ -36,6 +38,10 @@ namespace trklet {
                       unsigned int layerdisk3,
                       unsigned int iSeed,
                       unsigned int iAllStub,
+                      unsigned int nbitsfinephi,
+                      unsigned int nbitsfinephiouterdiff,
+                      const TrackletLUT* pttablemiddlenew,
+                      const TrackletLUT* pttableouternew,
                       std::vector<VMStubsTEMemory*> innervmstubs,
                       std::vector<VMStubsTEMemory*> outervmstubs);
 
@@ -73,6 +79,9 @@ namespace trklet {
     unsigned int iSeed_;
     bool nearfull_;  //initialized at start of each processing step
     unsigned int iAllStub_;
+    unsigned int nbitsfinephi_;
+    unsigned int nbitsfinephiouterdiff_;
+    
 
     //unsigned int memory slot
     unsigned int nmem_out_;
@@ -87,8 +96,12 @@ namespace trklet {
     unsigned int inmem_;
     unsigned int nproj_out_;
     unsigned int nproj_in_;
+    unsigned int phi_out_;
 
     bool idle_;
+
+    const TrackletLUT* pttablemiddlenew_;
+    const TrackletLUT* pttableouternew_;
 
     std::tuple<const Stub*, const Stub*, const Stub*> candtriplet_, candtriplet__;
     bool goodtriplet_, goodtriplet__;
