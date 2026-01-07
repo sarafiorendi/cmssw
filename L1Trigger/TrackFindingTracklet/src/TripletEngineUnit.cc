@@ -19,6 +19,7 @@ TripletEngineUnit::TripletEngineUnit(const Settings* const settings,
                                      unsigned int iAllStub,
                                      unsigned int nbitsfinephi,
                                      unsigned int nbitsfinephiouterdiff,
+                                     unsigned int nbitsfinephiinnerdiff,
                                      const TrackletLUT* pttablemiddlenew,
                                      const TrackletLUT* pttableouternew,
                                      std::vector<VMStubsTEMemory*> innervmstubs,
@@ -35,6 +36,7 @@ TripletEngineUnit::TripletEngineUnit(const Settings* const settings,
   iAllStub_ = iAllStub;
   nbitsfinephi_ = nbitsfinephi;
   nbitsfinephiouterdiff_ = nbitsfinephiouterdiff;
+  nbitsfinephiinnerdiff_ = nbitsfinephiinnerdiff;
   innervmstubs_ = innervmstubs;
   outervmstubs_ = outervmstubs;
 }
@@ -49,7 +51,7 @@ void TripletEngineUnit::init(const TrpEData& trpdata) {
 
   assert(!trpdata_.projbin_out_.empty() && !trpdata_.projbin_in_.empty());
   std::tie(next_out_, outmem_, nstub_out_, phi_out_) = trpdata_.projbin_out_[0];
-  std::tie(next_in_, inmem_, nstub_in_) = trpdata_.projbin_in_[0];
+  std::tie(next_in_, inmem_, nstub_in_, phi_in_) = trpdata_.projbin_in_[0];
 }
 
 void TripletEngineUnit::reset() {
@@ -93,19 +95,62 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
   // first calculate the phi value, as done in TrackletLUT
   int outerfinephi = iAllStub_ * (1 << (nbitsfinephi_ - settings_->nbitsallstubs(outervmstub.stub()->layerdisk()))) +
                      phi_out_ * (1 << settings_->nfinephi(1, iSeed_)) + ifinephiouter.value();
+                     
+  if (phi_out_ >= 2 * settings_->nvmte(1, iSeed_))                     
+      outerfinephi = iAllStub_ * (1 << (nbitsfinephi_ - settings_->nbitsallstubs(outervmstub.stub()->layerdisk()))) +
+                     (phi_out_ - 24) * (1 << settings_->nfinephi(1, iSeed_)) + ifinephiouter.value(); // 24 = 3 * settings_.nvmte(1, iSeed) 
 
   // ireg corresponds to out_phi_region in the TPD
   // should be in the range from 0 to 7 and represent the 8 memories per each of the 4 large phi region
   // how to get it from here? in TPD it was
   // unsigned int out_phi_region = 
   //      (outervmstubs_[outmem]->phibin() - 1) - (outervmstubs_[outmem]->getName()[11] - 'A') * 8;
-                     
   int idphi_out = outerfinephi - trpdata_.middlefinephi_;
   bool inrange = (idphi_out < (1 << (nbitsfinephiouterdiff_ - 1))) && (idphi_out >= -(1 << (nbitsfinephiouterdiff_ - 1)));
-  idphi_out = idphi_out & ((1 << nbitsfinephiouterdiff_) - 1);
-//   std::cout << " idphi_out " << idphi_out 
-//             << "   inrange = " << inrange 
-//             << std::endl;
+  int idphi_out_for_index = idphi_out & ((1 << nbitsfinephiouterdiff_) - 1);
+
+//   idphi_out = idphi_out & ((1 << nbitsfinephiouterdiff_) - 1);
+//   std::cout << " idphi_out " << idphi_out << "   inrange = " << inrange  << std::endl;
+
+
+  FPGAWord ifinephiinner = innervmstub.finephi();
+  assert(ifinephiinner == innervmstub.finephi());
+  int innerfinephi = iAllStub_ * (1 << (nbitsfinephi_ - settings_->nbitsallstubs(innervmstub.stub()->layerdisk()))) +
+                     phi_in_ * (1 << settings_->nfinephi(1, iSeed_)) + ifinephiinner.value();
+  if (phi_in_ >= 2 * settings_->nvmte(1, iSeed_))                     
+      innerfinephi = iAllStub_ * (1 << (nbitsfinephi_ - settings_->nbitsallstubs(innervmstub.stub()->layerdisk()))) +
+                     (phi_in_ - 24) * (1 << settings_->nfinephi(1, iSeed_)) + ifinephiinner.value(); // 24 = 3 * settings_.nvmte(1, iSeed) 
+
+  int idphi_in = innerfinephi - trpdata_.middlefinephi_;
+  bool inrange_in = (idphi_in < (1 << (nbitsfinephiinnerdiff_ - 1))) && (idphi_in >= -(1 << (nbitsfinephiinnerdiff_ - 1)));
+
+  bool opposite_sign_dphi = (idphi_out * idphi_in > 0) ? 0 : 1;
+  if (abs(idphi_out) < 10 && abs(idphi_in) < 10) opposite_sign_dphi = true;
+//   idphi_in = idphi_in & ((1 << nbitsfinephiinnerdiff_) - 1);
+//   if (iSeed_ == 8){
+// //     std::cout << "   iAllStub_ " << iAllStub_ 
+// //               << "   phi_out_ = " << phi_out_  
+// //               << "   ifinephiouter.value() " << ifinephiouter.value()
+// //               << std::endl;
+// //     std::cout << " idphi_out " << idphi_out << " (cut is " << ( 1 << (nbitsfinephiouterdiff_ - 1)) << ")     inrange = " << inrange  << std::endl;
+// //     std::cout << "   innerfinephi " << innerfinephi 
+// //               << "   idphi_in " << idphi_in 
+// //               << "   inrange_in = " << inrange_in  
+// //               << "   nbitsfinephiinnerdiff_ = " << nbitsfinephiinnerdiff_  
+// //               << std::endl;
+//     std::cout << "   innerphi/innerfinephi " << innervmstub.stub()->phiapprox(0., 0) 
+//               << "    " << innerfinephi 
+// //               << "   middlephi " << trpdata_.stub_->phiapprox(0., 0) 
+// //               << "   delta =  " << innervmstub.stub()->phiapprox(0., 0)  - trpdata_.stub_->phiapprox(0., 0) 
+//               << "\n" << std::endl;
+// //     std::cout << "   outerphi " << outervmstub.stub()->phiapprox(0., 0) 
+// //               << "   middlephi " << trpdata_.stub_->phiapprox(0., 0) 
+// //               << "   delta =  " << outervmstub.stub()->phiapprox(0., 0)  - trpdata_.stub_->phiapprox(0., 0) 
+// //               << "   \t\t inrange = " << inrange 
+// //               << "\n" << std::endl;
+//   }
+// 
+
 
   bool applyPairCut = true; 
   bool lut_ok = false; // FIXME
@@ -181,18 +226,29 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
     
       
       FPGAWord outerbend = outervmstub.bend();
+      FPGAWord innerbend = innervmstub.bend();
       bool pass_pt_cut = false;
       if (iSeed_ == 8){
-        int ptouterindex = (idphi_out << outerbend.nbits()) + outerbend.value();
-        int ptmiddleindex = (idphi_out << trpdata_.middlebend_.nbits()) + trpdata_.middlebend_.value();
+        int ptouterindex = (idphi_out_for_index << outerbend.nbits()) + outerbend.value();
+        int ptmiddleindex = (idphi_out_for_index << trpdata_.middlebend_.nbits()) + trpdata_.middlebend_.value();
+//         std::cout << "ptouterindex = " << ptouterindex << std::endl;
 //         std::cout << std::bitset<16>(ptouterindex) << std::endl;
 //         std::cout << std::bitset<16>(ptmiddleindex) << std::endl;
 //         std::cout << std::endl;
+//         pass_pt_cut = pttableouternew_->lookup(ptouterindex);
         pass_pt_cut = pttablemiddlenew_->lookup(ptmiddleindex) && pttableouternew_->lookup(ptouterindex);
       }
-      if (pass_pt_cut){}
+      if (pass_pt_cut){
+//         std::cout << "passed pt cut! " << std::endl;
+      }
       // now apply cut on pT
-      if (iSeed_ == 8 && ( ! (inrange )) ) {
+//       if (iSeed_ == 8 && ( !inrange) ) {
+//       if (iSeed_ == 8 && ( !inrange_in) ) {
+//       if (iSeed_ == 8 && ( !(inrange && inrange_in) )) {
+      if (iSeed_ == 8 && ( !(inrange && inrange_in && opposite_sign_dphi) )) {
+//       if (iSeed_ == 8 && ( !(inrange && inrange_in && opposite_sign_dphi && pass_pt_cut) )) {
+//       opposite_sign_dphi = true; // fake to emulate no cut for processing est 13:21
+//       if (iSeed_ == 8 && ( !(opposite_sign_dphi) )) {
 //       if (iSeed_ == 8 && ( ! (inrange && pass_pt_cut)) ) {
 //       if (!(inrange && pttablemiddlenew_->lookup(ptmiddleindex) && pttableouternew_->lookup(ptouterindex))) {
         if (settings_->debugTracklet()) {
@@ -200,7 +256,9 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
                                        << settings_->benddecode(
                                               trpdata_.middlebend_.value(), layerdisk1_, trpdata_.stub_->isPSmodule())
                                        << " "
-                                       << settings_->benddecode(outerbend.value(), layerdisk2_, outervmstub.isPSmodule());
+                                       << settings_->benddecode(outerbend.value(), layerdisk2_, outervmstub.isPSmodule())
+                                       << " "
+                                       << settings_->benddecode(innerbend.value(), layerdisk3_, innervmstub.isPSmodule());
         }
       } else {
 
@@ -352,6 +410,6 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
       }
     }
     // get next in proj bin
-    std::tie(next_in_, inmem_, nstub_in_) = trpdata_.projbin_in_[nproj_in_];
+    std::tie(next_in_, inmem_, nstub_in_, phi_in_) = trpdata_.projbin_in_[nproj_in_];
   }
 }

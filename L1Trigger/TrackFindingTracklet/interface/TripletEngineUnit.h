@@ -26,7 +26,7 @@ namespace trklet {
     int middlefinephi_;
     FPGAWord middlebend_;
     std::vector<std::tuple<int, int, int, int> > projbin_out_;  // next z/r bin; outer stub mem; nstub; outer stub phi region
-    std::vector<std::tuple<int, int, int> > projbin_in_;   // next z/r bin; inner stub mem; nstub
+    std::vector<std::tuple<int, int, int, int> > projbin_in_;   // next z/r bin; inner stub mem; nstub
     TrackletLUT* outerpairtable_;
   };
 
@@ -40,6 +40,7 @@ namespace trklet {
                       unsigned int iAllStub,
                       unsigned int nbitsfinephi,
                       unsigned int nbitsfinephiouterdiff,
+                      unsigned int nbitsfinephiinnerdiff,
                       const TrackletLUT* pttablemiddlenew,
                       const TrackletLUT* pttableouternew,
                       std::vector<VMStubsTEMemory*> innervmstubs,
@@ -81,6 +82,7 @@ namespace trklet {
     unsigned int iAllStub_;
     unsigned int nbitsfinephi_;
     unsigned int nbitsfinephiouterdiff_;
+    unsigned int nbitsfinephiinnerdiff_;
     
 
     //unsigned int memory slot
@@ -97,11 +99,13 @@ namespace trklet {
     unsigned int nproj_out_;
     unsigned int nproj_in_;
     unsigned int phi_out_;
+    unsigned int phi_in_;
 
     bool idle_;
 
     const TrackletLUT* pttablemiddlenew_;
     const TrackletLUT* pttableouternew_;
+    const TrackletLUT* pttableinnernew_;
 
     std::tuple<const Stub*, const Stub*, const Stub*> candtriplet_, candtriplet__;
     bool goodtriplet_, goodtriplet__;

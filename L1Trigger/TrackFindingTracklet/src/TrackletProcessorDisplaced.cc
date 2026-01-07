@@ -71,14 +71,12 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
   // dphimax (in radians) is the max delta phi between the two stubs of the pair to form that seed in order to satisfy the min pt cut (maxrinv)
   // double dphimax = asin(0.5 * settings_.maxrinv() * rmax) - asin(0.5 * settings_.maxrinv() * rmin);
   // I'll replace this with my calculation
-  int charge = 1;        
   double min_pT = 2; // GeV
-  double rinv = 0.01 * settings.c() * settings.bfield() * charge / min_pT; 
-//   std::vector<float> d0_vals = linspace(-10,10,101);
+  double rinv = 0.01 * settings.c() * settings.bfield() / min_pT; // assuming charge = 1
   std::vector<float> d0_vals = linspace(-10,10,101);
   
   int len_d0_vals = d0_vals.size();
-  std::vector<double> dphi_vals_out, dphi_vals_in;//, dphi_vals_m;
+  std::vector<double> dphi_vals_out, dphi_vals_in;
   dphi_vals_out.reserve(2 * len_d0_vals);
   dphi_vals_in.reserve(2 * len_d0_vals);
   for (double d0 : d0_vals){
@@ -86,7 +84,6 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
       dphi_vals_out.push_back(calc_deltaPhi(-1/rinv, d0, rmiddle, router));  
       dphi_vals_in.push_back(calc_deltaPhi( 1/rinv, d0, rinner, rmiddle));  
       dphi_vals_in.push_back(calc_deltaPhi(-1/rinv, d0, rinner, rmiddle));  
-//       std::cout << "[TPD] d0 = " << d0 << " -> dphi = "  << deltaPhi_sara(1/rinv, d0, rmin, rmax) << std::endl;
   }    
   std::vector<double>::iterator max_value_out;      
   max_value_out = std::max_element(dphi_vals_out.begin(), dphi_vals_out.end(), [](double a, double b)
@@ -117,14 +114,10 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
   });  
   double dphimax_in = *max_value_in;
   dphimax_in = abs(dphimax_in);
-
-  // number of fine phi bins in sector for the outer layer
+  // number of fine phi bins in sector for the inner layer
   int nfinephibins_in =
       settings_.nallstubs(layerdisk3_) * settings_.nvmte(1, iSeed_) * (1 << settings_.nfinephi(1, iSeed_));
   double dfinephi_in = settings_.dphisectorHG() / nfinephibins_in;
-  // next line: passing layerdisk2, but nbitsallstubs is the same for all layers except L1, so it does not really matter for displaced seeds
-  // it also means that nbitsfinephi_ can be used for outer and inner
-  // nbitsfinephi_ = settings_.nbitsallstubs(layerdisk2_) + settings_.nbitsvmte(1, iSeed_) + settings_.nfinephi(1, iSeed_);
   
   int nbins_in = 2.0 * (dphimax_in / dfinephi_in + 1.0);
   // find the number of bits needed to represent nbins
@@ -135,11 +128,12 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
 //             << " for seed " << iSeed_ 
 //             << " (r_middle, r_outer) " << rmiddle << "," << router  
 //             << std::endl;
-
+// 
 //   std::cout << "[TPD] nfinephibins = " << nfinephibins_out  // should not depend on the cut
 //             << "   dfinephi " << dfinephi_out               // should not depend on the cut 
 //             << "   nbitsfinephi_ " << nbitsfinephi_         // does not depend on the cut
 //             << "   nbitsfinephiouterdiff_ " << nbitsfinephiouterdiff_  // this should be the cut
+//             << "   nbitsfinephiinnerdiff_ " << nbitsfinephiinnerdiff_  // this should be the cut
 //             << std::endl;
     
 //   if (iSeed_ == 10) std::cout << "ld123:" <<  layerdisk1_ << " " << layerdisk2_ << " " << layerdisk3_ << std::endl;
@@ -249,13 +243,14 @@ void TrackletProcessorDisplaced::addInput(MemoryBase* memory, string input) {
     unsigned int iTP = iAllStub_;
 //     std::cout << "[TPD" << getName() << "] middlestub from " << tmp->getName()
 //             << " will initiate table for seed " << iSeed_ 
-// //             << "and nfinephibins = " << nfinephibins_out  // should not depend on the cut
-// //             << "   dfinephi " << dfinephi_out               // should not depend on the cut 
-//             << "   nbitsfinephi_ " << nbitsfinephi_         // does not depend on the cut
+//             << "   iAllStub_ = " << iAllStub_ 
+//             << "   (from " << tmp->getName()[8] 
+// // //             << "and nfinephibins = " << nfinephibins_out  // should not depend on the cut
+// // //             << "   dfinephi " << dfinephi_out               // should not depend on the cut 
+// //             << "   nbitsfinephi_ " << nbitsfinephi_         // does not depend on the cut
 //             << "   nbitsfinephiouterdiff_ " << nbitsfinephiouterdiff_  // this should be the cut
 //             << std::endl;
 
-    // only if middle and outer mem have the same large region
     useOuterRegiontable_.initDisplacedOuterTPregionlut(
       iSeed_, layerdisk1_, layerdisk2_, iAllStub_, nbitsfinephiouterdiff_, nbitsfinephi_, iTP);
       // iTP is only used in the name of the LUT table, if written out
@@ -284,14 +279,13 @@ void TrackletProcessorDisplaced::addInput(MemoryBase* memory, string input) {
     outervmstubs_.push_back(tmp);
 
     unsigned int iTP = getName()[7] - 'A';
-//     if (iSeed_ == 8){
-//         std::cout << "seed " << iSeed_ << std::endl;
-//         std::cout << "init pttable middle" << std::endl;
+
+//     std::cout << "[" << getName() << "] outerstub from " << tmp->getName()
+//               << " will initiate table for seed " << iSeed_ 
+//               << "   nbitsfinephiouterdiff_ " << nbitsfinephiouterdiff_  // this should be the cut
+//               << std::endl;
     pttablemiddle_.initTPlut(true, iSeed_, layerdisk1_, layerdisk2_, nbitsfinephiouterdiff_, iTP);
-//         std::cout << "init pttable outer" << std::endl;
     pttableouter_.initTPlut(false, iSeed_, layerdisk1_, layerdisk2_, nbitsfinephiouterdiff_, iTP);
-//         std::cout << "done" << std::endl;
-//     }    
 
     return;
   }
@@ -308,6 +302,11 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
   unsigned int countsel = 0;
   int donecount = 0;
   
+//   if (iSeed_ == 8){
+//   std::cout << getName() 
+//             << "   iAllStub_ = " << iAllStub_ 
+//             << std::endl;
+//   }
 //   std::cout << "TPD: iSector = " << iSector 
 //             << "\nTPD: iSeed_ = " << iSeed_ 
 //             << "\nTPD: iAllStub_ = " << iAllStub_ 
@@ -324,6 +323,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
                             iAllStub_,
                             nbitsfinephi_,
                             nbitsfinephiouterdiff_,
+                            nbitsfinephiinnerdiff_,
                             &pttablemiddle_,
                             &pttableouter_,
                             innervmstubs_, 
@@ -605,16 +605,22 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
           // look into all memories for the outer layer 
           // outervmstubs_.size() is the number of outer memories, as from the wiring file, e.g.
           // instance A has 9 outer memories, instance B -> 6, instance C -> 6, instance D -> 10...
-          // each outer memory covers 1/settings_.nvmte(1, iSeed_) of the outer layer (1/8 of L4 for seed 8 for example)
+          // each outer memory covers 1/settings_.nvmte(1, iSeed_) of one of the 4 large phi regions of the outer layer (1/8*1/4 of L4 for seed 8 for example)
           for (unsigned int outmem = 0; outmem < outervmstubs_.size(); outmem++) {
               // for each memory, check if its region is compatible 
               unsigned int out_phi_region = (outervmstubs_[outmem]->phibin() - 1) - (outervmstubs_[outmem]->getName()[11] - 'A') * 8;
+//               unsigned int unchanged_out_phi_region = (outervmstubs_[outmem]->phibin() - 1) - (outervmstubs_[outmem]->getName()[11] - 'A') * 8;
+
+              // will be modified later to properly compute the phi region index in the TPRegion LUT
+              // example
+              ////  TPD_L3L4L2A  outmem = VMSTE_L4PHIB9n1
+              ////  outmem->phibin() = 9     out_phi_region = 8     unchanged_out_phi_region = 0
 
 //                 if (iSeed_ == Seed::L2L3L4){
-// //                     std::cout << getName() // << " looking for matching stub in r/z bin " << ibin_out 
-// //                               << "  outmem = " << outervmstubs_[outmem]->getName() 
-// //                               //<< " (index " << outmem  << " )" 
-// //                               << std::endl;
+//                     std::cout << getName() // << " looking for matching stub in r/z bin " << ibin_out 
+//                               << "  outmem = " << outervmstubs_[outmem]->getName() 
+//                               //<< " (index " << outmem  << " )" 
+//                               << std::endl;
 //                     // in the displaced case nBin should correspond to the number of r/z bins
 //                     // (in the prompt case is n r/z bins times the number of ivmte)
 // //                     std::cout << "   nBin (number of r/z bins) = " << outervmstubs_[outmem]->nBin() << std::endl;
@@ -639,6 +645,10 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
                 // the LUT is currently evaluated only for 
                 if (iSeed_ == Seed::L2L3L4) {
                   if (outervmstubs_[outmem]->getName()[11] == middleallstubs_[midmem]->getName()[8]) {
+//                     std::cout << "outmem->phibin() = " << outervmstubs_[outmem]->phibin() 
+//                               << "     out_phi_region = " << out_phi_region
+//                               << "     unchanged_out_phi_region = " << unchanged_out_phi_region
+//                               << std::endl;
                     if (usereg_out != -1  && (!(usereg_out & (1 << out_phi_region))) ) {
 //                         std::cout << " ********** excluding outmem " << outmem << " ********** " << std::endl;
                       continue;
@@ -646,12 +656,20 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
                   }  
                   else if (outervmstubs_[outmem]->getName()[11] == (middleallstubs_[midmem]->getName()[8] + 1) ) {
                     out_phi_region = out_phi_region + 8;
+//                     std::cout << "outmem->phibin() = " << outervmstubs_[outmem]->phibin() 
+//                               << "     out_phi_region = " << out_phi_region
+//                               << "     unchanged_out_phi_region = " << unchanged_out_phi_region
+//                               << std::endl;
                     if (usereg_out != -1  && (!(usereg_out & (1 << out_phi_region))) ) {
                       continue;
                     } 
                   }  
                   else if (outervmstubs_[outmem]->getName()[11] == (middleallstubs_[midmem]->getName()[8] - 1) ) {
                     out_phi_region = out_phi_region + 16;
+//                     std::cout << "outmem->phibin() = " << outervmstubs_[outmem]->phibin() 
+//                               << "     out_phi_region = " << out_phi_region
+//                               << "     unchanged_out_phi_region = " << unchanged_out_phi_region
+//                               << std::endl;
                     if (usereg_out != -1  && (!(usereg_out & (1 << out_phi_region))) ) {
                       continue;
                     } 
@@ -661,7 +679,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
             int nstubs_out = outervmstubs_[outmem]->nVMStubsBinned(ibin_out);
             if (nstubs_out > 0){
               mask = "1" + mask;
-              trpdata.projbin_out_.emplace_back(tuple<int, int, int, int>(ibin_out - start_out, outmem, nstubs_out, out_phi_region));
+              trpdata.projbin_out_.emplace_back(tuple<int, int, int, int>(ibin_out - start_out, outmem, nstubs_out, out_phi_region)); 
             } else {
               mask = "0" + mask;
             }
@@ -675,6 +693,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
           for (unsigned int inmem = 0; inmem < innervmstubs_.size(); inmem++) {
             // for each memory, check if its region is compatible 
             unsigned int in_phi_region = (innervmstubs_[inmem]->phibin() - 1) - (innervmstubs_[inmem]->getName()[11] - 'A') * 8;
+//             unsigned int unchanged_in_phi_region = (innervmstubs_[inmem]->phibin() - 1) - (innervmstubs_[inmem]->getName()[11] - 'A') * 8;
             if (iSeed_ == Seed::L2L3L4) {
               char mem_reg_in  = innervmstubs_[inmem]->getName()[11];
               char mem_reg_mid = middleallstubs_[midmem]->getName()[8];
@@ -695,7 +714,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
 //             std::cout << "\t\t nstubs_in " << nstubs_in  << std::endl;
             int nstubs_in = innervmstubs_[inmem]->nVMStubsBinned(ibin_in);
             if (nstubs_in > 0)
-              trpdata.projbin_in_.emplace_back(tuple<int, int, int>(ibin_in - start_in, inmem, nstubs_in));
+              trpdata.projbin_in_.emplace_back(tuple<int, int, int, int>(ibin_in - start_in, inmem, nstubs_in, in_phi_region));
           }
         }
 
@@ -744,7 +763,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
     }
   }
 
-  std::cout << iSeed_ << "," << iTC_ << "," << countall << "," << countsel  << std::endl;
+//   std::cout << iSeed_ << "," << iTC_ << "," << countall << "," << countsel  << std::endl;
 
   if (settings_.writeMonitorData("TPD")) {
     globals_->ofstream("trackletprocessordisplaced.txt")
