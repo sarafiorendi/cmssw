@@ -32,7 +32,9 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
       useOuterRegiontable_(settings),
       useInnerRegiontable_(settings),
       pttablemiddle_(settings),
-      pttableouter_(settings) {
+      pttableouter_(settings),
+      pttablemiddlein_(settings),
+      pttableinner_(settings) {
 
   innerallstubs_.clear();
   middleallstubs_.clear();
@@ -168,6 +170,8 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
   TCIndex_ = (iSeed_ << settings.nbitsseed()) + iTC_;
 
   maxStep_ = settings_.maxStep("TPD");
+//   maxStep_ = settings_.maxStep("TPD") - 10000;
+//   maxStep_ = 108;
 }
 
 void TrackletProcessorDisplaced::addOutputProjection(TrackletProjectionsMemory*& outputProj, MemoryBase* memory) {
@@ -271,6 +275,11 @@ void TrackletProcessorDisplaced::addInput(MemoryBase* memory, string input) {
     auto* tmp = dynamic_cast<VMStubsTEMemory*>(memory);
     assert(tmp != nullptr);
     innervmstubs_.push_back(tmp);
+
+    unsigned int iTP = getName()[7] - 'A';
+    pttablemiddlein_.initTPlut(true, iSeed_, layerdisk3_, layerdisk1_, nbitsfinephiouterdiff_, iTP);
+    pttableinner_.initTPlut(false, iSeed_, layerdisk3_, layerdisk1_, nbitsfinephiouterdiff_, iTP);
+
     return;
   }
   if (input == "secondvmstubin") {

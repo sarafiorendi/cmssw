@@ -245,8 +245,8 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
 //       if (iSeed_ == 8 && ( !inrange) ) {
 //       if (iSeed_ == 8 && ( !inrange_in) ) {
 //       if (iSeed_ == 8 && ( !(inrange && inrange_in) )) {
-      if (iSeed_ == 8 && ( !(inrange && inrange_in && opposite_sign_dphi) )) {
-//       if (iSeed_ == 8 && ( !(inrange && inrange_in && opposite_sign_dphi && pass_pt_cut) )) {
+//       if (iSeed_ == 8 && ( !(inrange && inrange_in && opposite_sign_dphi) )) {
+      if (iSeed_ == 8 && ( !(inrange && inrange_in && opposite_sign_dphi && pass_pt_cut) )) {
 //       opposite_sign_dphi = true; // fake to emulate no cut for processing est 13:21
 //       if (iSeed_ == 8 && ( !(opposite_sign_dphi) )) {
 //       if (iSeed_ == 8 && ( ! (inrange && pass_pt_cut)) ) {
