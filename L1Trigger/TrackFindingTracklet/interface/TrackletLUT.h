@@ -65,7 +65,7 @@ namespace trklet {
 
     //Builds LUT that for each TP returns if the phi differences between inner and outer
     //stub is consistent with the pT cut and the stub pair should be kept.
-    void initDisplacedTPlutForInner(bool fillInner,
+    void initDisplacedTPlutForInner(bool fillMiddle,
                    unsigned int iSeed,
                    unsigned int layerdisk1,
                    unsigned int layerdisk2,

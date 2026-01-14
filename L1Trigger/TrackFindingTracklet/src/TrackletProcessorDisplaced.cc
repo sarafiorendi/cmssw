@@ -169,9 +169,9 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
   iTC_ = region;
   TCIndex_ = (iSeed_ << settings.nbitsseed()) + iTC_;
 
-  maxStep_ = settings_.maxStep("TPD");
+//   maxStep_ = settings_.maxStep("TPD");
 //   maxStep_ = settings_.maxStep("TPD") - 10000;
-//   maxStep_ = 108;
+  maxStep_ = 108;
 }
 
 void TrackletProcessorDisplaced::addOutputProjection(TrackletProjectionsMemory*& outputProj, MemoryBase* memory) {
@@ -243,7 +243,6 @@ void TrackletProcessorDisplaced::addInput(MemoryBase* memory, string input) {
     middleallstubs_.push_back(tmp);
 
     iAllStub_ = tmp->getName()[8] - 'A';
-//     std::cout << "\n[TPD " << getName()  << "] adding input middle stub memory " << tmp->getName() << std::endl;
     unsigned int iTP = iAllStub_;
 //     std::cout << "[TPD" << getName() << "] middlestub from " << tmp->getName()
 //             << " will initiate table for seed " << iSeed_ 
@@ -277,9 +276,17 @@ void TrackletProcessorDisplaced::addInput(MemoryBase* memory, string input) {
     innervmstubs_.push_back(tmp);
 
     unsigned int iTP = getName()[7] - 'A';
-    pttablemiddlein_.initTPlut(true, iSeed_, layerdisk3_, layerdisk1_, nbitsfinephiouterdiff_, iTP);
-    pttableinner_.initTPlut(false, iSeed_, layerdisk3_, layerdisk1_, nbitsfinephiouterdiff_, iTP);
-
+//     void initDisplacedTPlutForInner(bool fillMiddle,
+//                    unsigned int iSeed,
+//                    unsigned int layerdisk1,
+//                    unsigned int layerdisk2,
+//                    unsigned int nbitsfinephidiff,
+//                    unsigned int iTP);
+    pttablemiddlein_.initDisplacedTPlutForInner(true, iSeed_, layerdisk1_, layerdisk3_, nbitsfinephiinnerdiff_, iTP);
+    pttableinner_.initDisplacedTPlutForInner(false, iSeed_, layerdisk1_, layerdisk3_, nbitsfinephiinnerdiff_, iTP);
+//     iAllStub_ = tmp->getName()[8] - 'A';
+//     useInnerRegiontable_.initDisplacedOuterTPregionlut(
+//       iSeed_, layerdisk1_, layerdisk3_, iAllStub_, nbitsfinephiinnerdiff_, nbitsfinephi_, iTP);
     return;
   }
   if (input == "secondvmstubin") {
@@ -288,13 +295,16 @@ void TrackletProcessorDisplaced::addInput(MemoryBase* memory, string input) {
     outervmstubs_.push_back(tmp);
 
     unsigned int iTP = getName()[7] - 'A';
-
 //     std::cout << "[" << getName() << "] outerstub from " << tmp->getName()
 //               << " will initiate table for seed " << iSeed_ 
 //               << "   nbitsfinephiouterdiff_ " << nbitsfinephiouterdiff_  // this should be the cut
 //               << std::endl;
     pttablemiddle_.initTPlut(true, iSeed_, layerdisk1_, layerdisk2_, nbitsfinephiouterdiff_, iTP);
     pttableouter_.initTPlut(false, iSeed_, layerdisk1_, layerdisk2_, nbitsfinephiouterdiff_, iTP);
+
+//     iAllStub_ = tmp->getName()[8] - 'A';
+//     useOuterRegiontable_.initDisplacedOuterTPregionlut(
+//       iSeed_, layerdisk1_, layerdisk2_, iAllStub_, nbitsfinephiouterdiff_, nbitsfinephi_, iTP);
 
     return;
   }
@@ -335,6 +345,8 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
                             nbitsfinephiinnerdiff_,
                             &pttablemiddle_,
                             &pttableouter_,
+                            &pttablemiddlein_,
+                            &pttableinner_,
                             innervmstubs_, 
                             outervmstubs_);
   trpunits_.resize(settings_.trpunits(iSeed_), trpunit);
@@ -485,7 +497,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
     unsigned int& midmem = std::get<2>(trpbuffer_);
     unsigned int midmemend = std::get<4>(trpbuffer_);
 
-//     std::cout << "istep: " << istep << " , looking at middle stub " << istub << std::endl;
+//     std::cout << "istep: " << istep << " , looking at middle stub " << istub << " out of " << middleallstubs_[midmem]->nStubs() << std::endl;
     if ((!trpbuffernearfull) && midmem < midmemend && istub < middleallstubs_[midmem]->nStubs()) {
       
       const Stub* stub = middleallstubs_[midmem]->getStub(istub);
@@ -772,7 +784,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
     }
   }
 
-//   std::cout << iSeed_ << "," << iTC_ << "," << countall << "," << countsel  << std::endl;
+  std::cout << iSeed_ << "," << iTC_ << "," << countall << "," << countsel  << std::endl;
 
   if (settings_.writeMonitorData("TPD")) {
     globals_->ofstream("trackletprocessordisplaced.txt")

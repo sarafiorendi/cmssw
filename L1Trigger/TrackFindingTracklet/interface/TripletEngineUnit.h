@@ -41,8 +41,10 @@ namespace trklet {
                       unsigned int nbitsfinephi,
                       unsigned int nbitsfinephiouterdiff,
                       unsigned int nbitsfinephiinnerdiff,
-                      const TrackletLUT* pttablemiddlenew,
-                      const TrackletLUT* pttableouternew,
+                      const TrackletLUT* pttablemiddle,
+                      const TrackletLUT* pttableouter,
+                      const TrackletLUT* pttablemiddlein,
+                      const TrackletLUT* pttableinner,
                       std::vector<VMStubsTEMemory*> innervmstubs,
                       std::vector<VMStubsTEMemory*> outervmstubs);
 
@@ -105,6 +107,7 @@ namespace trklet {
 
     const TrackletLUT* pttablemiddlenew_;
     const TrackletLUT* pttableouternew_;
+    const TrackletLUT* pttablemiddleinnew_;
     const TrackletLUT* pttableinnernew_;
 
     std::tuple<const Stub*, const Stub*, const Stub*> candtriplet_, candtriplet__;

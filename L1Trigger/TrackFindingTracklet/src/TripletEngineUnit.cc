@@ -20,13 +20,17 @@ TripletEngineUnit::TripletEngineUnit(const Settings* const settings,
                                      unsigned int nbitsfinephi,
                                      unsigned int nbitsfinephiouterdiff,
                                      unsigned int nbitsfinephiinnerdiff,
-                                     const TrackletLUT* pttablemiddlenew,
-                                     const TrackletLUT* pttableouternew,
+                                     const TrackletLUT* pttablemiddle,
+                                     const TrackletLUT* pttableouter,
+                                     const TrackletLUT* pttablemiddlein,
+                                     const TrackletLUT* pttableinner,
                                      std::vector<VMStubsTEMemory*> innervmstubs,
                                      std::vector<VMStubsTEMemory*> outervmstubs)
     : settings_(settings), 
-      pttablemiddlenew_(pttablemiddlenew),
-      pttableouternew_(pttableouternew),
+      pttablemiddlenew_(pttablemiddle),
+      pttableouternew_(pttableouter),
+      pttablemiddleinnew_(pttablemiddlein),
+      pttableinnernew_(pttableinner),
       candtriplets_(3) {
   idle_ = true;
   layerdisk1_ = layerdisk1;
@@ -126,7 +130,7 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
 
   bool opposite_sign_dphi = (idphi_out * idphi_in > 0) ? 0 : 1;
   if (abs(idphi_out) < 10 && abs(idphi_in) < 10) opposite_sign_dphi = true;
-//   idphi_in = idphi_in & ((1 << nbitsfinephiinnerdiff_) - 1);
+  int idphi_in_for_index = idphi_in & ((1 << nbitsfinephiinnerdiff_) - 1);
 //   if (iSeed_ == 8){
 // //     std::cout << "   iAllStub_ " << iAllStub_ 
 // //               << "   phi_out_ = " << phi_out_  
@@ -241,16 +245,23 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
       if (pass_pt_cut){
 //         std::cout << "passed pt cut! " << std::endl;
       }
+      bool pass_pt_cut_inner = false;
+      if (iSeed_ == 8){
+        int ptinnerindex = (idphi_in_for_index << innerbend.nbits()) + innerbend.value();
+        int ptmiddleinindex = (idphi_in_for_index << trpdata_.middlebend_.nbits()) + trpdata_.middlebend_.value();
+//         std::cout << "ptinnerindex = " << ptinnerindex << std::endl;
+        pass_pt_cut_inner = pttablemiddleinnew_->lookup(ptmiddleinindex) && pttableinnernew_->lookup(ptinnerindex);
+      }
       // now apply cut on pT
 //       if (iSeed_ == 8 && ( !inrange) ) {
 //       if (iSeed_ == 8 && ( !inrange_in) ) {
 //       if (iSeed_ == 8 && ( !(inrange && inrange_in) )) {
 //       if (iSeed_ == 8 && ( !(inrange && inrange_in && opposite_sign_dphi) )) {
-      if (iSeed_ == 8 && ( !(inrange && inrange_in && opposite_sign_dphi && pass_pt_cut) )) {
+//       if (iSeed_ == 8 && ( !(inrange && inrange_in && opposite_sign_dphi && pass_pt_cut_inner) )) {
+      if (iSeed_ == 8 && ( !(inrange && inrange_in && opposite_sign_dphi && pass_pt_cut && pass_pt_cut_inner) )) {
 //       opposite_sign_dphi = true; // fake to emulate no cut for processing est 13:21
 //       if (iSeed_ == 8 && ( !(opposite_sign_dphi) )) {
 //       if (iSeed_ == 8 && ( ! (inrange && pass_pt_cut)) ) {
-//       if (!(inrange && pttablemiddlenew_->lookup(ptmiddleindex) && pttableouternew_->lookup(ptouterindex))) {
         if (settings_->debugTracklet()) {
           edm::LogVerbatim("Tracklet") << " Stub pair rejected because of stub pt cut bends : "
                                        << settings_->benddecode(
