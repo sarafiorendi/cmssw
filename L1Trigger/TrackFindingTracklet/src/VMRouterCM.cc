@@ -150,6 +150,16 @@ void VMRouterCM::addOutput(MemoryBase* memory, string output) {
       } else {
         vmstubsTEPHI_[seedindex].vmstubmem[(vmbin - 1) & (settings_.nvmte(inner, iseed) - 1)].push_back(tmp);
       }
+
+//     std::cout << "[VMRouterCM] memory->getName() = " << memory->getName() 
+//               << "\n \t  iseed = " << iseed
+//               << "\n \t  seedtype = " << seedtype
+//               << "\n \t  vmbin = " << vmbin 
+//               << "\n \t  inner = " << inner 
+//               << "\n \t  seedindex = " << seedindex 
+//               << "\n \t  position = " << ((vmbin - 1) & (settings_.nvmte(inner, iseed) - 1) )
+//               << std::endl;
+
     } else {
       throw cms::Exception("LogicError") << __FILE__ << " " << __LINE__ << " memory: " << memory->getName()
                                          << " => should never get here!";
@@ -421,9 +431,24 @@ void VMRouterCM::execute(unsigned int) {
         if (binlookup.value() < 0)
           continue;
 
+        // this is what we had above
+        // unsigned int iphipos = iphi.bits(iphi.nbits() - (settings_.nbitsallstubs(layerdisk_) + N_PHIBITS), N_PHIBITS);
+        // where   constexpr unsigned int N_PHIBITS = 3; //number of bit for the phi bins
+        // std::array<std::array<unsigned int, N_SEED>, 3> nbitsvmtecm_{
+        //  {{{2, 2, 2, 2, 2, 2, 1, 1, 2, 2, 3, 2}},  // (3 = #stubs/triplet, only row 1+2 used for tracklet)
+        //   {{3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2}},
+        //   {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1}}}};
+
         unsigned int ivmte =
             iphi.bits(iphi.nbits() - (settings_.nbitsallstubs(layerdisk_) + settings_.nbitsvmte(inner, iseed)),
                       settings_.nbitsvmte(inner, iseed));
+        // so ivmte == phipos basically, I think it's the large phi bin
+                      
+//         std::cout << "[VMRouterCM] ivmte = " << ivmte 
+//                   << " iseed = " << iseed
+//                   << " layerdisk = " << layerdisk_
+//                   << " inner = " << inner
+//                   << std::endl;              
 
         int bin = -1;
         if (inner != 0) {
@@ -440,6 +465,17 @@ void VMRouterCM::execute(unsigned int) {
         assert(nmem > 0);
 
         for (unsigned int l = 0; l < nmem; l++) {
+//             if (isTripletSeed && iseed == 8)
+//               std::cout << getName() << " add stub to "
+//                                          << ivmstubTEPHI.vmstubmem[!isTripletSeed ? 0 : ivmte][l]->getName()
+//                                          << " ivmte " << ivmte 
+//                                          << " finephi " << finephi.value()
+// //                                          << " regions bits " << settings_.nphireg(1, iseed) 
+// //                                          << " finephibits "
+// //                                          << settings_.nfinephi(1, iseed) 
+//                                          << " r/z bin=" << bin 
+//                                          << " l = " << l 
+//                                          << std::endl;
           if (settings_.debugTracklet()) {
             edm::LogVerbatim("Tracklet") << getName() << " try adding stub to "
                                          << ivmstubTEPHI.vmstubmem[!isTripletSeed ? 0 : ivmte][l]->getName()

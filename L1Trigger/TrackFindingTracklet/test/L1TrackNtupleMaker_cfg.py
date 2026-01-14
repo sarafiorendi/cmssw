@@ -12,6 +12,8 @@ process = cms.Process("L1TrackNtuple")
 
 ############################################################
 # edit options here
+process.options.numberOfThreads = cms.untracked.uint32(4)
+
 ############################################################
 
 # D88 was used for CMSSW_12_6 datasets, and D98 recommended for more recent ones.
@@ -253,7 +255,7 @@ process.ana = cms.Path(process.L1TrackNtuple)
 # process.schedule = cms.Schedule(process.TTClusterStubTruth,process.dtc,process.TTTracksEmulationWithTruth,process.ana)
 
 ## disable duplicate removal
-process.l1tTTTracksFromExtendedTrackletEmulation.RemovalType = cms.string("")
+# process.l1tTTTracksFromExtendedTrackletEmulation.RemovalType = cms.string("")
 
 # use this to only run tracking + track associator
 process.schedule = cms.Schedule(process.dtc,process.TTTracksEmulationWithTruth,process.ana)

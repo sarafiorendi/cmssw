@@ -742,7 +742,8 @@ void L1TrackNtuplePlot(TString type,
 
   const float maxD0plot = TP_maxD0;
 
-  TH1F* h_tp_phi = new TH1F("tp_phi", ";Tracking particle #phi [rad]; Tracking particles / 0.1", 64, -3.2, 3.2);
+//   TH1F* h_tp_phi = new TH1F("tp_phi", ";Tracking particle #phi [rad]; Tracking particles / 0.1", 64, -3.2, 3.2);
+  TH1F* h_tp_phi = new TH1F("tp_phi", ";Tracking particle #phi [rad]; Tracking particles / 0.1", 157, -3.14159, 3.14159);
   TH1F* h_tp_d0 =
       new TH1F("tp_d0", ";Tracking particle d_{0} [cm]; Tracking particles / 0.01 cm", 50, -maxD0plot, maxD0plot);
   TH1F* h_tp_absd0 =
@@ -753,7 +754,8 @@ void L1TrackNtuplePlot(TString type,
       new TH1F("tp_absd0_eta2_pt3", ";Tracking particle |d_{0}| [cm]; Tracking particles / 0.04 cm", 50, 0, maxD0plot);
 
   TH1F* h_match_tp_phi =
-      new TH1F("match_tp_phi", ";Tracking particle #phi [rad]; Tracking particles / 0.1", 64, -3.2, 3.2);
+      new TH1F("match_tp_phi", ";Tracking particle #phi [rad]; Tracking particles / 0.1", 157, -3.14159, 3.14159);
+//       new TH1F("match_tp_phi", ";Tracking particle #phi [rad]; Tracking particles / 0.1", 64, -3.2, 3.2);
   TH1F* h_match_tp_d0 =
       new TH1F("match_tp_d0", ";Tracking particle d_{0} [cm]; Tracking particles / 0.01 cm", 50, -maxD0plot, maxD0plot);
   TH1F* h_match_tp_absd0 =
@@ -2903,8 +2905,8 @@ void L1TrackNtuplePlot(TString type,
   // rebin pt/phi plots
   h_tp_pt->Rebin(2);
   h_match_tp_pt->Rebin(2);
-  h_tp_phi->Rebin(2);
-  h_match_tp_phi->Rebin(2);
+//   h_tp_phi->Rebin(2);
+//   h_match_tp_phi->Rebin(2);
 
   h_tp_pt_L->Rebin(2);
   h_match_tp_pt_L->Rebin(2);

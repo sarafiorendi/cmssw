@@ -64,14 +64,6 @@ TrackletProcessor::TrackletProcessor(string name, Settings const& settings, Glob
   int nbins = 2.0 * (dphimax / dfinephi + 1.0);
 
   nbitsfinephidiff_ = log(nbins) / log(2.0) + 1;
-  
-  std::cout << "[TP] iseed = " << iSeed_
-            << "\t dphimax = " << dphimax 
-            << "\t nfinephibins = " << nfinephibins
-            << "\t nbitsfinephi_ = " << nbitsfinephi_
-            << "\t nbins = " << nbins
-            << "\t nbitsfinephidiff_ = " << nbitsfinephidiff_
-            << std::endl;
 
   nbitszfinebintable_ = settings_.vmrlutzbits(layerdisk1_);
   nbitsrfinebintable_ = settings_.vmrlutrbits(layerdisk1_);
