@@ -235,33 +235,30 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
       if (iSeed_ == 8){
         int ptouterindex = (idphi_out_for_index << outerbend.nbits()) + outerbend.value();
         int ptmiddleindex = (idphi_out_for_index << trpdata_.middlebend_.nbits()) + trpdata_.middlebend_.value();
-//         std::cout << "ptouterindex = " << ptouterindex << std::endl;
-//         std::cout << std::bitset<16>(ptouterindex) << std::endl;
-//         std::cout << std::bitset<16>(ptmiddleindex) << std::endl;
-//         std::cout << std::endl;
-//         pass_pt_cut = pttableouternew_->lookup(ptouterindex);
         pass_pt_cut = pttablemiddlenew_->lookup(ptmiddleindex) && pttableouternew_->lookup(ptouterindex);
       }
       if (pass_pt_cut){
 //         std::cout << "passed pt cut! " << std::endl;
       }
       bool pass_pt_cut_inner = false;
+      if (pass_pt_cut_inner){}
       if (iSeed_ == 8){
         int ptinnerindex = (idphi_in_for_index << innerbend.nbits()) + innerbend.value();
         int ptmiddleinindex = (idphi_in_for_index << trpdata_.middlebend_.nbits()) + trpdata_.middlebend_.value();
-//         std::cout << "ptinnerindex = " << ptinnerindex << std::endl;
         pass_pt_cut_inner = pttablemiddleinnew_->lookup(ptmiddleinindex) && pttableinnernew_->lookup(ptinnerindex);
       }
+//       std::cout << "\t\t\t TEU checking one" << std::endl;
       // now apply cut on pT
-//       if (iSeed_ == 8 && ( !inrange) ) {
-//       if (iSeed_ == 8 && ( !inrange_in) ) {
-//       if (iSeed_ == 8 && ( !(inrange && inrange_in) )) {
-//       if (iSeed_ == 8 && ( !(inrange && inrange_in && opposite_sign_dphi) )) {
-//       if (iSeed_ == 8 && ( !(inrange && inrange_in && opposite_sign_dphi && pass_pt_cut_inner) )) {
+      //set all to true to only apply phi region cut
+//       pass_pt_cut = true;
+//       pass_pt_cut_inner = true;
+//       inrange = true;
+//       inrange_in = true;
+//       opposite_sign_dphi = true;
+//       if (iSeed_ == 8 && ( !(inrange && inrange_in && opposite_sign_dphi ) )) {
       if (iSeed_ == 8 && ( !(inrange && inrange_in && opposite_sign_dphi && pass_pt_cut && pass_pt_cut_inner) )) {
 //       opposite_sign_dphi = true; // fake to emulate no cut for processing est 13:21
 //       if (iSeed_ == 8 && ( !(opposite_sign_dphi) )) {
-//       if (iSeed_ == 8 && ( ! (inrange && pass_pt_cut)) ) {
         if (settings_->debugTracklet()) {
           edm::LogVerbatim("Tracklet") << " Stub pair rejected because of stub pt cut bends : "
                                        << settings_->benddecode(
@@ -414,6 +411,7 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
           nproj_in_ = 0;
           nproj_out_ = 0;
           idle_ = true;
+//           std::cout << "\t\t\t TEU setting to idle and returning " << std::endl;
           return;
         }
         // get next out proj bin
@@ -423,4 +421,6 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
     // get next in proj bin
     std::tie(next_in_, inmem_, nstub_in_, phi_in_) = trpdata_.projbin_in_[nproj_in_];
   }
+//   std::cout << "\t\t\t TEU maybe end of step, istub_in/out = " << istub_in_  << "  " << istub_out_ << std::endl;
+
 }

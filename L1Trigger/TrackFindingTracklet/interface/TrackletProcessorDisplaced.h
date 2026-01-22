@@ -77,6 +77,9 @@ namespace trklet {
     TrackletLUT pttablemiddlein_;
     TrackletLUT pttableinner_;
 
+    TrackletLUT pttablemiddle_region_out_;
+    TrackletLUT pttablemiddle_region_in_;
+
     std::vector<VMStubsTEMemory*> innervmstubs_;
     std::vector<VMStubsTEMemory*> outervmstubs_;
   };

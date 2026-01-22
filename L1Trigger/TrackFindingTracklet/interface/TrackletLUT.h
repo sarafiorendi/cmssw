@@ -91,7 +91,7 @@ namespace trklet {
                          unsigned int iAllStub,
                          unsigned int nbitsfinephidiff,
                          unsigned int nbitsfinephi,
-//                          const TrackletLUT& tplutinner,
+                         const TrackletLUT& tplutmiddle,
                          unsigned int iTP);
 
     //Stub pt consistency for tracklet engine
