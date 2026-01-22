@@ -223,6 +223,10 @@ namespace trklet {
 
     double rinvmax() const { return 0.01 * c_ * bfield_ / ptmin_; }
 
+    double displaced_ptmin_{2.};  //Minimum pt cut
+    double minPtForDisplaced() const { return displaced_ptmin_; }
+    double rinvmaxDisplaced() const { return 0.01 * c_ * bfield_ / displaced_ptmin_;}
+
     int alphashift() const { return alphashift_; }
     int nbitsalpha() const { return nbitsalpha_; }
     int alphaBitsTable() const { return alphaBitsTable_; }
@@ -869,6 +873,7 @@ namespace trklet {
     // Set to large value, e.g. 10000, to disable truncation
     unsigned int maxstepoffset_{0};
     // turn off truncation for displaced tracking (not implemented properly for displaced seeding)
+//     unsigned int maxstepoffset_extended_{0};
     unsigned int maxstepoffset_extended_{10000};
 
     //Number of processing steps for one event (108=18TM*240MHz/40MHz)
