@@ -12,20 +12,26 @@ class L1StubTriplet {
 public:
   /// Constructors
   L1StubTriplet();
+//   L1StubTriplet(const trklet::Stub* inner,
+//                 const trklet::Stub* middle,
+//                 const trklet::Stub* outer,
+//                 unsigned int sector,
+//                 int region,
+//                 int tpdunit);
 
   /// Destructor
   ~L1StubTriplet(); 
 
-  float getStubRapprox(int i) const { return rapprox_.at(i); }
+  double getStubRapprox(int i) const { return rapprox_.at(i); }
   void setStubRapprox(int i, float rapprox) {rapprox_[i] = rapprox; }
 
-  float getStubZapprox(int i) const { return zapprox_.at(i); }
+  double getStubZapprox(int i) const { return zapprox_.at(i); }
   void setStubZapprox(int i, float zapprox) {zapprox_[i] = zapprox; }
 
-  float getStubBend(int i) const { return bend_.at(i); }
-  void setStubBend(int i, float bend) {bend_[i] = bend; }
+  int getStubBend(int i) const { return bend_.at(i); }
+  void setStubBend(int i, int bend) {bend_[i] = bend; }
 
-  float getStubPhi(int i) const { return phi_.at(i); }
+  double getStubPhi(int i) const { return phi_.at(i); }
   void setStubPhi(int i, float phi) {phi_[i] = phi; }
 
   int getStubRZbin(int i) const { return rzbin_.at(i); }
@@ -34,8 +40,8 @@ public:
   int getStubIndex(int i) const { return index_.at(i); }
   void setStubIndex(int i, int idx) {index_[i] = idx; }
 
-  int getStubLayerdisk(int i) const { return layerdisk_.at(i); }
-  void setStubLayerdisk(int i, int layerdisk) {layerdisk_[i] = layerdisk; }
+  unsigned int getStubLayerdisk(int i) const { return layerdisk_.at(i); }
+  void setStubLayerdisk(int i, unsigned int layerdisk) {layerdisk_[i] = layerdisk; }
 
   unsigned int getSector() const { return sector_; }
   void setSector(unsigned int i) { sector_ = i; }
@@ -75,13 +81,13 @@ public:
 private:
 
   /// Data members
-  std::vector<float> rapprox_;
-  std::vector<float> zapprox_;
-  std::vector<float> bend_;
-  std::vector<float> phi_;
+  std::vector<double> rapprox_;
+  std::vector<double> zapprox_;
+  std::vector<int> bend_;
+  std::vector<double> phi_;
   std::vector<int> rzbin_;
   std::vector<int> index_;
-  std::vector<int> layerdisk_;
+  std::vector<unsigned int> layerdisk_;
   std::vector<int> rvalue_;
 
   unsigned int sector_;

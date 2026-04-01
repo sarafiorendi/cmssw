@@ -27,6 +27,35 @@ L1StubTriplet::L1StubTriplet() :
 {
 }
 
+// L1StubTriplet::L1StubTriplet(const trklet::Stub* inner,
+//                              const trklet::Stub* middle,
+//                              const trklet::Stub* outer,
+//                              unsigned int sector,
+//                              int region,
+//                              int tpdunit)
+//     : rapprox_{inner ->rapprox(), 
+//                middle->rapprox(), 
+//                outer ->rapprox()},
+//       zapprox_{inner ->zapprox(), 
+//                middle->zapprox(), 
+//                outer ->zapprox()},
+//       bend_   {inner ->bend().value(), 
+//                middle->bend().value(), 
+//                outer ->bend().value()},
+//       phi_    {inner ->phiapprox(0., 0), 
+//                middle->phiapprox(0., 0), 
+//                outer ->phiapprox(0., 0)},
+//       index_  {inner ->stubindex().value(), 
+//                middle->stubindex().value(), 
+//                outer ->stubindex().value()},
+//       layerdisk_{inner ->layerdisk(), 
+//                  middle->layerdisk(), 
+//                  outer ->layerdisk()},
+//       sector_(sector),
+//       region_(region),
+//       tpdunit_(tpdunit) 
+// {}
+
 // Destructor definition
 L1StubTriplet::~L1StubTriplet() {
   // Cleanup logic (if any) goes here
