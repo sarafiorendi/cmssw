@@ -94,6 +94,14 @@ namespace trklet {
                          const TrackletLUT& tplutmiddle,
                          unsigned int iTP);
 
+    void initDisplacedPairTPregionlut(unsigned int iSeed,
+                                  unsigned int layerdisk1, // inner
+                                  unsigned int layerdisk2, // outer
+                                  unsigned int iAllStub,
+                                  unsigned int nbitsfinephidiff,
+                                  unsigned int nbitsfinephi,
+                                  unsigned int iTP);
+
     //Stub pt consistency for tracklet engine
     void initteptlut(bool fillInner,
                      bool fillTEMem,
