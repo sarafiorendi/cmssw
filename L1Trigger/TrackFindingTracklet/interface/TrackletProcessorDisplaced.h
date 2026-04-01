@@ -40,7 +40,24 @@ namespace trklet {
 
     double calc_phi_tmp(double r, double rho, double d0);
     double calc_deltaPhi(double rho, double d0, double r1, double r2);
+    double compute_dphimax(std::vector<float> d0_vals, double rinv, double r1, double r2);
+    int compute_nfinephibins(int layerdisk, int iSeed_, double dphimax);
+
     std::vector<float> linspace(float A, float B, int N);
+    std::vector<int> find_rzbin_from_zbin(int zbin_out_index, unsigned int zbins_out);
+
+    std::vector<int> choose_rzbins_range(std::vector<int>, 
+                                         std::vector<int>, 
+                                         int start_in, 
+                                         int rzbinfirst_in,
+                                         int rzdiffmax_in,
+                                         int next_in
+                                         );
+    std::vector<int> extract_rz_from_lut(int lutval_inner_from_out_minr, 
+                                        unsigned int lutwidth_out, 
+                                        const unsigned int lutshift_out,
+                                        int nbitsrzbin_in);
+    
 
   private:
     int iTC_;
@@ -61,6 +78,7 @@ namespace trklet {
     int nbitsfinephi_; 
     int nbitsfinephiouterdiff_; 
     int nbitsfinephiinnerdiff_; 
+    int nbitsfinephipairdiff_; 
 
     int nbitszfinebintable_;
     int nbitsrfinebintable_;
@@ -68,6 +86,8 @@ namespace trklet {
     TrackletLUT innerTable_;       //projection to next layer/disk
     TrackletLUT innerThirdTable_;  //projection to third disk/layer
     TrackletLUT outerPairTable_;   //projection to outer disk/layer
+    TrackletLUT innerPairTable_;   //projection to outer disk/layer
+    TrackletLUT testOuterInnerTable_;  //projection from outer to inner
 
     TrackletLUT useOuterRegiontable_;   // phi LUT
     TrackletLUT useInnerRegiontable_;   // phi LUT
