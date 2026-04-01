@@ -26,8 +26,15 @@ namespace trklet {
     int middlefinephi_;
     FPGAWord middlebend_;
     std::vector<std::tuple<int, int, int, int> > projbin_out_;  // next z/r bin; outer stub mem; nstub; outer stub phi region
-    std::vector<std::tuple<int, int, int, int> > projbin_in_;   // next z/r bin; inner stub mem; nstub
+    std::vector<std::tuple<int, int, int, int> > projbin_in_;   // next z/r bin; inner stub mem; nstub; inner stub phi region
     TrackletLUT* outerpairtable_;
+    // only for understanding, sara
+    int istub_middle;
+    std::vector<uint8_t> bad_inner_stub_;
+    std::vector<int> start_in_vec_;
+    unsigned int max_nbins_;
+    int max_nstubs_;
+    int max_dphi_pair_;
   };
 
   class TripletEngineUnit {
@@ -65,6 +72,9 @@ namespace trklet {
     void setNearFull() { nearfull_ = candtriplets_.nearfull(); }
 
     void reset();
+
+    void advanceIndices();
+    void advanceIndicesInnerMem();
 
 //     void step();
     void step(std::vector<L1StubTriplet>&, unsigned int, int, int);    
