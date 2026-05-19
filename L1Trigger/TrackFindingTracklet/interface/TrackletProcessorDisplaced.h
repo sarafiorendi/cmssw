@@ -38,8 +38,19 @@ namespace trklet {
 
     void execute(unsigned int iSector, double phimin, double phimax);
 
+    std::vector<float> linspace(float A, float B, int N);
+
+    double compute_phi(double r, double rho, double d0);
+
+    double compute_deltaPhi(double rho, double d0, double r1, double r2);
+
+    double compute_dphimax(std::vector<float> d0_vals, double rinv, double r1, double r2);
+
+    int compute_nfinephibins(int layerdisk, int iSeed_, double dphimax);
+
   private:
     int iTC_;
+    int iAllStub_;
     unsigned int maxStep_;
 
     std::tuple<CircularBuffer<TrpEData>, unsigned int, unsigned int, unsigned int, unsigned int> trpbuffer_;
@@ -53,11 +64,26 @@ namespace trklet {
     int secondphibits_;
     int thirdphibits_;
 
+    int nbitsfinephi_; 
+    int nbitsfinephiouterdiff_; 
+    int nbitsfinephiinnerdiff_; 
+
     int nbitszfinebintable_;
     int nbitsrfinebintable_;
 
     TrackletLUT innerTable_;       //projection to next layer/disk
     TrackletLUT innerThirdTable_;  //projection to third disk/layer
+
+    TrackletLUT useOuterRegiontable_;   // phi LUT
+    TrackletLUT useInnerRegiontable_;   // phi LUT
+
+//     TrackletLUT pttablemiddle_;
+//     TrackletLUT pttableouter_;
+//     TrackletLUT pttablemiddlein_;
+//     TrackletLUT pttableinner_;
+
+    TrackletLUT pttablemiddle_region_out_;
+    TrackletLUT pttablemiddle_region_in_;
 
     std::vector<VMStubsTEMemory*> innervmstubs_;
     std::vector<VMStubsTEMemory*> outervmstubs_;

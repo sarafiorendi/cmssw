@@ -63,7 +63,18 @@ namespace trklet {
                    unsigned int nbitsfinephidiff,
                    unsigned int iTP);
 
-    //Builds a lut for the TP ro decide if the region should be used. This is used in the
+     //Builds LUT that for each TP returns if the phi differences between inner and outer
+    //stub is consistent with the pT cut and the stub pair should be kept.
+    // tmp
+    void initDisplacedTPlutForInner(bool fillMiddle,
+                   unsigned int iSeed,
+                   unsigned int layerdisk1,
+                   unsigned int layerdisk2,
+                   unsigned int nbitsfinephidiff,
+                   unsigned int iTP);
+
+
+   //Builds a lut for the TP ro decide if the region should be used. This is used in the
     //first stage of the TP to decide which regions in the outer layer an inner stub needs
     //to be combined with
     void initTPregionlut(unsigned int iSeed,
@@ -73,6 +84,15 @@ namespace trklet {
                          unsigned int nbitsfinephidiff,
                          unsigned int nbitsfinephi,
                          const TrackletLUT& tplutinner,
+                         unsigned int iTP);
+
+    void initDisplacedOuterTPregionlut(unsigned int iSeed,
+                         unsigned int layerdisk1,
+                         unsigned int layerdisk2,
+                         unsigned int iAllStub,
+                         unsigned int nbitsfinephidiff,
+                         unsigned int nbitsfinephi,
+                         const TrackletLUT& tplutmiddle,
                          unsigned int iTP);
 
     //Stub pt consistency for tracklet engine
@@ -125,6 +145,7 @@ namespace trklet {
     //Determine bend/bend cuts in LUT regions
     std::vector<const tt::SensorModule*> getSensorModules(unsigned int layerdisk,
                                                           bool isPS,
+                                                          bool isExtendedSeed,
                                                           std::array<double, 2> tan_range = {{-1, -1}},
                                                           unsigned int nzbins = 1,
                                                           unsigned int zbin = 0);
