@@ -44,6 +44,10 @@
   <class name="edm::Wrapper<tt::TTTrackRefMap>"/>
   <class name="TTDTC"/>
   <class name="edm::Wrapper<TTDTC>"/>
+  <class name="L1StubTriplet"/>
+  <class name="std::vector<L1StubTriplet>"/>
+  <class name="std::pair<L1StubTriplet, L1StubTriplet>"/>
+  <class name="edm::Wrapper<std::vector<L1StubTriplet>>"/>
   <!--class name="std::vector<ROOT::Math::SMatrix<float,5,5,ROOT::Math::MatRepSym<float,5> > >"/-->
   <!--class name="std::vector<ROOT::Math::SMatrix<float,5u,5u,ROOT::Math::MatRepSym<float,5u> > >"/-->
   <!--class name="TMatrixTSym<float>"/-->

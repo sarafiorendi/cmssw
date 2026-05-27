@@ -12,11 +12,12 @@ process = cms.Process("L1TrackNtuple")
 
 ############################################################
 # edit options here
+process.options.numberOfThreads = cms.untracked.uint32(4)
 ############################################################
 
 # D110 recommended (but D98 still works)
-#GEOMETRY = "D98"
-GEOMETRY = "D110"
+GEOMETRY = "D98"
+# GEOMETRY = "D110"
 
 # Set L1 tracking algorithm:
 # 'HYBRID' (baseline, 4par fit) or 'HYBRID_DISPLACED' (extended, 5par fit).
@@ -25,7 +26,7 @@ GEOMETRY = "D110"
 # 'HYBRID_DISPLACED_NEWKF_KILL' displaced tracklet followed by DR emulation and 5 param fit sim
 # 'HYBRID_DISPLACED_NEWKF_MERGE' displaced tracklet followed by DR simulation and 5 param fit sim
 # (Or legacy algos 'TMTT' or 'TRACKLET').
-L1TRKALGO = 'HYBRID'
+L1TRKALGO = 'HYBRID_DISPLACED'
 
 WRITE_DATA = False
 
@@ -89,12 +90,17 @@ if GEOMETRY == "D110":
   
   # ttbar + 200PU
   inputMC = ["/store/relval/CMSSW_15_1_0_pre5/RelValTTbar_14TeV_TuneCP5/GEN-SIM-DIGI-RAW/PU_150X_mcRun4_realistic_v1_RV269_Run4D110_PU-v2/2590000/0f0bcfd3-dafe-4dda-8d39-9765f6eae68e.root"]
+  ## displaced sample
 
 elif GEOMETRY == "D98":
 
   # Or read .root files from directory on local computer:
   dirName = "$scratchmc/MCsamples1400_D98/RelVal/TTbar/PU200/"
-  inputMC=getCMSlocaldata(dirName)  
+#   inputMC=getCMSlocaldata(dirName)  
+
+  inputMC = [
+    '/store/mc/Phase2Spring24DIGIRECOMiniAOD/DisplacedSUSY_stopToBottom_M-800_50mm_TuneCP5_14TeV-pythia8/GEN-SIM-DIGI-RAW-MINIAOD/PU200_AllTP_140X_mcRun4_realistic_v4-v1/2810000/422e9ac0-0bfb-4bc2-9cea-8022bcc593e0.root'
+  ]
   
   #  inputMC = ['/store/relval/CMSSW_14_0_0_pre2/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_133X_mcRun4_realistic_v1_STD_2026D98_PU200_RV229-v1/2580000/0b2b0b0b-f312-48a8-9d46-ccbadc69bbfd.root']  
   

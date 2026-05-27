@@ -46,7 +46,7 @@ void makeAllAndTruePDF(TString type, TString dir, TString variable, TH1F* h_all,
 
 void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
                        TString inputDir = "./",
-                       bool useDisplacedTrkCuts = false,
+                       bool useDisplacedTrkCuts = true,
                        bool doDetailedPlots = true,
                        // For displaced tracking studies, consider using TP_minPt = 3.0, TP_maxEta = 2.0.
                        float TP_minPt = 2.0,
@@ -55,6 +55,7 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
                        int TP_select_injet = 0,
                        int TP_select_pdgid = 0,
                        int TP_select_eventid = 0,
+                       int iSeed = 0,
                        bool useDeadRegion = false) {
   // inputRootFile:     this is the name of the input file you want to process (minus ".root" extension)
   // inputDir:          this is the directory containing the input file you want to process. It must end with a "/".
@@ -79,10 +80,10 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
   const float TP_maxD0 = useDisplacedTrkCuts ? 10.0 : 1.0;
   const float TP_maxZ0 = useDisplacedTrkCuts ? 30.0 : 15.0;
   // Optionally also tighten Pt and Eta cuts.
-  // if (useDisplacedTrkCuts) {
-  //   TP_minPt = 3.0;
-  //   TP_maxEta = 2.0;
-  // }
+  if (useDisplacedTrkCuts) {
+    TP_minPt = 3.0;
+    TP_maxEta = 2.0;
+  }
 
   constexpr bool doGausFit = false;  //do gaussian fit for resolution vs eta/pt plots
 
@@ -98,7 +99,7 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
   cout.precision(2);
 
   // tracklet variables
-  int L1Tk_seed = 0;
+  int L1Tk_seed = iSeed;
 
   //some counters for integrated efficiencies
   int n_all_eta2p5 = 0;
@@ -2545,7 +2546,7 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
     type = type + pttxt;
   }
 
-  TFile* fout = new TFile(inputDir + "output_" + inputRootFile + ".root", "recreate");
+  TFile* fout = new TFile(inputDir + "output_" + type + ".root", "recreate");
 
   // -------------------------------------------------------------------------------------------
   // draw and save plots

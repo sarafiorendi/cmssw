@@ -1,5 +1,6 @@
 #include "L1Trigger/TrackFindingTracklet/interface/TripletEngineUnit.h"
 #include "L1Trigger/TrackFindingTracklet/interface/Settings.h"
+#include "L1Trigger/TrackFindingTracklet/interface/L1StubTripletBuilder.h"
 
 using namespace trklet;
 
@@ -48,7 +49,7 @@ void TripletEngineUnit::reset() {
   candtriplets_.reset();
 }
 
-void TripletEngineUnit::step() {
+void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned int iSector, int iTC, int count_trpunits) {
   if (goodtriplet__) {
     candtriplets_.store(candtriplet__);
   }
@@ -91,6 +92,21 @@ void TripletEngineUnit::step() {
       candtriplet_ =
           std::tuple<const Stub*, const Stub*, const Stub*>(innervmstub.stub(), trpdata_.stub_, outervmstub.stub());
       goodtriplet_ = true;
+      
+      int rzbinfirst_out_new = -1; // tmp
+      int rzdiffmax_out_new = -1; // tmp
+      L1StubTriplet myTriplet = makeL1StubTriplet(
+        innervmstub.stub(), trpdata_.stub_, outervmstub.stub(), 
+        iSector, iTC, count_trpunits,
+        trpdata_.rzbinfirst_out_, trpdata_.rzbinfirst_in_, rzbinfirst_out_new,
+        trpdata_.rzdiffmax_out_, trpdata_.rzdiffmax_in_, rzdiffmax_out_new,
+        rzbin_out, rzbin_in, ibin_out, ibin_in, 
+        innervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1),
+        outervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1)
+        );
+      
+      foundtriplets.push_back(myTriplet);
+      
     }
   }
 

@@ -189,6 +189,10 @@ private:
   edm::EDGetTokenT<TTClusterAssociationMap<Ref_Phase2TrackerDigi_>> getTokenTTClusterMCTruth_;
   edm::EDGetTokenT<std::vector<TrackingParticle>> getTokenTrackingParticle_;
 
+  // ED output token for triplets of stubs
+  const edm::EDPutTokenT<std::vector<L1StubTriplet>> putTokenTriplets_;
+  const edm::EDPutTokenT<std::vector<L1StubTriplet>> putTokenAcceptedTriplets_;
+  
   // ED output token for TTTracks
   const edm::EDPutTokenT<tt::TTTracks> putTokenTTTracks_;
   // ED output token for clock and bit accurate tracks
@@ -234,6 +238,9 @@ L1FPGATrackProducer::L1FPGATrackProducer(edm::ParameterSet const& iConfig)
       // book ED products
       getTokenBS_(consumes<reco::BeamSpot>(config.getParameter<edm::InputTag>("BeamSpotSource"))),
       getTokenDTC_(consumes<TTDTC>(edm::InputTag(iConfig.getParameter<edm::InputTag>("InputTagTTDTC")))),
+      // book ED output token for Triplets
+      putTokenTriplets_(produces<std::vector<L1StubTriplet>>("DisplacedSeedAllTriplets")),
+      putTokenAcceptedTriplets_(produces<std::vector<L1StubTriplet>>("DisplacedSeedAcceptedTriplets")),
       // book ED output token for TTTracks
       putTokenTTTracks_(produces<tt::TTTracks>("Level1TTTracks")),
       // book ES products
@@ -668,7 +675,12 @@ void L1FPGATrackProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSe
 
   // this performs the actual tracklet event processing
   eventProcessor.event(ev, streamsTrackRaw, streamsStubRaw);
-
+  
+  const std::vector<L1StubTriplet>& triplets = eventProcessor.triplets();
+  const std::vector<L1StubTriplet>& acceptedTriplets = eventProcessor.acceptedTriplets();
+  iEvent.emplace(putTokenTriplets_, move(triplets));
+  iEvent.emplace(putTokenAcceptedTriplets_, move(acceptedTriplets));
+  
   for (const auto& track : tracks) {
     if (track.duplicate())
       continue;

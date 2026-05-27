@@ -9,6 +9,7 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "FWCore/Utilities/interface/Exception.h"
 #include "DataFormats/Math/interface/deltaPhi.h"
+#include "L1Trigger/TrackFindingTracklet/interface/L1StubTripletBuilder.h"
 
 #include <utility>
 #include <tuple>
@@ -67,7 +68,6 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
 
   nbitsfinephi_ = settings_.nbitsallstubs(layerdisk2_) + settings_.nbitsvmte(1, iSeed_) + settings_.nfinephi(1, iSeed_);
 
-
   // get projection tables
   unsigned int region = name.back() - 'A';
   innerTable_.initVMRTable(
@@ -82,8 +82,8 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
   iTC_ = region;
   TCIndex_ = (iSeed_ << settings.nbitsseed()) + iTC_;
 
-//   maxStep_ = settings_.maxStep("TPD");
-  maxStep_ = 108;
+  maxStep_ = settings_.maxStep("TPD");
+//   maxStep_ = 108;
 }
 
 void TrackletProcessorDisplaced::addOutputProjection(TrackletProjectionsMemory*& outputProj, MemoryBase* memory) {
@@ -190,7 +190,8 @@ void TrackletProcessorDisplaced::addInput(MemoryBase* memory, string input) {
   throw cms::Exception("BadConfig") << __FILE__ << " " << __LINE__ << " Could not find input : " << input;
 }
 
-void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, double phimax) {
+void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, double phimax, std::vector<L1StubTriplet>& foundtriplets_, std::vector<L1StubTriplet>& acceptedtriplets_) {
+
   phimin_ = phimin;
   phimax_ = phimax;
   iSector_ = iSector;
@@ -234,11 +235,15 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
 
     // set pointer to the last filled trpunit
     TripletEngineUnit* trpunitptr = nullptr;
+    int count_trpunits_block1 = 0;
+    int the_trpunit_being_read = 0;    
     for (auto& trpunit : trpunits_) {
       trpunit.setNearFull();
       if (!trpunit.empty()) {
         trpunitptr = &trpunit;
+        the_trpunit_being_read = count_trpunits_block1;
       }
+      count_trpunits_block1++;      
     }
 
     if (trpunitptr != nullptr) {
@@ -258,6 +263,8 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         edm::LogVerbatim("Tracklet") << "TrackletProcessorDisplaced execute " << getName() << "[" << iSector_ << "]";
       }
 
+      L1StubTriplet myTripletNow = makeL1StubTriplet(innerFPGAStub, middleFPGAStub, outerFPGAStub, iSector, iTC_, the_trpunit_being_read);
+
       // check if the seed made from the 3 stubs is valid
       bool accept = false;
       if (iSeed_ == Seed::L2L3L4 || iSeed_ == Seed::L4L5L6)
@@ -267,9 +274,11 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
       else if (iSeed_ == Seed::D1D2L2)
         accept = DDLSeeding(innerFPGAStub, innerStub, middleFPGAStub, middleStub, outerFPGAStub, outerStub);
 
-      if (accept)
+      if (accept) {
+        acceptedtriplets_.push_back(myTripletNow);
         countsel++;
-
+      }
+      
       if (trackletpars_->nTracklets() >= settings_.ntrackletmax()) {
         edm::LogVerbatim("Tracklet") << "Will break on number of tracklets in " << getName();
         assert(0);
@@ -287,12 +296,14 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
     //
 
     bool notemptytrpbuffer = !trpdatabuffer.empty();
+    int count_trpunits = 0;    
     for (auto& trpunit : trpunits_) {
       if (trpunit.idle() && notemptytrpbuffer) {  // only fill one idle unit every step
         trpunit.init(std::get<0>(trpbuffer_).read());
         notemptytrpbuffer = false;  //prevent initializing another triplet engine unit
       }
-      trpunit.step();
+      trpunit.step(foundtriplets_, iSector, iTC_, count_trpunits);
+      count_trpunits++;            
     }
 
     //
@@ -309,6 +320,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
     unsigned int midmemend = std::get<4>(trpbuffer_);
 
     if ((!trpbuffernearfull) && midmem < midmemend && istub < middleallstubs_[midmem]->nStubs()) {
+
       const Stub* stub = middleallstubs_[midmem]->getStub(istub);
 
       if (settings_.debugTracklet()) {
@@ -394,7 +406,6 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         usereg_out = useOuterRegiontable_.lookup(useregindex);
         int usereg_in = -1;
         usereg_in = useInnerRegiontable_.lookup(useregindex);
-
 
         // fill trpdata with projection info of middle stub
         trpdata.stub_ = stub;
@@ -534,7 +545,7 @@ double TrackletProcessorDisplaced::compute_dphimax (std::vector<float> d0_vals, 
 };
 
 double TrackletProcessorDisplaced::compute_phi(double r, double rho, double d0){
-    return (-r/2/rho + d0/r + d0*d0/2/r/rho -2*d0*r/4/rho/rho + 1/6*pow(-r/2/rho + d0/r,3));
+    return (-r/2./rho + d0/r + d0*d0/2./r/rho -2*d0*r/4./rho/rho + 1.0/6.0*pow(-r/2/rho + d0/r,3));
 }
 
 double TrackletProcessorDisplaced::compute_deltaPhi(const double rinv, double d0, double r1, double r2){
@@ -558,8 +569,10 @@ int TrackletProcessorDisplaced::compute_nfinephibins(int layerdisk, int iSeed_, 
   // it also means that nbitsfinephi_ can be used for outer and inner
   int nbins_out = 2.0 * (dphimax / dfinephi + 1.0);
   // find the number of bits needed to represent nbins
-  int bits = 0;
-  while ((1 << bits) < nbins_out) bits++;
+//   int bits = 0;
+//   while ((1 << bits) < nbins_out) bits++;
+  int bits = log(nbins_out) / log(2.0) + 1;
+  
   return bits;
   
 }
