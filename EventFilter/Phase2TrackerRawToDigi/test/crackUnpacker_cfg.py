@@ -9,6 +9,17 @@ import os
 
 process = cms.Process("UNPACK")
 
+options = VarParsing('analysis')
+options.register(
+    'nSlinkBits',
+    0,
+    VarParsing.multiplicity.singleton,
+    VarParsing.varType.int,
+    "n of slink bits"
+)
+
+options.parseArguments()
+
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('Configuration.EventContent.EventContent_cff')
 process.load('Configuration.StandardSequences.MagneticField_cff')
@@ -55,15 +66,25 @@ process.PoolDBESSource = cms.ESSource("PoolDBESSource",
 )
 process.es_prefer_local_TrackerDetToDTCELinkCablingMapRcd = cms.ESPrefer("PoolDBESSource","")
 
-process.source = cms.Source("PoolSource",
-     fileNames = cms.untracked.vstring(
+process.source = cms.Source ("PoolSource",
+     fileNames = cms.untracked.vstring (options.inputFiles),
+)
+
+# process.source = cms.Source("PoolSource",
+# # #      fileNames = cms.untracked.vstring("/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1p5To8/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/1172421f-823f-420f-8ec9-3de20dd6dda4.root")
+# #      
+# # #        "file:/afs/cern.ch/work/f/fiorendi/private/l1tt/unpacker/crack/alaa_update/CMSSW_16_0_0_pre1/src/EventFilter/Phase2TrackerRawToDigi/test/outputFEDRawData_BES_Reference_Binary_VCTH500_50Hz_Random_L1As.root"
+# # #        "file:/afs/cern.ch/work/f/fiorendi/private/l1tt/unpacker/crack/alaa_update/CMSSW_16_0_0_pre1/src/EventFilter/Phase2TrackerRawToDigi/test/outputFEDRawData_CRACK_4_LADDERS_May_6th_SourceID0006.root"
+# # #        "file:/afs/cern.ch/work/f/fiorendi/private/l1tt/unpacker/crack/CMSSW_15_0_4/src/EventFilter/Utilities/test/output_dataset_BES_Reference_Binary_VCTH500_50Hz_Random_L1As.root"
+#      fileNames = cms.untracked.vstring(
 # #       ## unpacked removing Slink header 
 # # #        "file:/afs/cern.ch/work/f/fiorendi/private/l1tt/unpacker/crack/alaa_update/CMSSW_16_0_0_pre1/src/EventFilter/Phase2TrackerRawToDigi/test/outputFEDRawData_CRACK_4_LADDERS_May_6th_SourceID0005_again.root"
-      ## unpacked maintaining S-link header
-       "file:/afs/cern.ch/work/f/fiorendi/private/l1tt/unpacker/crack/again/CMSSW_16_0_0_pre4/src/EventFilter/Phase2TrackerRawToDigi/test/outputFEDRawData_CRACK_4_LADDERS_May_6th_SourceID0005.root"
-     ),
-)
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
+# #       ## unpacked maintaining S-link header
+#        "file:/afs/cern.ch/work/f/fiorendi/private/l1tt/unpacker/crack/again/CMSSW_16_0_0_pre4/src/EventFilter/Phase2TrackerRawToDigi/test/outputFEDRawData_CRACK_4_LADDERS_May_6th_SourceID0005.root"
+#      ),
+# # #     eventsToProcess = cms.untracked.VEventRange('1:49', '1:50'),
+# )
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(options.maxEvents))
 
 
 # algo = process.mix.digitizers.pixel.SSDigitizerAlgorithm
@@ -76,9 +97,9 @@ process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 
 
 process.Unpacker = cms.EDProducer("RawToClusterProducer",
-#     fedRawDataCollection = cms.InputTag("rawDataCollector"), ## srecko
-    fedRawDataCollection = cms.InputTag("dthDAQToFEDRawData"), ## alaa
-    nSlinkBits = cms.untracked.int32(16)
+    fedRawDataCollection = cms.InputTag("rawDataCollector"), ## srecko
+#     fedRawDataCollection = cms.InputTag("dthDAQToFEDRawData"), ## alaa
+    nSlinkBits = cms.untracked.int32(options.nSlinkBits)
 )
 
 # process.ClusterAnalyzer = cms.EDAnalyzer('ClusterAnalyzer',
@@ -102,7 +123,9 @@ process.out = cms.OutputModule("PoolOutputModule",
       'keep *_Unpacker_*_*',
       'keep *_mix_Tracker_*',
       ),
-    fileName = cms.untracked.string('clusters_CRACK_4_LADDERS_May_6th_SourceID0005_slinkHeader.root')
+    fileName = cms.untracked.string(options.outputFile)
+#     fileName = cms.untracked.string('clusters_CRACK_4_LADDERS_May_6th_SourceID0005_slinkHeader.root')
+#     fileName = cms.untracked.string('clusters_CRACK_4_LADDERS_May_6th_SourceID0006.root')
 )
 
 process.Timing = cms.Service("Timing",

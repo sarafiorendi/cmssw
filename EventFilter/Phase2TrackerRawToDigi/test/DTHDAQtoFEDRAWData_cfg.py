@@ -27,17 +27,17 @@ process.source = cms.Source("EmptySource")
 
 # Limit the number of events processed based on the raw file content
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(268) #Adjust this as needed
+    input = cms.untracked.int32(100000) #Adjust this as needed
 )
 
 # Define the DTHDAQToFEDRawDataConverter module
 process.dthDAQToFEDRawData = cms.EDProducer('DTHDAQToFEDRawDataConverter',
-    inputFile = cms.string('orbit_stream.raw-fed00000-index000.raw'),  # Path to your input raw file
+    inputFile = cms.string('/eos/project-c/cms-tracker-integration/www/results/CosmicRackData/2026/5/6/CRACK_4_LADDERS_May_6th_SourceID0005.raw'),  # Path to your input raw file
 )
 
 # Define the output module to write FEDRawData to a ROOT file
 process.output = cms.OutputModule("PoolOutputModule",
-    fileName = cms.untracked.string("outputFEDRawData.root"),  # Output ROOT file
+    fileName = cms.untracked.string("outputFEDRawData_CRACK_4_LADDERS_May_6th_SourceID0005.root"),  # Output ROOT file
     outputCommands = cms.untracked.vstring('keep *')  # Keep everything for now
 )
 

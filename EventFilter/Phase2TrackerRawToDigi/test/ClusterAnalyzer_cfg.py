@@ -5,8 +5,11 @@
 ## sequence, depending on value of ANALYZE_PACKUNPACK variable below.
 
 import FWCore.ParameterSet.Config as cms
+from FWCore.ParameterSet.VarParsing import VarParsing
 
 process = cms.Process("Analysis")
+options = VarParsing('analysis')
+options.parseArguments()
 
 # If this is True, then the clusters created by running the packer + unpacker on
 # the original clusters will be analyzed.
@@ -16,7 +19,7 @@ ANALYZE_PACKUNPACK = False
 ANALYZE_CRACK = True
 
 # Enable summary at the end of the job
-process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
+# process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 
 # Limit the number of events to process
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
@@ -41,11 +44,18 @@ elif ANALYZE_CRACK:
 
   print("\n === Analyzing clusters created by CRack unpacker sequence ===\n")
   
-  process.source = cms.Source("PoolSource", 
-      fileNames = cms.untracked.vstring(
-          "file:crackClustersAlaa_BES_Reference_Binary_VCTH500_50Hz_Random_L1A.root"
-      )
+  process.source = cms.Source ("PoolSource",
+       fileNames = cms.untracked.vstring (options.inputFiles),
   )
+#   process.source = cms.Source("PoolSource", 
+#       fileNames = cms.untracked.vstring(
+# #           "file:clusters_CRACK_4_LADDERS_May_6th_SourceID0005.root"
+#           "file:clusters_CRACK_4_LADDERS_May_6th_SourceID0005_slinkHeader.root"
+# #           "file:clusters_CRACK_4_LADDERS_May_6th_SourceID0005.root"
+# #           "file:clusters_CRACK_4_LADDERS_May_6th_SourceID0006.root"
+# #           "file:clusters_CRACK_4_LADDERS_May_6th_SourceID0007.root"
+#       )
+#   )
   # Update label to match the output from the unpacker process
   process.ClusterAnalyzer.ProductLabel = cms.InputTag("Unpacker", "", "UNPACK")
 
@@ -60,9 +70,13 @@ else:
 
 # Create output root file for TTree.
 process.TFileService = cms.Service('TFileService', 
-    fileName = cms.string(
-        'ClusterAnalyzer_TTree.root'
-    ), 
+    fileName = cms.string(options.outputFile),
+#     fileName = cms.string(
+# #         'ClusterAnalyzer_CRACK_4_LADDERS_May_6th_SourceID0005.root'
+#         'ClusterAnalyzer_CRACK_4_LADDERS_May_6th_SourceID0005_slinkHeader.root'
+# #         'ClusterAnalyzer_CRACK_4_LADDERS_May_6th_SourceID0006.root'
+# #         'ClusterAnalyzer_CRACK_4_LADDERS_May_6th_SourceID0007.root'
+#     ), 
     closeFileFast = cms.untracked.bool(True)
 )
 
