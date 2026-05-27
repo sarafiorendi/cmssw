@@ -9,6 +9,7 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "FWCore/Utilities/interface/Exception.h"
 #include "DataFormats/Math/interface/deltaPhi.h"
+#include "L1Trigger/TrackFindingTracklet/interface/L1StubTripletBuilder.h"
 
 #include <utility>
 #include <tuple>
@@ -262,7 +263,8 @@ void TrackletProcessorDisplaced::addInput(MemoryBase* memory, string input) {
   throw cms::Exception("BadConfig") << __FILE__ << " " << __LINE__ << " Could not find input : " << input;
 }
 
-void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, double phimax) {
+void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, double phimax, std::vector<L1StubTriplet>& foundtriplets_, std::vector<L1StubTriplet>& acceptedtriplets_) {
+
   phimin_ = phimin;
   phimax_ = phimax;
   iSector_ = iSector;
@@ -328,11 +330,15 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
 
     // set pointer to the last filled trpunit
     TripletEngineUnit* trpunitptr = nullptr;
+    int count_trpunits_block1 = 0;
+    int the_trpunit_being_read = 0;    
     for (auto& trpunit : trpunits_) {
       trpunit.setNearFull();
       if (!trpunit.empty()) {
         trpunitptr = &trpunit;
+        the_trpunit_being_read = count_trpunits_block1;
       }
+      count_trpunits_block1++;      
     }
 
     if (trpunitptr != nullptr) {
@@ -351,6 +357,8 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
       if (settings_.debugTracklet()) {
         edm::LogVerbatim("Tracklet") << "TrackletProcessorDisplaced execute " << getName() << "[" << iSector_ << "]";
       }
+
+      L1StubTriplet myTripletNow = makeL1StubTriplet(innerFPGAStub, middleFPGAStub, outerFPGAStub, iSector, iTC_, the_trpunit_being_read);
 
       // check if the seed made from the 3 stubs is valid
       bool accept = false;
@@ -373,9 +381,11 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         nrej_only_d0 += (d0bad && !rinvbad && !z0bad);
       }
 
-      if (accept)
+      if (accept) {
+        acceptedtriplets_.push_back(myTripletNow);
         countsel++;
-
+      }
+      
       if (trackletpars_->nTracklets() >= settings_.ntrackletmax()) {
         edm::LogVerbatim("Tracklet") << "Will break on number of tracklets in " << getName();
         assert(0);
@@ -393,12 +403,14 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
     //
 
     bool notemptytrpbuffer = !trpdatabuffer.empty();
+    int count_trpunits = 0;    
     for (auto& trpunit : trpunits_) {
       if (trpunit.idle() && notemptytrpbuffer) {  // only fill one idle unit every step
         trpunit.init(std::get<0>(trpbuffer_).read());
         notemptytrpbuffer = false;  //prevent initializing another triplet engine unit
       }
-      trpunit.step();
+      trpunit.step(foundtriplets_, iSector, iTC_, count_trpunits);
+      count_trpunits++;            
     }
 
     //
@@ -420,6 +432,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
     int count_nmems_in = 0;
 
     if ((!trpbuffernearfull) && midmem < midmemend && istub < middleallstubs_[midmem]->nStubs()) {
+
       const Stub* stub = middleallstubs_[midmem]->getStub(istub);
       count_nstubs_out = 0;
       count_nstubs_in = 0;

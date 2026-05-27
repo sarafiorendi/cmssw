@@ -14,6 +14,7 @@ process = cms.Process("L1TrackNtuple")
 
 ############################################################
 # edit options here
+process.options.numberOfThreads = cms.untracked.uint32(4)
 ############################################################
 
 # D121 MC recommended. D110 MC can only be used if made with CMSSW_20.
@@ -90,7 +91,9 @@ if GEOMETRY == "D110":
 elif GEOMETRY == "D121":
 
   # ttbar + 200PU
-  inputMC = ['/store/relval/CMSSW_20_0_0_pre1/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_150X_mcRun4_realistic_v1_STD_D121_RegeneratedGS_PU-v1/2590000/0033230b-a131-453a-95c0-fe14d5027d1f.root']
+#   inputMC = ['/store/relval/CMSSW_20_0_0_pre1/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/PU_150X_mcRun4_realistic_v1_STD_D121_RegeneratedGS_PU-v1/2590000/0033230b-a131-453a-95c0-fe14d5027d1f.root']
+
+  inputMC = ['/store/relval/CMSSW_20_0_0_pre1/RelValDisplacedSUSY_14TeV/GEN-SIM-DIGI-RAW/PU_150X_mcRun4_realistic_v1_STD_D121_RegeneratedGS_PU_16Aug26-v3/2590000/0884223d-099c-45de-91f3-813adf53abba.root']
   
   # ttbar + 0PU
   #inputMC = ['/store/relval/CMSSW_20_0_0_pre1/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_STD_RegeneratedGS_D121_noPU-v1/2590000/0a33391d-2eb7-45fe-98fe-ca7b70a785c4.root']  

@@ -35,7 +35,7 @@ namespace trklet {
 
     void addInput(MemoryBase* memory, std::string input) override;
 
-    void execute(unsigned int iSector, double phimin, double phimax);
+    void execute(unsigned int iSector, double phimin, double phimax, std::vector<L1StubTriplet>&, std::vector<L1StubTriplet>&);
 
     std::vector<float> linspace(float A, float B, int N);
     void mirrorRZWindowNegZ(int nlongvmbins, int& start, int next, int& first, int diff);

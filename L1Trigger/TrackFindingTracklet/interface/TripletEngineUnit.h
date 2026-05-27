@@ -4,6 +4,7 @@
 #include "L1Trigger/TrackFindingTracklet/interface/VMStubsTEMemory.h"
 #include "L1Trigger/TrackFindingTracklet/interface/CircularBuffer.h"
 #include "L1Trigger/TrackFindingTracklet/interface/TrackletLUT.h"
+#include "DataFormats/L1TrackTrigger/interface/L1StubTriplet.h"
 
 #include <cassert>
 #include <vector>
@@ -82,7 +83,7 @@ namespace trklet {
     size_t badInnerIndex() const ;
     bool nextGoodInner() ;
 
-    void step();
+    void step(std::vector<L1StubTriplet>&, unsigned int, int, int);    
 
     // for debugging
     unsigned int nTested() const { return n_triplets_tested_; }
