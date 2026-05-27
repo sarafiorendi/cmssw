@@ -61,17 +61,8 @@ namespace trklet {
                    unsigned int layerdisk1,
                    unsigned int layerdisk2,
                    unsigned int nbitsfinephidiff,
-                   unsigned int iTP);
-
-     //Builds LUT that for each TP returns if the phi differences between inner and outer
-    //stub is consistent with the pT cut and the stub pair should be kept.
-    // tmp
-    void initDisplacedTPlutForInner(bool fillMiddle,
-                   unsigned int iSeed,
-                   unsigned int layerdisk1,
-                   unsigned int layerdisk2,
-                   unsigned int nbitsfinephidiff,
-                   unsigned int iTP);
+                   unsigned int iTP,
+                   bool isThirdStub);
 
 
    //Builds a lut for the TP ro decide if the region should be used. This is used in the

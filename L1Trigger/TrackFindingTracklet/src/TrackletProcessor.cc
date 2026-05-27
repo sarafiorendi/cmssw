@@ -140,8 +140,8 @@ void TrackletProcessor::addInput(MemoryBase* memory, string input) {
 
     unsigned int iTP = getName()[7] - 'A';
 
-    pttableinner_.initTPlut(true, iSeed_, layerdisk1_, layerdisk2_, nbitsfinephidiff_, iTP);
-    pttableouter_.initTPlut(false, iSeed_, layerdisk1_, layerdisk2_, nbitsfinephidiff_, iTP);
+    pttableinner_.initTPlut(true, iSeed_, layerdisk1_, layerdisk2_, nbitsfinephidiff_, iTP, false);
+    pttableouter_.initTPlut(false, iSeed_, layerdisk1_, layerdisk2_, nbitsfinephidiff_, iTP, false);
 
     //need iAllStub_ set before building the table
 

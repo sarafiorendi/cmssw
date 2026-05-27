@@ -157,13 +157,13 @@ void TrackletProcessorDisplaced::addInput(MemoryBase* memory, string input) {
     iAllStub_ = tmp->getName()[8] - 'A';
     unsigned int iTP = iAllStub_;
 
-    pttablemiddle_region_out_.initTPlut(true, iSeed_, layerdisk1_, layerdisk2_, nbitsfinephiouterdiff_, iTP);
-    useOuterRegiontable_.initDisplacedOuterTPregionlut(
+    pttablemiddle_region_out_.initTPlut(true, iSeed_, layerdisk1_, layerdisk2_, nbitsfinephiouterdiff_, iTP, false);
+    useOuterRegiontable_.initTPregionlut(
       iSeed_, layerdisk1_, layerdisk2_, iAllStub_, nbitsfinephiouterdiff_, nbitsfinephi_, pttablemiddle_region_out_, iTP);
       // iTP is only used in the name of the LUT table, if written out
       // iAllStub is used to define the outerfinephi
-    pttablemiddle_region_in_.initDisplacedTPlutForInner(true, iSeed_, layerdisk1_, layerdisk3_, nbitsfinephiinnerdiff_, iTP);
-    useInnerRegiontable_.initDisplacedOuterTPregionlut(
+    pttablemiddle_region_in_.initTPlut(true, iSeed_, layerdisk1_, layerdisk3_, nbitsfinephiinnerdiff_, iTP, true);
+    useInnerRegiontable_.initTPregionlut(
       iSeed_, layerdisk1_, layerdisk3_, iAllStub_, nbitsfinephiinnerdiff_, nbitsfinephi_, pttablemiddle_region_in_, iTP);
     return;
   }
@@ -348,7 +348,8 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
       const auto& lutshift = innerTable_.nbits();
       lutval = innerTable_.lookup((indexz << nbitsrfinebintable_) + indexr);
       int lutval2 = innerThirdTable_.lookup((indexz << nbitsrfinebintable_) + indexr);
-      if (lutval != -1 && lutval2 != -1)
+      // TO BE CHECKED      
+      if (lutval != -1 && lutval2 != -1) 
         lutval += (lutval2 << lutshift);
 
       if (lutval != -1) {
