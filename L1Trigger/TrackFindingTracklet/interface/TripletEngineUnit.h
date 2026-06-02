@@ -23,8 +23,10 @@ namespace trklet {
     int rzdiffmax_out_;
     int rzbinfirst_in_;
     int rzdiffmax_in_;
-    std::vector<std::tuple<int, int, int> > projbin_out_;  // next z/r bin; outer stub mem; nstub
-    std::vector<std::tuple<int, int, int> > projbin_in_;   // next z/r bin; inner stub mem; nstub
+    int middlefinephi_;
+    FPGAWord middlebend_;
+    std::vector<std::tuple<int, int, int, int> > projbin_out_;  // next z/r bin; outer stub mem; nstub
+    std::vector<std::tuple<int, int, int, int> > projbin_in_;   // next z/r bin; inner stub mem; nstub
   };
 
   class TripletEngineUnit {
@@ -34,6 +36,14 @@ namespace trklet {
                       unsigned int layerdisk2,
                       unsigned int layerdisk3,
                       unsigned int iSeed,
+                      unsigned int iAllStub,
+                      unsigned int nbitsfinephi,
+                      unsigned int nbitsfinephiouterdiff,
+                      unsigned int nbitsfinephiinnerdiff,
+                      const TrackletLUT* pttablemiddle,
+                      const TrackletLUT* pttableouter,
+                      const TrackletLUT* pttablemiddlein,
+                      const TrackletLUT* pttableinner,
                       std::vector<VMStubsTEMemory*> innervmstubs,
                       std::vector<VMStubsTEMemory*> outervmstubs);
 
@@ -68,6 +78,10 @@ namespace trklet {
     unsigned int layerdisk2_;
     unsigned int layerdisk3_;
     unsigned int iSeed_;
+    unsigned int iAllStub_;
+    unsigned int nbitsfinephi_;
+    unsigned int nbitsfinephiouterdiff_;
+    unsigned int nbitsfinephiinnerdiff_;
     bool nearfull_;  //initialized at start of each processing step
 
     //unsigned int memory slot
@@ -83,8 +97,15 @@ namespace trklet {
     unsigned int inmem_;
     unsigned int nproj_out_;
     unsigned int nproj_in_;
+    unsigned int phi_out_;
+    unsigned int phi_in_;
 
     bool idle_;
+
+    const TrackletLUT* pttablemiddle_;
+    const TrackletLUT* pttableouter_;
+    const TrackletLUT* pttablemiddlein_;
+    const TrackletLUT* pttableinner_;
 
     std::tuple<const Stub*, const Stub*, const Stub*> candtriplet_, candtriplet__;
     bool goodtriplet_, goodtriplet__;

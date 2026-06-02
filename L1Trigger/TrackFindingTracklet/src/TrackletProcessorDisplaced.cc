@@ -31,6 +31,10 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
       innerThirdTable_(settings),
       useOuterRegiontable_(settings),
       useInnerRegiontable_(settings),
+      pttablemiddle_(settings),
+      pttableouter_(settings),
+      pttablemiddlein_(settings),
+      pttableinner_(settings),
       pttablemiddle_region_out_(settings),
       pttablemiddle_region_in_(settings) {
   innerallstubs_.clear();
@@ -82,8 +86,8 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
   iTC_ = region;
   TCIndex_ = (iSeed_ << settings.nbitsseed()) + iTC_;
 
-  maxStep_ = settings_.maxStep("TPD");
-//   maxStep_ = 108;
+//   maxStep_ = settings_.maxStep("TPD");
+  maxStep_ = 108;
 }
 
 void TrackletProcessorDisplaced::addOutputProjection(TrackletProjectionsMemory*& outputProj, MemoryBase* memory) {
@@ -178,12 +182,20 @@ void TrackletProcessorDisplaced::addInput(MemoryBase* memory, string input) {
     auto* tmp = dynamic_cast<VMStubsTEMemory*>(memory);
     assert(tmp != nullptr);
     innervmstubs_.push_back(tmp);
+
+    unsigned int iTP = getName()[7] - 'A';
+    pttablemiddlein_.initTPlut(true, iSeed_, layerdisk1_, layerdisk3_, nbitsfinephiinnerdiff_, iTP, true);
+    pttableinner_.initTPlut(false, iSeed_, layerdisk1_, layerdisk3_, nbitsfinephiinnerdiff_, iTP, true);
     return;
   }
   if (input == "secondvmstubin") {
     auto* tmp = dynamic_cast<VMStubsTEMemory*>(memory);
     assert(tmp != nullptr);
     outervmstubs_.push_back(tmp);
+
+    unsigned int iTP = getName()[7] - 'A';
+    pttablemiddle_.initTPlut(true, iSeed_, layerdisk1_, layerdisk2_, nbitsfinephiouterdiff_, iTP, false);
+    pttableouter_.initTPlut(false, iSeed_, layerdisk1_, layerdisk2_, nbitsfinephiouterdiff_, iTP, false);
     return;
   }
 
@@ -201,7 +213,21 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
   int donecount = 0;
 
   // set the triplet engine units and buffer
-  TripletEngineUnit trpunit(&settings_, layerdisk1_, layerdisk2_, layerdisk3_, iSeed_, innervmstubs_, outervmstubs_);
+  TripletEngineUnit trpunit(&settings_, 
+                            layerdisk1_, 
+                            layerdisk2_, 
+                            layerdisk3_, 
+                            iSeed_,
+                            iAllStub_,
+                            nbitsfinephi_,
+                            nbitsfinephiouterdiff_,
+                            nbitsfinephiinnerdiff_,
+                            &pttablemiddle_,
+                            &pttableouter_,
+                            &pttablemiddlein_,
+                            &pttableinner_,                            
+                            innervmstubs_, 
+                            outervmstubs_);
   trpunits_.resize(settings_.trpunits(iSeed_), trpunit);
   trpbuffer_ = tuple<CircularBuffer<TrpEData>, unsigned int, unsigned int, unsigned int, unsigned int>(
       CircularBuffer<TrpEData>(3), 0, 0, 0, middleallstubs_.size());
@@ -416,6 +442,8 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         trpdata.rzdiffmax_in_ = rzdiffmax_in;
         trpdata.start_out_ = start_out;
         trpdata.start_in_ = start_in;
+        trpdata.middlefinephi_ = middlefinephi;
+        trpdata.middlebend_ = middlebend;
 
         // fill projection bins info for single engine unit
         trpdata.projbin_out_.clear();
@@ -445,7 +473,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
             // check if the memory is not empty
             int nstubs_out = outervmstubs_[outmem]->nVMStubsBinned(ibin_out);
             if (nstubs_out > 0)
-              trpdata.projbin_out_.emplace_back(tuple<int, int, int>(ibin_out - start_out, outmem, nstubs_out));
+              trpdata.projbin_out_.emplace_back(tuple<int, int, int, int>(ibin_out - start_out, outmem, nstubs_out, out_phi_region));
           }
         }
 
@@ -470,7 +498,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
             }
             int nstubs_in = innervmstubs_[inmem]->nVMStubsBinned(ibin_in);
             if (nstubs_in > 0)
-              trpdata.projbin_in_.emplace_back(tuple<int, int, int>(ibin_in - start_in, inmem, nstubs_in));
+              trpdata.projbin_in_.emplace_back(tuple<int, int, int, int>(ibin_in - start_in, inmem, nstubs_in, in_phi_region));
           }
         }
 

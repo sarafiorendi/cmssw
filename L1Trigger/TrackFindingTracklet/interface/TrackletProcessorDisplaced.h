@@ -77,10 +77,10 @@ namespace trklet {
     TrackletLUT useOuterRegiontable_;   // phi LUT
     TrackletLUT useInnerRegiontable_;   // phi LUT
 
-//     TrackletLUT pttablemiddle_;
-//     TrackletLUT pttableouter_;
-//     TrackletLUT pttablemiddlein_;
-//     TrackletLUT pttableinner_;
+    TrackletLUT pttablemiddle_;
+    TrackletLUT pttableouter_;
+    TrackletLUT pttablemiddlein_;
+    TrackletLUT pttableinner_;
 
     TrackletLUT pttablemiddle_region_out_;
     TrackletLUT pttablemiddle_region_in_;

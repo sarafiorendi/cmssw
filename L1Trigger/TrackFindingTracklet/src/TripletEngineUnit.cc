@@ -17,14 +17,31 @@ TripletEngineUnit::TripletEngineUnit(const Settings* const settings,
                                      unsigned int layerdisk2,
                                      unsigned int layerdisk3,
                                      unsigned int iSeed,
+                                     unsigned int iAllStub,
+                                     unsigned int nbitsfinephi,
+                                     unsigned int nbitsfinephiouterdiff,
+                                     unsigned int nbitsfinephiinnerdiff,
+                                     const TrackletLUT* pttablemiddle,
+                                     const TrackletLUT* pttableouter,
+                                     const TrackletLUT* pttablemiddlein,
+                                     const TrackletLUT* pttableinner,
                                      std::vector<VMStubsTEMemory*> innervmstubs,
                                      std::vector<VMStubsTEMemory*> outervmstubs)
-    : settings_(settings), candtriplets_(3) {
+    : settings_(settings), 
+      pttablemiddle_(pttablemiddle),
+      pttableouter_(pttableouter),
+      pttablemiddlein_(pttablemiddlein),
+      pttableinner_(pttableinner),    
+      candtriplets_(3) {
   idle_ = true;
   layerdisk1_ = layerdisk1;
   layerdisk2_ = layerdisk2;
   layerdisk3_ = layerdisk3;
   iSeed_ = iSeed;
+  iAllStub_ = iAllStub;
+  nbitsfinephi_ = nbitsfinephi;
+  nbitsfinephiouterdiff_ = nbitsfinephiouterdiff;
+  nbitsfinephiinnerdiff_ = nbitsfinephiinnerdiff;
   innervmstubs_ = innervmstubs;
   outervmstubs_ = outervmstubs;
 }
@@ -38,8 +55,8 @@ void TripletEngineUnit::init(const TrpEData& trpdata) {
   idle_ = false;
 
   assert(!trpdata_.projbin_out_.empty() && !trpdata_.projbin_in_.empty());
-  std::tie(next_out_, outmem_, nstub_out_) = trpdata_.projbin_out_[0];
-  std::tie(next_in_, inmem_, nstub_in_) = trpdata_.projbin_in_[0];
+  std::tie(next_out_, outmem_, nstub_out_, phi_out_) = trpdata_.projbin_out_[0];
+  std::tie(next_in_, inmem_, nstub_in_, phi_in_) = trpdata_.projbin_in_[0];
 }
 
 void TripletEngineUnit::reset() {
@@ -69,6 +86,41 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
   const VMStubTE& outervmstub = outervmstubs_[outmem_]->getVMStubTEBinned(ibin_out, istub_out_);
   const VMStubTE& innervmstub = innervmstubs_[inmem_]->getVMStubTEBinned(ibin_in, istub_in_);
 
+  // set up needed info for phi / bend cuts on outer
+  FPGAWord ifinephiouter = outervmstub.finephi();
+  assert(ifinephiouter == outervmstub.finephi());
+  // retrieve lut value: first calculate the phi value, as done in TrackletLUT
+  int outerfinephi = iAllStub_ * (1 << (nbitsfinephi_ - settings_->nbitsallstubs(outervmstub.stub()->layerdisk()))) +
+                     phi_out_ * (1 << settings_->nfinephi(1, iSeed_)) + ifinephiouter.value();
+                     
+  if (phi_out_ >= 2 * settings_->nvmte(1, iSeed_))                     
+      outerfinephi = iAllStub_ * (1 << (nbitsfinephi_ - settings_->nbitsallstubs(outervmstub.stub()->layerdisk()))) +
+                     (phi_out_ - 24) * (1 << settings_->nfinephi(1, iSeed_)) + ifinephiouter.value(); // 24 = 3 * settings_.nvmte(1, iSeed) 
+
+  int idphi_out = outerfinephi - trpdata_.middlefinephi_;
+  bool inrange_out = true;
+  if (iSeed_ == 8) {
+    inrange_out = (idphi_out < (1 << (nbitsfinephiouterdiff_ - 1))) && (idphi_out >= -(1 << (nbitsfinephiouterdiff_ - 1)));
+  }  
+  int idphi_out_for_index = idphi_out & ((1 << nbitsfinephiouterdiff_) - 1);
+
+  // info for phi / bend cuts on inner
+  FPGAWord ifinephiinner = innervmstub.finephi();
+  assert(ifinephiinner == innervmstub.finephi());
+  int innerfinephi = iAllStub_ * (1 << (nbitsfinephi_ - settings_->nbitsallstubs(innervmstub.stub()->layerdisk()))) +
+                     phi_in_ * (1 << settings_->nfinephi(1, iSeed_)) + ifinephiinner.value();
+  if (phi_in_ >= 2 * settings_->nvmte(1, iSeed_))                     
+      innerfinephi = iAllStub_ * (1 << (nbitsfinephi_ - settings_->nbitsallstubs(innervmstub.stub()->layerdisk()))) +
+                     (phi_in_ - 24) * (1 << settings_->nfinephi(1, iSeed_)) + ifinephiinner.value(); // 24 = 3 * settings_.nvmte(1, iSeed) 
+
+  int idphi_in = innerfinephi - trpdata_.middlefinephi_;
+  bool inrange_in = true;
+  if (iSeed_ == 8){
+    inrange_in = (idphi_in < (1 << (nbitsfinephiinnerdiff_ - 1))) && (idphi_in >= -(1 << (nbitsfinephiinnerdiff_ - 1)));
+  }  
+  int idphi_in_for_index = idphi_in & ((1 << nbitsfinephiinnerdiff_) - 1);
+
+
   // check if r/z of outer/inner stubs is within projection range
   int rzbin_out = (outervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1));
   int rzbin_in = (innervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1));
@@ -89,24 +141,44 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
       }
     } else {  // condition on both inner and outer stubs satisfied
 
-      candtriplet_ =
-          std::tuple<const Stub*, const Stub*, const Stub*>(innervmstub.stub(), trpdata_.stub_, outervmstub.stub());
-      goodtriplet_ = true;
-      
-      int rzbinfirst_out_new = -1; // tmp
-      int rzdiffmax_out_new = -1; // tmp
-      L1StubTriplet myTriplet = makeL1StubTriplet(
-        innervmstub.stub(), trpdata_.stub_, outervmstub.stub(), 
-        iSector, iTC, count_trpunits,
-        trpdata_.rzbinfirst_out_, trpdata_.rzbinfirst_in_, rzbinfirst_out_new,
-        trpdata_.rzdiffmax_out_, trpdata_.rzdiffmax_in_, rzdiffmax_out_new,
-        rzbin_out, rzbin_in, ibin_out, ibin_in, 
-        innervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1),
-        outervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1)
-        );
-      
-      foundtriplets.push_back(myTriplet);
-      
+      FPGAWord outerbend = outervmstub.bend();
+      FPGAWord innerbend = innervmstub.bend();
+      bool pass_pt_cut_out = true;
+      bool pass_pt_cut_inner = true;
+      if (iSeed_ == 8){
+        int ptouterindex = (idphi_out_for_index << outerbend.nbits()) + outerbend.value();
+        int ptmiddleindex = (idphi_out_for_index << trpdata_.middlebend_.nbits()) + trpdata_.middlebend_.value();
+        pass_pt_cut_out = pttablemiddle_->lookup(ptmiddleindex) && pttableouter_->lookup(ptouterindex);
+ 
+        int ptinnerindex = (idphi_in_for_index << innerbend.nbits()) + innerbend.value();
+        int ptmiddleinindex = (idphi_in_for_index << trpdata_.middlebend_.nbits()) + trpdata_.middlebend_.value();
+        pass_pt_cut_inner = pttablemiddlein_->lookup(ptmiddleinindex) && pttableinner_->lookup(ptinnerindex);
+      }
+
+      if (!(pass_pt_cut_out  && pass_pt_cut_inner && inrange_out && inrange_in)) {
+        if (settings_->debugTracklet()) {
+          edm::LogVerbatim("Tracklet") << "Stubs rejected because of not passing pt/phi cuts";
+        }
+      } else {  // condition on both inner and outer stubs satisfied
+
+        candtriplet_ =
+            std::tuple<const Stub*, const Stub*, const Stub*>(innervmstub.stub(), trpdata_.stub_, outervmstub.stub());
+        goodtriplet_ = true;
+        
+        int rzbinfirst_out_new = -1; // tmp
+        int rzdiffmax_out_new = -1; // tmp
+        L1StubTriplet myTriplet = makeL1StubTriplet(
+          innervmstub.stub(), trpdata_.stub_, outervmstub.stub(), 
+          iSector, iTC, count_trpunits,
+          trpdata_.rzbinfirst_out_, trpdata_.rzbinfirst_in_, rzbinfirst_out_new,
+          trpdata_.rzdiffmax_out_, trpdata_.rzdiffmax_in_, rzdiffmax_out_new,
+          rzbin_out, rzbin_in, ibin_out, ibin_in, 
+          innervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1),
+          outervmstub.vmbits().value() & (settings_->NLONGVMBINS() - 1)
+          );
+        
+        foundtriplets.push_back(myTriplet);
+      }
     }
   }
 
@@ -131,10 +203,10 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
           return;
         }
         // get next out proj bin
-        std::tie(next_out_, outmem_, nstub_out_) = trpdata_.projbin_out_[nproj_out_];
+        std::tie(next_out_, outmem_, nstub_out_, phi_out_) = trpdata_.projbin_out_[nproj_out_];
       }
     }
     // get next in proj bin
-    std::tie(next_in_, inmem_, nstub_in_) = trpdata_.projbin_in_[nproj_in_];
+    std::tie(next_in_, inmem_, nstub_in_, phi_in_) = trpdata_.projbin_in_[nproj_in_];
   }
 }
