@@ -88,6 +88,8 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
 
 //   maxStep_ = settings_.maxStep("TPD");
   maxStep_ = 108;
+  if (maxStep_ < 200) 
+    std::cout << "WARNING: Truncation ON! maxStep_ = " << maxStep_ << std::endl;
 }
 
 void TrackletProcessorDisplaced::addOutputProjection(TrackletProjectionsMemory*& outputProj, MemoryBase* memory) {
@@ -448,6 +450,8 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         // fill projection bins info for single engine unit
         trpdata.projbin_out_.clear();
         trpdata.projbin_in_.clear();
+        trpdata.bad_inner_stub_.clear();
+
         for (int ibin_out = start_out; ibin_out <= last_out; ibin_out++) {
           // outervmstubs_.size() is the number of outer memories as from the wiring file, e.g.
           // instance A has 9 outer memories, instance B -> 6, instance C -> 6, instance D -> 10...
@@ -471,12 +475,15 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
               }  
             } 
             // check if the memory is not empty
-            int nstubs_out = outervmstubs_[outmem]->nVMStubsBinned(ibin_out);
+            unsigned int nstubs_out = outervmstubs_[outmem]->nVMStubsBinned(ibin_out);
             if (nstubs_out > 0)
               trpdata.projbin_out_.emplace_back(tuple<int, int, int, int>(ibin_out - start_out, outmem, nstubs_out, out_phi_region));
           }
         }
 
+
+        unsigned int max_nstubs = 0;        
+        unsigned int max_nbins  = 0;        
         for (int ibin_in = start_in; ibin_in <= last_in; ibin_in++) {
           for (unsigned int inmem = 0; inmem < innervmstubs_.size(); inmem++) {
             // for each memory, check if its region is compatible 
@@ -496,11 +503,21 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
                 }  
               }  
             }
-            int nstubs_in = innervmstubs_[inmem]->nVMStubsBinned(ibin_in);
-            if (nstubs_in > 0)
+            unsigned int nstubs_in = innervmstubs_[inmem]->nVMStubsBinned(ibin_in);
+            if (nstubs_in > 0) {
               trpdata.projbin_in_.emplace_back(tuple<int, int, int, int>(ibin_in - start_in, inmem, nstubs_in, in_phi_region));
+              if (nstubs_in > max_nstubs)
+                max_nstubs = nstubs_in;
+              if (innervmstubs_[inmem]->nBin() > max_nbins)
+                max_nbins = innervmstubs_[inmem]->nBin(); 
+            }
           }
         }
+        
+        size_t total_inn_stubs = innervmstubs_.size() * max_nbins * max_nstubs;
+        trpdata.bad_inner_stub_.assign(total_inn_stubs, false);
+        trpdata.max_nbins_ = max_nbins;
+        trpdata.max_nstubs_ = max_nstubs;
 
         if (!trpdata.projbin_in_.empty() && !trpdata.projbin_out_.empty()) {
           goodtrpdata = true;

@@ -80,6 +80,12 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
     return;
   }
 
+  if (trpdata_.bad_inner_stub_[(inmem_ * trpdata_.max_nbins_ + trpdata_.start_in_ + next_in_) * trpdata_.max_nstubs_ + istub_in_]) {
+//     std::cout << "bad inner stub at " <<  inmem_ << " " << istub_in_ << std::endl;
+    advanceIndices();
+    if (idle_) return;
+  }
+
   // get inner and outer projected stub for certain next value
   int ibin_out = trpdata_.start_out_ + next_out_;
   int ibin_in = trpdata_.start_in_ + next_in_;
@@ -118,6 +124,8 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
   if (iSeed_ == 8){
     inrange_in = (idphi_in < (1 << (nbitsfinephiinnerdiff_ - 1))) && (idphi_in >= -(1 << (nbitsfinephiinnerdiff_ - 1)));
   }  
+  if (!inrange_in)
+    trpdata_.bad_inner_stub_[(inmem_ * trpdata_.max_nbins_ + trpdata_.start_in_ + next_in_) * trpdata_.max_nstubs_ + istub_in_] = true;
   int idphi_in_for_index = idphi_in & ((1 << nbitsfinephiinnerdiff_) - 1);
 
 
@@ -139,6 +147,7 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
       if (settings_->debugTracklet()) {
         edm::LogVerbatim("Tracklet") << "Inner stub rejected because of wrong r/z bin";
       }
+      trpdata_.bad_inner_stub_[(inmem_ * trpdata_.max_nbins_ + trpdata_.start_in_ + next_in_) * trpdata_.max_nstubs_ + istub_in_] = true;
     } else {  // condition on both inner and outer stubs satisfied
 
       FPGAWord outerbend = outervmstub.bend();
@@ -153,6 +162,8 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
         int ptinnerindex = (idphi_in_for_index << innerbend.nbits()) + innerbend.value();
         int ptmiddleinindex = (idphi_in_for_index << trpdata_.middlebend_.nbits()) + trpdata_.middlebend_.value();
         pass_pt_cut_inner = pttablemiddlein_->lookup(ptmiddleinindex) && pttableinner_->lookup(ptinnerindex);
+        if (!pass_pt_cut_inner)
+          trpdata_.bad_inner_stub_[(inmem_ * trpdata_.max_nbins_ + trpdata_.start_in_ + next_in_) * trpdata_.max_nstubs_ + istub_in_] = true;        
       }
 
       if (!(pass_pt_cut_out  && pass_pt_cut_inner && inrange_out && inrange_in)) {
@@ -183,6 +194,11 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
   }
 
   // go to next projection (looping through all inner stubs for each outer stub)
+  advanceIndices();
+  if (idle_) return;
+}
+
+void TripletEngineUnit::advanceIndices() {
   istub_in_++;
   if (istub_in_ >= nstub_in_) {  // if gone through all in stubs, move to next in proj bin
     nproj_in_++;
@@ -193,8 +209,7 @@ void TripletEngineUnit::step(std::vector<L1StubTriplet>& foundtriplets, unsigned
       if (istub_out_ >= nstub_out_) {  // if gone through all out stubs, move to next out proj bin
         nproj_out_++;
         istub_out_ = 0;
-        if (nproj_out_ >=
-            trpdata_.projbin_out_.size()) {  // if gone through all out proj bins, reset everything and stop engine unit
+        if (nproj_out_ >= trpdata_.projbin_out_.size()) {  // if gone through all out proj bins, reset everything and stop engine unit
           istub_in_ = 0;
           istub_out_ = 0;
           nproj_in_ = 0;

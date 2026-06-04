@@ -25,6 +25,9 @@ namespace trklet {
     int rzdiffmax_in_;
     int middlefinephi_;
     FPGAWord middlebend_;
+    unsigned int max_nbins_;
+    unsigned int max_nstubs_;
+    std::vector<uint8_t> bad_inner_stub_;
     std::vector<std::tuple<int, int, int, int> > projbin_out_;  // next z/r bin; outer stub mem; nstub
     std::vector<std::tuple<int, int, int, int> > projbin_in_;   // next z/r bin; inner stub mem; nstub
   };
@@ -64,6 +67,8 @@ namespace trklet {
     void setNearFull() { nearfull_ = candtriplets_.nearfull(); }
 
     void reset();
+
+    void advanceIndices();
 
     void step(std::vector<L1StubTriplet>&, unsigned int, int, int);    
     
