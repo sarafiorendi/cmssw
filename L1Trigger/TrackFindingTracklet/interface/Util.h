@@ -72,6 +72,20 @@ namespace trklet {
     return 2.0 * sin(dphi) / dr / sqrt(1.0 + 2 * r1 * r2 * (1.0 - cos(dphi)) / (dr * dr));
   }
 
+  inline double rinvWithD0(double phi1, double phi2, double r1, double r2, double d0) {
+//     std::cout << r1 << "  " << r2 << std::endl;
+    assert(r1 < r2);
+    assert(std::abs(d0) < r1);
+    double dphi = phi2 - phi1;
+    double dr   = r2 - r1;
+    double dphi_corrected = dphi
+                          - std::asin(d0 / r2)
+                          + std::asin(d0 / r1);
+    return 2.0 * std::sin(dphi_corrected) / dr /
+           std::sqrt(1.0 + 2.0 * r1 * r2 * (1.0 - std::cos(dphi)) / (dr * dr));
+  }
+
+
   inline std::string convertHexToBin(const std::string& stubwordhex) {
     std::string stubwordbin = "";
 

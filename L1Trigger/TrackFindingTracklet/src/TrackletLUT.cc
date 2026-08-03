@@ -118,7 +118,8 @@ std::array<double, 2> TrackletLUT::getTanRange(const std::vector<const tt::Senso
 std::vector<std::array<double, 2>> TrackletLUT::getBendCut(unsigned int layerdisk,
                                                            const std::vector<const tt::SensorModule*>& sensorModules,
                                                            bool isPS,
-                                                           double FEbendcut) {
+                                                           double FEbendcut,
+                                                           double d0Max) {
   //Finds range of bendstrip for given SensorModules as a function of the encoded bend. Returns in format (mid, half_range).
   //This uses the stub windows provided by T. Schuh's SensorModule class to determine the bend encoding. TODO test changes in stub windows
   //Any other change to the bend encoding requires changes here, perhaps a function that given (FEbend, isPS, stub window) and outputs an encoded bend
@@ -164,11 +165,22 @@ std::vector<std::array<double, 2>> TrackletLUT::getBendCut(unsigned int layerdis
 
       for (int i = 0; i < 2; i++) {  // 2 points to cover range in tan(theta) = z/r
         double CF = std::abs(sm->sinTilt()) * (z_mod[i] / r_mod[i]) + sm->cosTilt();
-
+        
+        // add correction for displaced seeds
+        double d0BendCorr = 0.0;
+        if (d0Max > 0.0) {
+          d0BendCorr = (sm->sep() * CF * d0Max) / (r_mod[i] * sm->pitchRow());
+        }
+        
+//         bendmin = bendmin ;
+//         bendmax = bendmax ;
+        double corr_bendmin = bendmin - d0BendCorr;
+        double corr_bendmax = bendmax + d0BendCorr;
+        
         double cbendmin =
-            convertFEBend(bendmin, sm->sep(), settings_.sensorSpacing2S(), CF, (layerdisk < N_LAYER), r_mod[i]);
+            convertFEBend(corr_bendmin, sm->sep(), settings_.sensorSpacing2S(), CF, (layerdisk < N_LAYER), r_mod[i]);
         double cbendmax =
-            convertFEBend(bendmax, sm->sep(), settings_.sensorSpacing2S(), CF, (layerdisk < N_LAYER), r_mod[i]);
+            convertFEBend(corr_bendmax, sm->sep(), settings_.sensorSpacing2S(), CF, (layerdisk < N_LAYER), r_mod[i]);
 
         if (cbendmin < bendminmax[bend][0])
           bendminmax.at(bend)[0] = cbendmin;
@@ -348,9 +360,12 @@ void TrackletLUT::initTPlut(bool fillOrig,
   unsigned int nbendbitsproj = isPSproj ? N_BENDBITS_PS : N_BENDBITS_2S;
 
   double z0 = settings_.z0cut();
-  if (isExtendedSeed)
+//   double d0max = 0.;
+  if (isExtendedSeed){
     z0 = settings_.disp_z0cut();
-
+//     d0max = settings_.d0maxDisplaced();
+  }
+  
   int nbinsfinephidiff = (1 << nbitsfinephidiff);
 
   for (int iphibin = 0; iphibin < nbinsfinephidiff; iphibin++) {
@@ -407,8 +422,10 @@ void TrackletLUT::initTPlut(bool fillOrig,
           smorig = getSensorModules(layerdisk1, isPSorig, isExtendedSeed, tan_range);
         }
 
-        bend_cuts_orig = getBendCut(layerdisk1, smorig, isPSorig, settings_.bendcutTE(iSeed, true));
-        bend_cuts_proj = getBendCut(layerdisk2, smproj, isPSproj, settings_.bendcutTE(iSeed, false));
+        bend_cuts_orig = getBendCut(layerdisk1, smorig, isPSorig, settings_.bendcutTE(iSeed, true), 0.) ;
+        bend_cuts_proj = getBendCut(layerdisk2, smproj, isPSproj, settings_.bendcutTE(iSeed, false), 0.);
+//         bend_cuts_orig = getBendCut(layerdisk1, smorig, isPSorig, settings_.bendcutTE(iSeed, true), d0max) ;
+//         bend_cuts_proj = getBendCut(layerdisk2, smproj, isPSproj, settings_.bendcutTE(iSeed, false), d0max);
       } else {
         for (int ibend = 0; ibend < (1 << nbendbitsorig); ibend++) {
           double mid = settings_.benddecode(ibend, layerdisk1, isPSorig);
@@ -430,44 +447,143 @@ void TrackletLUT::initTPlut(bool fillOrig,
       double rinvmax = -1.0;
       double absrinvmin = 1.0;
 
+
+      // For each corner of (i2=±dphi, i3=rproj) AND i_d0 = ±d0Max:
       for (int i2 = 0; i2 < 2; i2++) {
         for (int i3 = 0; i3 < 2; i3++) {
+
           double rorig = 0.0;
           if (iSeed == Seed::D1D2 || iSeed == Seed::D3D4 || (iSeed == Seed::D1D2L2 && !isThirdStub)) {
             rorig = rproj[i3] * settings_.zmean(layerdisk1 - N_LAYER) / settings_.zmean(layerdisk2 - N_LAYER);
           } else {
             rorig = settings_.rmean(layerdisk1);
           }
-        // not sure about this one, please check
           if (settings_.useCalcBendCuts && !isThirdStub) {
             if (rorig >= rproj[i3])
               continue;
           }
-          double rinv1 = (rorig < rproj[i3]) ? rinv(0.0, -dphi[i2], rorig, rproj[i3]) : 20.0;
-          if (isThirdStub)
-            rinv1 = (rorig > rproj[i3]) ? rinv(0.0, dphi[i2], rproj[i3], rorig) : 20.0;
-
           double pitchorig = (rorig < settings_.rcrit()) ? settings_.stripPitch(true) : settings_.stripPitch(false);
           double pitchproj =
               (rproj[i3] < settings_.rcrit()) ? settings_.stripPitch(true) : settings_.stripPitch(false);
-          double abendorig = bendstrip(rorig, rinv1, pitchorig, settings_.sensorSpacing2S());
-          double abendproj = bendstrip(rproj[i3], rinv1, pitchproj, settings_.sensorSpacing2S());
-          if (abendorig < bendorigmin)
-            bendorigmin = abendorig;
-          if (abendorig > bendorigmax)
-            bendorigmax = abendorig;
-          if (abendproj < bendprojmin)
-            bendprojmin = abendproj;
-          if (abendproj > bendprojmax)
-            bendprojmax = abendproj;
-          if (std::abs(rinv1) < absrinvmin)
-            absrinvmin = std::abs(rinv1);
-          if (rinv1 > rinvmax)
-            rinvmax = rinv1;
-          if (rinv1 < rinvmin)
-            rinvmin = rinv1;
+          
+          for (int id0 = 0; id0 < (isExtendedSeed ? 2 : 1); id0++) {
+      
+            double d0val = isExtendedSeed
+                         ? (id0 == 0 ? +settings_.d0maxDisplaced()
+                                     : -settings_.d0maxDisplaced())
+                         : 0.0;
+      
+            double rinv1 = 0;
+            if (iSeed == L2L3L4 || iSeed == L4L5L6){
+            // rinv WITH d0 correction
+              rinv1 = (rorig < rproj[i3])  ? rinvWithD0(0.0, -dphi[i2], rorig, rproj[i3], d0val) : 20.0;
+              if (isThirdStub)
+                rinv1 = rinvWithD0(0.0, dphi[i2], rproj[i3], rorig, d0val);
+            } else {
+              rinv1 = (rorig < rproj[i3]) ? rinv(0.0, -dphi[i2], rorig, rproj[i3]) : 20.0;
+              if (isThirdStub)
+                rinv1 = (rorig > rproj[i3]) ? rinv(0.0, dphi[i2], rproj[i3], rorig) : 20.0;      
+            }    
+      
+            // bend uses the d0-corrected rinv — NO separate d0BendCorr needed
+            double abendorig = bendstrip(rorig,     rinv1, pitchorig, settings_.sensorSpacing2S());
+            double abendproj = bendstrip(rproj[i3], rinv1, pitchproj, settings_.sensorSpacing2S());
+      
+            // accumulate min/max directly
+            if (abendorig < bendorigmin) bendorigmin = abendorig;
+            if (abendorig > bendorigmax) bendorigmax = abendorig;
+            if (abendproj < bendprojmin) bendprojmin = abendproj;
+            if (abendproj > bendprojmax) bendprojmax = abendproj;
+      
+            if (std::abs(rinv1) < absrinvmin) absrinvmin = std::abs(rinv1);
+            if (rinv1 > rinvmax) rinvmax = rinv1;
+            if (rinv1 < rinvmin) rinvmin = rinv1;
+
+          }
         }
       }
+      if (iSeed == L2L3L4 && !isThirdStub)
+          std::cout << iphibin << "," 
+//                     << i2 << "," 
+//                     << i3 << "," 
+//                     << id0 << "," 
+//                     << rinv1 << "," 
+                    << bendorigmin << "," 
+                    << bendorigmax << "," 
+                    << bendprojmin << "," 
+                    << bendprojmax << ","
+                    << rinvmin << ","
+                    << rinvmax // <<  ","
+//                     << rinvcut 
+                    << std::endl;
+
+// originl version
+//       for (int i2 = 0; i2 < 2; i2++) {
+//         for (int i3 = 0; i3 < 2; i3++) {
+//           double rorig = 0.0;
+//           if (iSeed == Seed::D1D2 || iSeed == Seed::D3D4 || (iSeed == Seed::D1D2L2 && !isThirdStub)) {
+//             rorig = rproj[i3] * settings_.zmean(layerdisk1 - N_LAYER) / settings_.zmean(layerdisk2 - N_LAYER);
+//           } else {
+//             rorig = settings_.rmean(layerdisk1);
+//           }
+//         // not sure about this one, please check
+//           if (settings_.useCalcBendCuts && !isThirdStub) {
+//             if (rorig >= rproj[i3])
+//               continue;
+//           }
+//           double rinv1 = (rorig < rproj[i3]) ? rinv(0.0, -dphi[i2], rorig, rproj[i3]) : 20.0;
+//           if (isThirdStub)
+//             rinv1 = (rorig > rproj[i3]) ? rinv(0.0, dphi[i2], rproj[i3], rorig) : 20.0;
+// 
+//           double pitchorig = (rorig < settings_.rcrit()) ? settings_.stripPitch(true) : settings_.stripPitch(false);
+//           double pitchproj =
+//               (rproj[i3] < settings_.rcrit()) ? settings_.stripPitch(true) : settings_.stripPitch(false);
+// 
+//         /* from Util.h
+//                   inline double bendstrip(double r, double rinv, double stripPitch, double sensorSpacing) {
+//                     double delta = r * sensorSpacing * 0.5 * rinv;
+//                     double bend = delta / stripPitch;
+//                     return bend;
+//                   }              
+//         */
+//           double abendorig = bendstrip(rorig, rinv1, pitchorig, settings_.sensorSpacing2S());
+//           double abendproj = bendstrip(rproj[i3], rinv1, pitchproj, settings_.sensorSpacing2S());
+//           
+//           double d0BendCorrOrig = 0 ;
+//           double d0BendCorrProj = 0 ;
+// 
+//           if (isExtendedSeed) {
+//             float d0Max_tmp = settings_.d0maxDisplaced();
+//             d0BendCorrOrig = settings_.sensorSpacing2S() * d0Max_tmp / (rorig * pitchorig);
+//             d0BendCorrProj = settings_.sensorSpacing2S() * d0Max_tmp / (rproj[i3] * pitchproj);
+//           }  
+//                       
+// //           if (abendorig < bendorigmin)
+// //             bendorigmin = abendorig;
+// //           if (abendorig > bendorigmax)
+// //             bendorigmax = abendorig;
+// //           if (abendproj < bendprojmin)
+// //             bendprojmin = abendproj;
+// //           if (abendproj > bendprojmax)
+// //             bendprojmax = abendproj;
+//             
+//           if (abendorig - d0BendCorrOrig < bendorigmin)
+//             bendorigmin = abendorig - d0BendCorrOrig;
+//           if (abendorig + d0BendCorrOrig > bendorigmax)
+//             bendorigmax = abendorig + d0BendCorrOrig;
+//           if (abendproj - d0BendCorrProj < bendprojmin)
+//             bendprojmin = abendproj - d0BendCorrProj;
+//           if (abendproj + d0BendCorrProj > bendprojmax)
+//             bendprojmax = abendproj + d0BendCorrProj;
+//                         
+//           if (std::abs(rinv1) < absrinvmin)
+//             absrinvmin = std::abs(rinv1);
+//           if (rinv1 > rinvmax)
+//             rinvmax = rinv1;
+//           if (rinv1 < rinvmin)
+//             rinvmin = rinv1;
+//         }
+//       }
 
       bool passptcut;
       double bendfac;
@@ -485,6 +601,8 @@ void TrackletLUT::initTPlut(bool fillOrig,
         passptcut = absrinvmin < rinvcutte;
         bendfac = 1.0;
       }
+      ///////// WARNING SARA !!!!!!!!!!!!!!!
+//       passptcut = true;
 
       if (fillOrig) {
         for (int ibend = 0; ibend < (1 << nbendbitsorig); ibend++) {
@@ -493,8 +611,17 @@ void TrackletLUT::initTPlut(bool fillOrig,
 
           double mid = bend_cuts_orig.at(ibend)[0];
           double cut = bend_cuts_orig.at(ibend)[1];
+          if (iSeed == Seed::L2L3L4)
+            std::cout << "mid = " << mid
+                      << "  cut = " << cut
+//                       << "  bendmaxfac = " << bendmaxfac
+//                       << "  bendorigmin = " << bendorigmin
+//                       << "  bendorigmax = " << bendorigmax
+                      << std::endl;
 
           bool passorig = mid + cut * bendmaxfac > bendorigmin && mid - cut * bendminfac < bendorigmax;
+//           if (iSeed == Seed::L2L3L4 && passorig)
+//             std::cout << "passproj " << std::endl;
 
           table_.push_back(passorig && passptcut);
         }
@@ -506,7 +633,17 @@ void TrackletLUT::initTPlut(bool fillOrig,
           double mid = bend_cuts_proj.at(ibend)[0];
           double cut = bend_cuts_proj.at(ibend)[1];
 
+//           if (iSeed == Seed::L2L3L4)
+//             std::cout << "mid = " << mid
+//                       << "  cut = " << cut
+//                       << "  bendminfac = " << bendminfac
+//                       << "  bendprojmin = " << bendprojmin
+//                       << "  bendprojmax = " << bendprojmax
+//                       << std::endl;
+
           bool passproj = mid + cut * bendmaxfac > bendprojmin && mid - cut * bendminfac < bendprojmax;
+//           if (iSeed == Seed::L2L3L4 && passproj)
+//             std::cout << "passproj " << std::endl;
 
           table_.push_back(passproj && passptcut);
         }

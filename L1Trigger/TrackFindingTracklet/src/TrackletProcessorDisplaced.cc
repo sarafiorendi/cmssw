@@ -65,6 +65,11 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
   std::vector<float> d0_vals = linspace(-10,10,101);
   double dphimax_out = compute_dphimax(d0_vals, rinv, rmiddle, router);
   double dphimax_in = compute_dphimax(d0_vals, rinv, rinner, rmiddle);
+  
+//   delta(phi) = - delta(r) / (2*rho) = -s/(2*rho)
+//   double max_bend = dphimax_out * -(r/p)*s/(2*rho)
+
+//   std::cout << "max bend = " << std::endl;
 
   // number of fine phi bins in sector for the outer/inner layer
   nbitsfinephiouterdiff_ = compute_nfinephibins(layerdisk2_,iSeed_, dphimax_out);
@@ -86,8 +91,8 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
   iTC_ = region;
   TCIndex_ = (iSeed_ << settings.nbitsseed()) + iTC_;
 
-//   maxStep_ = settings_.maxStep("TPD");
-  maxStep_ = 108;
+  maxStep_ = settings_.maxStep("TPD");
+//   maxStep_ = 108;
   if (maxStep_ < 200) 
     std::cout << "WARNING: Truncation ON! maxStep_ = " << maxStep_ << std::endl;
 }
