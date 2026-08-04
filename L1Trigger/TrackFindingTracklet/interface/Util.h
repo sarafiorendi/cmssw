@@ -45,6 +45,14 @@ namespace trklet {
     return bend;
   }
 
+  inline double bendstripWithD0(double r, double rinv, double stripPitch, double sensorSpacing, double d0) {
+    // local incident angle with correction for non-zero d0
+    double local_angle = (r * 0.5 * rinv) + (d0 / r);
+    double delta = sensorSpacing * local_angle;
+    double bend = delta / stripPitch;
+    return bend;
+  }
+
   inline double convertFEBend(
       double FEbend, double sensorSep, double sensorSpacing, double CF, bool barrel, double r = 0) {
     double bend = sensorSpacing * CF * FEbend / sensorSep;

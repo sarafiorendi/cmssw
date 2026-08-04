@@ -146,8 +146,7 @@ namespace trklet {
     std::vector<std::array<double, 2>> getBendCut(unsigned int layerdisk,
                                                   const std::vector<const tt::SensorModule*>& sensorModules,
                                                   bool isPS,
-                                                  double FEbendcut = 0,
-                                                  double maxD0 = 0
+                                                  double FEbendcut = 0
                                                   );
 
     int getphiCorrValue(
