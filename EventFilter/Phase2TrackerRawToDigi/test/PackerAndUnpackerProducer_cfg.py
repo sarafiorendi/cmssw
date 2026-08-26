@@ -49,21 +49,21 @@ process.source = cms.Source("PoolSource",
 )
 
 ## in case of local file
-# process.load("CondCore.CondDB.CondDB_cfi")
-# process.CondDB.connect = 'sqlite_file:/afs/cern.ch/work/f/fiorendi/private/l1tt/unpacker_retry/CMSSW_14_1_0_pre7/src/Phase2RawToDigi/Phase2DAQProducer/python/OTandITDTCCablingMap_T33.db'
+process.load("CondCore.CondDB.CondDB_cfi")
+process.CondDB.connect = 'sqlite_file:/afs/cern.ch/user/f/fiorendi/public/l1tt/unpacker/crack/OTCablingMap_newClass.db'
 #process.load("CondCore.CondDB.CondDB_cfi")
 #process.CondDB.connect = 'frontier://FrontierProd/CMS_CONDITIONS'
 
-#process.PoolDBESSource = cms.ESSource("PoolDBESSource",
-#    process.CondDB,
-#    DumpStat = cms.untracked.bool(True),
-#    toGet = cms.VPSet(cms.PSet(
-#        record = cms.string('TrackerDetToDTCELinkCablingMapRcd'),
-#        tag = cms.string("TrackerDetToDTCELinkCablingMap__OT800_IT711__T33__OTOnly"),
-#    )),
-#)
+process.PoolDBESSource = cms.ESSource("PoolDBESSource",
+   process.CondDB,
+   DumpStat = cms.untracked.bool(True),
+   toGet = cms.VPSet(cms.PSet(
+       record = cms.string('TrackerDetToDTCELinkCablingMapRcd'),
+       tag = cms.string("DTCCablingMapProducerUserRun"),
+   )),
+)
 
-#process.es_prefer_local_cabling = cms.ESPrefer("PoolDBESSource", "")
+process.es_prefer_local_cabling = cms.ESPrefer("PoolDBESSource", "")
 
 # Should not need to remake clusters, unless MC made with out-of-date clusterizer
 #process.load('RecoLocalTracker.SiPhase2Clusterizer.phase2TrackerClusterizer_cfi')
