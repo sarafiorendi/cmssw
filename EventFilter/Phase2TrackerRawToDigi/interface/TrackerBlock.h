@@ -16,7 +16,7 @@ public:
 
   void setValue(std::vector<uint32_t>& newValues) {
     values_ = newValues;
-    is2S_ = ((values_[0] >> (N_BITS_PER_WORD - MODULE_TYPE_BITS)) & ((1u << MODULE_TYPE_BITS) - 1)) == MODULE_TYPE_2S;
+    is2S_ = ((values_[0] >> (N_BITS_PER_WORD - C_NUM_BITS_BOARD_TYPE)) & ((1u << C_NUM_BITS_BOARD_TYPE) - 1)) == DTC_HEADER_OT_2S;
     setSpecificValue();
   }
 
@@ -100,7 +100,8 @@ protected:
   std::string blockName() const override { return "TrackerTrailer"; }
 
   void setSpecificValue() override {
-    endED_ = (values_[0]) & ((1u << TRAILER_ENDED_BITS) - 1);
+    endED_ = (values_[0] >> 24) & 0xFF; // FIXME
+//     endED_ = (values_[0]) & ((1u << TRAILER_ENDED_BITS) - 1);
   }
 
 private:

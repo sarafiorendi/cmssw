@@ -466,7 +466,7 @@ uint32_t RawToClusterProducer::get32bWordAtByte(std::span<const unsigned char> d
  * @return TrackerHeader Class Object.
  */
 TrackerHeader RawToClusterProducer::getTrackerHeader(std::span<const unsigned char> data) {
-    std::array<uint32_t, 4> words;
+    std::vector<uint32_t> words(Phase2DAQFormatSpecification::DTC_HEADER_SIZE);
     size_t startByte = Phase2DAQFormatSpecification::DTC_HEADER_OFFSET * Phase2DAQFormatSpecification::N_BYTES_PER_WORD;
     for (int i = 0; i < Phase2DAQFormatSpecification::DTC_HEADER_SIZE; ++i) {
         words[i] = get32bWordAtByte(data, 
