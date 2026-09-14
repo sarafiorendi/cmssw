@@ -51,7 +51,6 @@ process.source = cms.Source("PoolSource",
 ## in case of local file
 process.load("CondCore.CondDB.CondDB_cfi")
 process.CondDB.connect = 'sqlite_file:/afs/cern.ch/user/f/fiorendi/public/l1tt/unpacker/crack/OTCablingMap_newClass.db'
-#process.load("CondCore.CondDB.CondDB_cfi")
 #process.CondDB.connect = 'frontier://FrontierProd/CMS_CONDITIONS'
 
 process.PoolDBESSource = cms.ESSource("PoolDBESSource",
@@ -79,7 +78,8 @@ process.Analyzer = cms.EDAnalyzer("RawAnalyzer",
     fedDataBuffer = cms.InputTag("Packer")
 )
 process.Unpacker = cms.EDProducer("RawToClusterProducer",
-    fedDataBuffer = cms.InputTag("Packer")
+    fedDataBuffer = cms.InputTag("Packer"),
+    analyzeCRACK = cms.bool(False)
 )
 
 process.out = cms.OutputModule("PoolOutputModule",
