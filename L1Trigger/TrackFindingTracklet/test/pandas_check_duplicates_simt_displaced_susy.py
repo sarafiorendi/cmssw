@@ -65,7 +65,6 @@ def find_duplicate_pairs(df):
 def main(files):
     total_events = 0
     total_tps = 0
-    total_sig_tps = 0
     all_pairs = []
     mode_used = None
     any_match_branch_seen = False
@@ -108,7 +107,7 @@ def main(files):
     if len(pairs):
         mismatched = int((pairs["pdgid_A"] != pairs["pdgid_B"]).sum())
         print(f"  -> with mismatched st_pdgid:            {mismatched} ({100.0 * mismatched / len(pairs):.1f}%)")
-        print(f"  duplicate pairs / signal SimTks:        {100.0 * len(pairs) / max(total_sig_tps, 1):.3f}%")
+        print(f"  duplicate pairs / signal SimTks:        {100.0 * len(pairs) / max(total_tps, 1):.3f}%")
 
         ## this is when running on L1TF Ntuples
         if any_match_branch_seen and "matchtrk_pt_A" in pairs.columns:
