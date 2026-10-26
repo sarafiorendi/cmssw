@@ -27,7 +27,15 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
     : TrackletCalculatorDisplaced(name, settings, globals),
       trpbuffer_(CircularBuffer<TrpEData>(3), 0, 0, 0, 0),
       innerTable_(settings),
-      innerThirdTable_(settings) {
+      innerThirdTable_(settings),
+      useOuterRegiontable_(settings),
+      useInnerRegiontable_(settings),
+      pttablemiddle_(settings),
+      pttableouter_(settings),
+      pttablemiddlein_(settings),
+      pttableinner_(settings),
+      pttablemiddle_region_out_(settings),
+      pttablemiddle_region_in_(settings) {
   innerallstubs_.clear();
   middleallstubs_.clear();
   outerallstubs_.clear();
@@ -36,6 +44,33 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
 
   // set layer/disk types based on input seed name
   initLayerDisksandISeedDisp(layerdisk1_, layerdisk2_, layerdisk3_, iSeed_);
+
+  // find the maximum deltaPhi (assuming max d0 of XX) expected for stubs in the seed
+  double rmiddle = -1.0;
+  double router  = -1.0;
+  double rinner  = -1.0;
+
+  if (iSeed_ == Seed::L2L3L4 || iSeed_ == Seed::L4L5L6) {
+    rmiddle = settings_.rmean(layerdisk1_); // middle
+    router  = settings_.rmean(layerdisk2_); // outer
+    rinner  = settings_.rmean(layerdisk3_); // inner
+  } //else {
+  // add missing seeds 10 and 11
+  // } 
+  // rmin and rmax correspond to the radius of the two layers/disks of the seed 
+  // dphimax (in radians) is the max delta phi between the two stubs of the pair to form that seed in order to satisfy the min pt cut (maxrinv)
+  const double rinv = settings_.rinvmaxDisplaced(); // assuming charge = 1
+  // FIXME: max/min d0 to be configurable
+  std::vector<float> d0_vals = linspace(-10,10,101);
+  double dphimax_out = compute_dphimax(d0_vals, rinv, rmiddle, router);
+  double dphimax_in = compute_dphimax(d0_vals, rinv, rinner, rmiddle);
+
+//   if (iSeed_ == Seed::L4L5L6) std::cout << dphimax_out << " " << dphimax_in << std::endl;
+  // number of fine phi bins in sector for the outer/inner layer
+  nbitsfinephiouterdiff_ = compute_nfinephibins(layerdisk2_,iSeed_, dphimax_out);
+  nbitsfinephiinnerdiff_ = compute_nfinephibins(layerdisk3_,iSeed_, dphimax_in);
+
+  nbitsfinephi_ = settings_.nbitsallstubs(layerdisk2_) + settings_.nbitsvmte(1, iSeed_) + settings_.nfinephi(1, iSeed_);
 
   // get projection tables
   unsigned int region = name.back() - 'A';
@@ -52,6 +87,7 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
   TCIndex_ = (iSeed_ << settings.nbitsseed()) + iTC_;
 
   maxStep_ = settings_.maxStep("TPD");
+//   maxStep_ = 108;
 }
 
 void TrackletProcessorDisplaced::addOutputProjection(TrackletProjectionsMemory*& outputProj, MemoryBase* memory) {
@@ -121,6 +157,18 @@ void TrackletProcessorDisplaced::addInput(MemoryBase* memory, string input) {
     auto* tmp = dynamic_cast<AllStubsMemory*>(memory);
     assert(tmp != nullptr);
     middleallstubs_.push_back(tmp);
+
+    iAllStub_ = tmp->getName()[8] - 'A';
+    unsigned int iTP = iAllStub_;
+
+    pttablemiddle_region_out_.initTPlut(true, iSeed_, layerdisk1_, layerdisk2_, nbitsfinephiouterdiff_, iTP, false);
+    useOuterRegiontable_.initTPregionlut(
+      iSeed_, layerdisk1_, layerdisk2_, iAllStub_, nbitsfinephiouterdiff_, nbitsfinephi_, pttablemiddle_region_out_, iTP);
+      // iTP is only used in the name of the LUT table, if written out
+      // iAllStub is used to define the outerfinephi
+    pttablemiddle_region_in_.initTPlut(true, iSeed_, layerdisk1_, layerdisk3_, nbitsfinephiinnerdiff_, iTP, true);
+    useInnerRegiontable_.initTPregionlut(
+      iSeed_, layerdisk1_, layerdisk3_, iAllStub_, nbitsfinephiinnerdiff_, nbitsfinephi_, pttablemiddle_region_in_, iTP);
     return;
   }
   if (input == "secondallstubin") {
@@ -134,12 +182,20 @@ void TrackletProcessorDisplaced::addInput(MemoryBase* memory, string input) {
     auto* tmp = dynamic_cast<VMStubsTEMemory*>(memory);
     assert(tmp != nullptr);
     innervmstubs_.push_back(tmp);
+
+    unsigned int iTP = getName()[7] - 'A';
+    pttablemiddlein_.initTPlut(true, iSeed_, layerdisk1_, layerdisk3_, nbitsfinephiinnerdiff_, iTP, true);
+    pttableinner_.initTPlut(false, iSeed_, layerdisk1_, layerdisk3_, nbitsfinephiinnerdiff_, iTP, true);
     return;
   }
   if (input == "secondvmstubin") {
     auto* tmp = dynamic_cast<VMStubsTEMemory*>(memory);
     assert(tmp != nullptr);
     outervmstubs_.push_back(tmp);
+
+    unsigned int iTP = getName()[7] - 'A';
+    pttablemiddle_.initTPlut(true, iSeed_, layerdisk1_, layerdisk2_, nbitsfinephiouterdiff_, iTP, false);
+    pttableouter_.initTPlut(false, iSeed_, layerdisk1_, layerdisk2_, nbitsfinephiouterdiff_, iTP, false);
     return;
   }
 
@@ -156,7 +212,21 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
   int donecount = 0;
 
   // set the triplet engine units and buffer
-  TripletEngineUnit trpunit(&settings_, layerdisk1_, layerdisk2_, layerdisk3_, iSeed_, innervmstubs_, outervmstubs_);
+  TripletEngineUnit trpunit(&settings_, 
+                            layerdisk1_, 
+                            layerdisk2_, 
+                            layerdisk3_, 
+                            iSeed_,
+                            iAllStub_,
+                            nbitsfinephi_,
+                            nbitsfinephiouterdiff_,
+                            nbitsfinephiinnerdiff_,
+                            &pttablemiddle_,
+                            &pttableouter_,
+                            &pttablemiddlein_,
+                            &pttableinner_,                            
+                            innervmstubs_, 
+                            outervmstubs_);
   trpunits_.resize(settings_.trpunits(iSeed_), trpunit);
   trpbuffer_ = tuple<CircularBuffer<TrpEData>, unsigned int, unsigned int, unsigned int, unsigned int>(
       CircularBuffer<TrpEData>(3), 0, 0, 0, middleallstubs_.size());
@@ -331,6 +401,26 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         }
         int last_in = start_in + next_in;  // last large rz-bin projection
 
+        // find the phi region where outer / inner stubs are expected, based on middle stub phi
+        // and on the LUTs
+        FPGAWord phicorr = stub->phicorr();
+        // nbitsallstubs is the same for all layers except L1
+        // the other two pars only depend on the seed, not on the layer 
+        int middlefinephi = phicorr.bits(phicorr.nbits() - nbitsfinephi_, nbitsfinephi_);
+        FPGAWord middlebend = stub->bend();
+
+        // use pt cut in phiregion
+        unsigned int nbendbitsmiddle = 3;
+        if (iSeed_ == Seed::L4L5L6) {
+          nbendbitsmiddle = 4;
+        }
+        unsigned int useregindex = (middlefinephi << nbendbitsmiddle) + middlebend.value();
+
+        int usereg_out = -1;
+        usereg_out = useOuterRegiontable_.lookup(useregindex);
+        int usereg_in = -1;
+        usereg_in = useInnerRegiontable_.lookup(useregindex);
+
         // fill trpdata with projection info of middle stub
         trpdata.stub_ = stub;
         trpdata.rzbinfirst_out_ = rzbinfirst_out;
@@ -339,24 +429,77 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         trpdata.rzdiffmax_in_ = rzdiffmax_in;
         trpdata.start_out_ = start_out;
         trpdata.start_in_ = start_in;
+        trpdata.middlefinephi_ = middlefinephi;
+        trpdata.middlebend_ = middlebend;
 
         // fill projection bins info for single engine unit
         trpdata.projbin_out_.clear();
         trpdata.projbin_in_.clear();
+        trpdata.bad_inner_stub_.clear();
+
         for (int ibin_out = start_out; ibin_out <= last_out; ibin_out++) {
           for (unsigned int outmem = 0; outmem < outervmstubs_.size(); outmem++) {
-            int nstubs_out = outervmstubs_[outmem]->nVMStubsBinned(ibin_out);
+            // for each memory, check if its region is compatible 
+            unsigned int out_phi_region = (outervmstubs_[outmem]->phibin() - 1) - (outervmstubs_[outmem]->getName()[11] - 'A') * 8;
+            if (iSeed_ == Seed::L2L3L4 || iSeed_ == Seed::L4L5L6) {
+              char mem_reg_out  = outervmstubs_[outmem]->getName()[11];
+              char mem_reg_mid = middleallstubs_[midmem]->getName()[8];
+
+              int diff_reg = mem_reg_out - mem_reg_mid;
+              if (diff_reg == 1) 
+                  out_phi_region += 8; // FIXME: not use hardcoded number
+              else if (diff_reg == -1) 
+                  out_phi_region += 16;
+              if (std::abs(diff_reg) < 2){
+                if (usereg_out != -1 && !(usereg_out & (1 << out_phi_region))) {
+                  continue;
+                }  
+              }  
+            }
+            
+            
+            // check if the memory is not empty
+            unsigned int nstubs_out = outervmstubs_[outmem]->nVMStubsBinned(ibin_out);
             if (nstubs_out > 0)
-              trpdata.projbin_out_.emplace_back(tuple<int, int, int>(ibin_out - start_out, outmem, nstubs_out));
+              trpdata.projbin_out_.emplace_back(tuple<int, int, int, int>(ibin_out - start_out, outmem, nstubs_out, out_phi_region));
           }
         }
+        unsigned int max_nstubs = 0;        
+        unsigned int max_nbins  = 0;        
         for (int ibin_in = start_in; ibin_in <= last_in; ibin_in++) {
           for (unsigned int inmem = 0; inmem < innervmstubs_.size(); inmem++) {
-            int nstubs_in = innervmstubs_[inmem]->nVMStubsBinned(ibin_in);
-            if (nstubs_in > 0)
-              trpdata.projbin_in_.emplace_back(tuple<int, int, int>(ibin_in - start_in, inmem, nstubs_in));
+            // for each memory, check if its region is compatible 
+            unsigned int in_phi_region = (innervmstubs_[inmem]->phibin() - 1) - (innervmstubs_[inmem]->getName()[11] - 'A') * 8;
+            if (iSeed_ == Seed::L2L3L4 || iSeed_ == Seed::L4L5L6) {
+              char mem_reg_in  = innervmstubs_[inmem]->getName()[11];
+              char mem_reg_mid = middleallstubs_[midmem]->getName()[8];
+
+              int diff_reg = mem_reg_in - mem_reg_mid;
+              if (diff_reg == 1) 
+                  in_phi_region += 8;
+              else if (diff_reg == -1) 
+                  in_phi_region += 16;
+              if (std::abs(diff_reg) < 2){
+                if (usereg_in != -1 && !(usereg_in & (1 << in_phi_region))) {
+                  continue;
+                }  
+              }  
+            }
+            unsigned int nstubs_in = innervmstubs_[inmem]->nVMStubsBinned(ibin_in);
+            if (nstubs_in > 0) {
+              trpdata.projbin_in_.emplace_back(tuple<int, int, int, int>(ibin_in - start_in, inmem, nstubs_in, in_phi_region));
+              if (nstubs_in > max_nstubs)
+                max_nstubs = nstubs_in;
+              if (innervmstubs_[inmem]->nBin() > max_nbins)
+                max_nbins = innervmstubs_[inmem]->nBin(); 
+            }
           }
         }
+        
+        size_t total_inn_stubs = innervmstubs_.size() * max_nbins * max_nstubs;
+        trpdata.bad_inner_stub_.assign(total_inn_stubs, false);
+        trpdata.max_nbins_ = max_nbins;
+        trpdata.max_nstubs_ = max_nstubs;
 
         if (!trpdata.projbin_in_.empty() && !trpdata.projbin_out_.empty()) {
           goodtrpdata = true;
@@ -407,4 +550,73 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
     globals_->ofstream("trackletprocessordisplaced.txt")
         << getName() << " " << countall << " " << countsel << std::endl;
   }
+}
+
+double TrackletProcessorDisplaced::compute_dphimax (std::vector<float> d0_vals, const double rinv, double r1, double r2) {
+  std::vector<double> dphi_vals;
+  dphi_vals.reserve(2 * d0_vals.size());
+
+  for (double d0 : d0_vals) {
+    dphi_vals.push_back(compute_deltaPhi( rinv, d0, r1, r2));
+    dphi_vals.push_back(compute_deltaPhi(-rinv, d0, r1, r2));
+  }
+
+  if (dphi_vals.empty())
+    return 9999.0;
+  
+  auto max_it = std::max_element(
+      dphi_vals.begin(),
+      dphi_vals.end(),
+      [](double a, double b) { return std::abs(a) < std::abs(b); });
+
+  return std::abs(*max_it);
+};
+
+double TrackletProcessorDisplaced::compute_phi(double r, double rho, double d0){
+    return (-r/2./rho + d0/r + d0*d0/2./r/rho -2*d0*r/4./rho/rho + 1.0/6.0*pow(-r/2/rho + d0/r,3));
+}
+
+double TrackletProcessorDisplaced::compute_deltaPhi(const double rinv, double d0, double r1, double r2){
+  
+  if (r1 <= 0 || r2 <= 0 || r1 >= r2 || std::abs(rinv) < 1e-12)
+    return std::numeric_limits<double>::quiet_NaN();
+    
+  double rho = 1.0 / rinv;
+  double phi1 = compute_phi(r1, rho, d0);
+  double phi2 = compute_phi(r2, rho, d0);
+  double delta_phi = phi2 - phi1;
+  return delta_phi;
+}
+
+int TrackletProcessorDisplaced::compute_nfinephibins(int layerdisk, int iSeed_, double dphimax){
+   
+  int nfinephibins =
+      settings_.nallstubs(layerdisk) * settings_.nvmte(1, iSeed_) * (1 << settings_.nfinephi(1, iSeed_));
+  double dfinephi = settings_.dphisectorHG() / nfinephibins;
+  // next line: passing layerdisk2, but nbitsallstubs is the same for all layers except L1, so it does not really matter for displaced seeds
+  // it also means that nbitsfinephi_ can be used for outer and inner
+  int nbins_out = 2.0 * (dphimax / dfinephi + 1.0);
+  // find the number of bits needed to represent nbins
+//   int bits = 0;
+//   while ((1 << bits) < nbins_out) bits++;
+  int bits = log(nbins_out) / log(2.0) + 1;
+  
+//   std::cout << "iSeed_ = " << iSeed_
+//             << "   dphimax = " << dphimax
+//             << "   nfinephibins = " << nfinephibins
+//             << "   dfinephi = " << dfinephi
+//             << "   nbins_out = " << nbins_out
+//             << "   bits = " << bits
+//             << std::endl;
+  
+  return bits;
+  
+}
+std::vector<float> TrackletProcessorDisplaced::linspace(float A, float B, int N) {
+    std::vector<float> v(N);
+    if (N == 1) return {A};
+    float step = (B - A) / (N - 1);
+    float val = A;
+    std::generate(v.begin(), v.end(), [&]{ float tmp = val; val += step; return tmp; });
+    return v;
 }
