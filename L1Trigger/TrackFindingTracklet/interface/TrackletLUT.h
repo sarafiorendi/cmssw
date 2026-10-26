@@ -61,7 +61,8 @@ namespace trklet {
                    unsigned int layerdisk1,
                    unsigned int layerdisk2,
                    unsigned int nbitsfinephidiff,
-                   unsigned int iTP);
+                   unsigned int iTP,
+                   bool isThirdStub);
 
     //Builds a lut for the TP ro decide if the region should be used. This is used in the
     //first stage of the TP to decide which regions in the outer layer an inner stub needs
@@ -125,6 +126,7 @@ namespace trklet {
     //Determine bend/bend cuts in LUT regions
     std::vector<const trackerDTC::SensorModule*> getSensorModules(unsigned int layerdisk,
                                                                   bool isPS,
+                                                                  bool isExtendedSeed,
                                                                   std::array<double, 2> tan_range = {{-1, -1}},
                                                                   unsigned int nzbins = 1,
                                                                   unsigned int zbin = 0);

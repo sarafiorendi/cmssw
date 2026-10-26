@@ -207,6 +207,12 @@ namespace trklet {
 
     double rinvmax() const { return 0.01 * c_ * bfield_ / ptmin_; }
 
+    double displaced_ptmin_{2.};  //Minimum pt cut
+    double minPtForDisplaced() const { return displaced_ptmin_; }
+    double rinvmaxDisplaced() const { return 0.01 * c_ * bfield_ / displaced_ptmin_;}
+    double displaced_d0max_{10}; 
+    double d0maxDisplaced() const { return displaced_d0max_;}
+
     int alphashift() const { return alphashift_; }
     int nbitsalpha() const { return nbitsalpha_; }
     int alphaBitsTable() const { return alphaBitsTable_; }
@@ -813,14 +819,18 @@ namespace trklet {
 
     double FEbendcut = sqrt(1 / 6.0);
 
-    double bendcutTE_[N_SEED_PROMPT][2] = {{2.2 * FEbendcut, 2.5 * FEbendcut},   //L1L2
-                                           {2.0 * FEbendcut, 2.0 * FEbendcut},   //L2L3
-                                           {2.0 * FEbendcut, 2.6 * FEbendcut},   //L3L4
-                                           {2.4 * FEbendcut, 2.4 * FEbendcut},   //L5L6
-                                           {2.5 * FEbendcut, 2.2 * FEbendcut},   //D1D2 PS
-                                           {2.0 * FEbendcut, 2.0 * FEbendcut},   //D3D4 PS
-                                           {2.0 * FEbendcut, 2.4 * FEbendcut},   //L1D1 PS
-                                           {2.2 * FEbendcut, 2.2 * FEbendcut}};  //L2D1 PS
+    double bendcutTE_[N_SEED][2] = {{2.2 * FEbendcut, 2.5 * FEbendcut},   //L1L2
+                                    {2.0 * FEbendcut, 2.0 * FEbendcut},   //L2L3
+                                    {2.0 * FEbendcut, 2.6 * FEbendcut},   //L3L4
+                                    {2.4 * FEbendcut, 2.4 * FEbendcut},   //L5L6
+                                    {2.5 * FEbendcut, 2.2 * FEbendcut},   //D1D2 PS
+                                    {2.0 * FEbendcut, 2.0 * FEbendcut},   //D3D4 PS
+                                    {2.0 * FEbendcut, 2.4 * FEbendcut},   //L1D1 PS
+                                    {2.2 * FEbendcut, 2.2 * FEbendcut},   //L2D1 PS
+                                    {10  * FEbendcut, 10. * FEbendcut},    //L2L3L4  
+                                    {10  * FEbendcut, 10  * FEbendcut},   //L4L5L6  
+                                    {100 * FEbendcut, 100 * FEbendcut},   //XXXXXX  
+                                    {100 * FEbendcut, 100 * FEbendcut}};  //XXXXXX  
 
     double bendcutME_[N_LAYER + 2 * N_DISK] = {2.0 * FEbendcut,   //0  L1
                                                2.5 * FEbendcut,   //1  L2
