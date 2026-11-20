@@ -50,7 +50,7 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
   double router  = -1.0;
   double rinner  = -1.0;
 
-  if (iSeed_ == Seed::L2L3L4 || iSeed_ == Seed::L4L5L6) {
+  if (iSeed_ == Seed::L3L4L2 || iSeed_ == Seed::L5L6L4) {
     rmiddle = settings_.rmean(layerdisk1_); // middle
     router  = settings_.rmean(layerdisk2_); // outer
     rinner  = settings_.rmean(layerdisk3_); // inner
@@ -65,7 +65,7 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
   double dphimax_out = compute_dphimax(d0_vals, rinv, rmiddle, router);
   double dphimax_in = compute_dphimax(d0_vals, rinv, rinner, rmiddle);
 
-//   if (iSeed_ == Seed::L4L5L6) std::cout << dphimax_out << " " << dphimax_in << std::endl;
+//   if (iSeed_ == Seed::L5L6L4) std::cout << dphimax_out << " " << dphimax_in << std::endl;
   // number of fine phi bins in sector for the outer/inner layer
   nbitsfinephiouterdiff_ = compute_nfinephibins(layerdisk2_,iSeed_, dphimax_out);
   nbitsfinephiinnerdiff_ = compute_nfinephibins(layerdisk3_,iSeed_, dphimax_in);
@@ -411,7 +411,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
 
         // use pt cut in phiregion
         unsigned int nbendbitsmiddle = 3;
-        if (iSeed_ == Seed::L4L5L6) {
+        if (iSeed_ == Seed::L5L6L4) {
           nbendbitsmiddle = 4;
         }
         unsigned int useregindex = (middlefinephi << nbendbitsmiddle) + middlebend.value();
@@ -441,7 +441,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
           for (unsigned int outmem = 0; outmem < outervmstubs_.size(); outmem++) {
             // for each memory, check if its region is compatible 
             unsigned int out_phi_region = (outervmstubs_[outmem]->phibin() - 1) - (outervmstubs_[outmem]->getName()[11] - 'A') * 8;
-            if (iSeed_ == Seed::L2L3L4 || iSeed_ == Seed::L4L5L6) {
+            if (iSeed_ == Seed::L3L4L2 || iSeed_ == Seed::L5L6L4) {
               char mem_reg_out  = outervmstubs_[outmem]->getName()[11];
               char mem_reg_mid = middleallstubs_[midmem]->getName()[8];
 
@@ -470,7 +470,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
           for (unsigned int inmem = 0; inmem < innervmstubs_.size(); inmem++) {
             // for each memory, check if its region is compatible 
             unsigned int in_phi_region = (innervmstubs_[inmem]->phibin() - 1) - (innervmstubs_[inmem]->getName()[11] - 'A') * 8;
-            if (iSeed_ == Seed::L2L3L4 || iSeed_ == Seed::L4L5L6) {
+            if (iSeed_ == Seed::L3L4L2 || iSeed_ == Seed::L5L6L4) {
               char mem_reg_in  = innervmstubs_[inmem]->getName()[11];
               char mem_reg_mid = middleallstubs_[midmem]->getName()[8];
 

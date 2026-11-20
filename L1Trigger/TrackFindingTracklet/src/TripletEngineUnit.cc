@@ -26,7 +26,6 @@ TripletEngineUnit::TripletEngineUnit(const Settings* const settings,
                                      const TrackletLUT* pttableinner,
                                      std::vector<VMStubsTEMemory*> innervmstubs,
                                      std::vector<VMStubsTEMemory*> outervmstubs)
-<<<<<<< HEAD
     : innervmstubs_(std::move(innervmstubs)),
       outervmstubs_(std::move(outervmstubs)),
       settings_(settings),

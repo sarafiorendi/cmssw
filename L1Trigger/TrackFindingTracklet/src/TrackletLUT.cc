@@ -301,9 +301,9 @@ void TrackletLUT::initTPlut(bool fillOrig,
   double dfinephi = settings_.dphisectorHG() / nfinephibins;
 
   int projrbits = 3;
-  // L2L3L4 was not included in the other TP
+  // L3L4L2 was not included in the other TP
   if (iSeed == Seed::L1L2   || iSeed == Seed::L2L3 || iSeed == Seed::L3L4 || iSeed == Seed::L5L6 || \
-      iSeed == Seed::L2L3L4 || iSeed == Seed::L4L5L6 ) {
+      iSeed == Seed::L3L4L2 || iSeed == Seed::L5L6L4 ) {
     projrbits = 0;
   }
 
@@ -318,10 +318,10 @@ void TrackletLUT::initTPlut(bool fillOrig,
   if (iSeed == Seed::L3L4) {
     isPSorig = true;
     isPSproj = false;
-  } else if (iSeed == Seed::L5L6 || iSeed == Seed::L4L5L6) {
+  } else if (iSeed == Seed::L5L6 || iSeed == Seed::L5L6L4) {
     isPSorig = false;
     isPSproj = false;
-  } else if (iSeed == Seed::L2L3L4) {
+  } else if (iSeed == Seed::L3L4L2) {
     isPSorig = true;
     isPSproj = false;
   } else {
@@ -329,10 +329,10 @@ void TrackletLUT::initTPlut(bool fillOrig,
     isPSproj = true;
   }
   if (isThirdStub){
-    if (iSeed == Seed::L2L3L4) {
+    if (iSeed == Seed::L3L4L2) {
       isPSorig = true;
       isPSproj = true;
-    } else if (iSeed == Seed::L4L5L6) { // already covered above
+    } else if (iSeed == Seed::L5L6L4) { // already covered above
       isPSorig = false;
       isPSproj = false;
     } else if (iSeed == Seed::L2L3D1) { 
@@ -344,7 +344,7 @@ void TrackletLUT::initTPlut(bool fillOrig,
     }  
   }
   
-  bool isExtendedSeed = (iSeed == Seed::L2L3L4 || iSeed == Seed::L4L5L6 || iSeed == Seed::L2L3D1 || iSeed == Seed::D1D2L2) ? 1 : 0;
+  bool isExtendedSeed = (iSeed == Seed::L3L4L2 || iSeed == Seed::L5L6L4 || iSeed == Seed::L2L3D1 || iSeed == Seed::D1D2L2) ? 1 : 0;
 
   unsigned int nbendbitsorig = isPSorig ? N_BENDBITS_PS : N_BENDBITS_2S;
   unsigned int nbendbitsproj = isPSproj ? N_BENDBITS_PS : N_BENDBITS_2S;
@@ -392,7 +392,7 @@ void TrackletLUT::initTPlut(bool fillOrig,
         std::vector<const trackerDTC::SensorModule*> smproj;
 
         if (iSeed == Seed::L1L2 || iSeed == Seed::L2L3 || iSeed == Seed::L3L4 || iSeed == Seed::L5L6 || \
-            iSeed == Seed::L2L3L4 || iSeed == Seed::L4L5L6 || (iSeed == Seed::L2L3D1 && !isThirdStub) || (iSeed == Seed::D1D2L2 && isThirdStub)) {
+            iSeed == Seed::L3L4L2 || iSeed == Seed::L5L6L4 || (iSeed == Seed::L2L3D1 && !isThirdStub) || (iSeed == Seed::D1D2L2 && isThirdStub)) {
           double proj_tan_max = tan_theta(settings_.rmean(layerdisk2), settings_.zlength(), z0, true);
           std::array<double, 2> tan_range = {{0, proj_tan_max}};
 
@@ -559,11 +559,11 @@ void TrackletLUT::initTPregionlut(unsigned int iSeed,
 
   unsigned int nbendbitsinner = 3;
 
-  if (iSeed == Seed::L5L6 || iSeed == Seed::L4L5L6) {
+  if (iSeed == Seed::L5L6 || iSeed == Seed::L5L6L4) {
     nbendbitsinner = 4;
   }
 
-  bool isExtendedSeed = (iSeed == Seed::L2L3L4 || iSeed == Seed::L4L5L6 || iSeed == Seed::L2L3D1 || iSeed == Seed::D1D2L2) ? 1 : 0;
+  bool isExtendedSeed = (iSeed == Seed::L3L4L2 || iSeed == Seed::L5L6L4 || iSeed == Seed::L2L3D1 || iSeed == Seed::D1D2L2) ? 1 : 0;
 
   // loop on all phi regions of that seed (as from vm router) and check, for each of them,
   // if there's at least one outer stub which combined with the inner one has dphi and dbend values
@@ -689,7 +689,7 @@ void TrackletLUT::initteptlut(bool fillInner,
     //Determine bend cuts using geometry
     std::vector<std::array<double, 2>> bend_cuts_inner;
     std::vector<std::array<double, 2>> bend_cuts_outer;
-    bool isExtendedSeed = (iSeed == Seed::L2L3L4 || iSeed == Seed::L4L5L6 || iSeed == Seed::L2L3D1 || iSeed == Seed::D1D2L2) ? 1 : 0;
+    bool isExtendedSeed = (iSeed == Seed::L3L4L2 || iSeed == Seed::L5L6L4 || iSeed == Seed::L2L3D1 || iSeed == Seed::D1D2L2) ? 1 : 0;
 
     if (settings_.useCalcBendCuts) {
       std::vector<const trackerDTC::SensorModule*> sminner;
