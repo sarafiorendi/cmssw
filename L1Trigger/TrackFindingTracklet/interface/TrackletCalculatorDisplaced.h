@@ -21,6 +21,7 @@ namespace trklet {
 
     ~TrackletCalculatorDisplaced() override = default;
 
+    int lastReject_ = 0;
     void addDiskProj(Tracklet* tracklet, int disk);
     bool addLayerProj(Tracklet* tracklet, int layer);
 

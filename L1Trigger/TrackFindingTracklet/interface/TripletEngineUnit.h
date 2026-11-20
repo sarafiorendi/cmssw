@@ -27,6 +27,10 @@ namespace trklet {
     unsigned int max_nbins_;
     unsigned int max_nstubs_;
     std::vector<uint8_t> bad_inner_stub_;
+    std::vector<uint8_t> rzbinfirst_in_pair_;
+    std::vector<uint8_t> rzstart_in_pair_;
+    std::vector<uint8_t> rzdiffmax_in_pair_;
+    std::vector<uint8_t> rznext_in_pair_;
     std::vector<std::tuple<int, int, int, int> > projbin_out_;  // next z/r bin; outer stub mem; nstub
     std::vector<std::tuple<int, int, int, int> > projbin_in_;   // next z/r bin; inner stub mem; nstub
   };
@@ -46,6 +50,7 @@ namespace trklet {
                       const TrackletLUT* pttableouter,
                       const TrackletLUT* pttablemiddlein,
                       const TrackletLUT* pttableinner,
+                      const TrackletLUT* pairphiwindow,
                       std::vector<VMStubsTEMemory*> innervmstubs,
                       std::vector<VMStubsTEMemory*> outervmstubs);
 
@@ -71,10 +76,21 @@ namespace trklet {
     void advanceInnerBin();
     void advanceOuterStub();
 
+    bool innerEntryCompatible(unsigned int, int, int, int) const;
     size_t badInnerIndex() const ;
     bool nextGoodInner() ;
 
     void step();
+
+    // for debugging
+    unsigned int nTested() const { return n_triplets_tested_; }
+    unsigned int nSkippedBadInner() const { return n_skipped_bad_; }
+    unsigned int nRejOuter() const { return n_rej_outer_; }
+    unsigned int nRejOuterFromBend() const { return n_rej_outer_pair_bend_; }
+    unsigned int nRejPair() const { return n_rej_pair_; }
+    unsigned int nRejInner() const { return n_rej_inner_; }
+    unsigned int nRejMemInner() const { return n_rej_in_mem_pair_; }
+//     unsigned int nSkippedEntries() const { return n_skipped_entries_; }
 
     const Stub* innerStub() const { return trpdata_.stub_; }
 
@@ -111,10 +127,19 @@ namespace trklet {
     
     bool idle_;
 
+    int n_triplets_tested_; 
+    int n_skipped_bad_;
+    int n_rej_outer_;
+    int n_rej_outer_pair_bend_;
+    int n_rej_pair_;
+    int n_rej_inner_;
+    int n_rej_in_mem_pair_;
+
     const TrackletLUT* pttablemiddle_;
     const TrackletLUT* pttableouter_;
     const TrackletLUT* pttablemiddlein_;
     const TrackletLUT* pttableinner_;
+    const TrackletLUT* pairphiwindow_;
 
     std::tuple<const Stub*, const Stub*, const Stub*> candtriplet_, candtriplet__;
     bool goodtriplet_, goodtriplet__;

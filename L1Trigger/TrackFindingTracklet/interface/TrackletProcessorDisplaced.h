@@ -73,6 +73,7 @@ namespace trklet {
 
     TrackletLUT innerTable_;       //projection to next layer/disk
     TrackletLUT innerThirdTable_;  //projection to third disk/layer
+    TrackletLUT innerFromPairTable_;  //projection to third disk/layer
 
     TrackletLUT useOuterRegiontable_;   // phi LUT
     TrackletLUT useInnerRegiontable_;   // phi LUT
@@ -84,7 +85,9 @@ namespace trklet {
 
     TrackletLUT pttablemiddle_region_out_;
     TrackletLUT pttablemiddle_region_in_;
-    
+
+    TrackletLUT pairphiwindow_;
+
     std::vector<VMStubsTEMemory*> innervmstubs_;
     std::vector<VMStubsTEMemory*> outervmstubs_;
 

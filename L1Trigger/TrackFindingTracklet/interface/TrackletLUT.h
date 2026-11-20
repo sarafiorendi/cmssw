@@ -99,11 +99,25 @@ namespace trklet {
 
     void initProjectionDiskRadius(int nrbits);
 
-    enum VMRTableType { me, disk, inner, inneroverlap, innerthird };
+    enum VMRTableType { me, disk, inner, inneroverlap, innerthird, innerfrompair };
 
     //In the VMR we used the position of the stub (r, z) to calculate the bin and fine rz position the stub has
     //region only used for name - should be removed
     void initVMRTable(unsigned int layerdisk, VMRTableType type, int region = -1, bool combined = true);
+
+    int getVMRLookupTriplet(unsigned int layerdisk, double z_outer, double r_outer, double dz_outer, double dr_outer, 
+                            double z_middle, double r_middle, double dz_middle, double dr_middle,  
+                            int iseed) const;
+    double Calc_proj_z_from_pair(double rmean, double tmp_outer_r, double tmp_outer_z, double tmp_middle_r, double tmp_middle_z ) const;
+    double Calc_proj_r_from_pair(double zmean, double tmp_outer_r, double tmp_outer_z, double tmp_middle_r, double tmp_middle_z ) const;
+    void initVMRTableTripletCoarse(unsigned int layerdisk, unsigned int layerdisk_outer, VMRTableType type, int region = -1, bool combined = true);
+    double minIgnoreSentinel(std::initializer_list<double> values, double sentinel = -999.) const ;
+    double maxIgnoreSentinel(std::initializer_list<double> values, double sentinel = -999.) const ;
+
+    void initPairPhiBendWindow(unsigned int iSeed, unsigned int layerdisk_middle, unsigned int layerdisk_outer,
+                               unsigned int layerdisk_inner, unsigned int nbitsfinephiouterdiff,
+                               unsigned int nbitsfinephiinnerdiff, unsigned int iTP,
+                               double d0max = 10.0, int margin = 1, double bendfac = 1.0);
 
     //Used in barrel to calculate the phi position of a stub at the nominal radis of the layer based on the stub radial
     //psotion and bend
