@@ -1491,9 +1491,9 @@ void TrackletLUT::initVMRTableTripletCoarse(unsigned int layerdisk_middle, unsig
 
         if (type == VMRTableType::innerfrompair) {
           if (layerdisk_middle == LayerDisk::L3 && layerdisk_outer == LayerDisk::L4)
-            table_.push_back(getVMRLookupTriplet(LayerDisk::L2, z_o, r_o, dz_o, dr_o, z_m, r_m, dz_m, dr_m, Seed::L2L3L4));
+            table_.push_back(getVMRLookupTriplet(LayerDisk::L2, z_o, r_o, dz_o, dr_o, z_m, r_m, dz_m, dr_m, Seed::L3L4L2));
           if (layerdisk_middle == LayerDisk::L5 && layerdisk_outer == LayerDisk::L6)
-            table_.push_back(getVMRLookupTriplet(LayerDisk::L4, z_o, r_o, dz_o, dr_o, z_m, r_m, dz_m, dr_m, Seed::L4L5L6));
+            table_.push_back(getVMRLookupTriplet(LayerDisk::L4, z_o, r_o, dz_o, dr_o, z_m, r_m, dz_m, dr_m, Seed::L5L6L4));
           if (layerdisk_middle == LayerDisk::L2 && layerdisk_outer == LayerDisk::L3)
             table_.push_back(getVMRLookupTriplet(LayerDisk::D1, z_o, r_o, dz_o, dr_o, z_m, r_m, dz_m, dr_m, Seed::L2L3D1));
           if (isD1D2L2)
@@ -1735,7 +1735,7 @@ double TrackletLUT::Calc_proj_r_from_pair(double zmean, double tmp_outer_r, doub
 }    
 
 // Pair phi + bend window
-// NB: currently works for the barrel seeds (L2L3L4, L4L5L6)
+// NB: currently works for the barrel seeds (L3L4L2, L5L6L4)
 // Inputs: the middle-outer pair, described by phi_outer-phi_middle (idphi_out) AND the middle and outer bends.
 // For each d0, each of the three measurements gives an rinv interval:
 //   - dphi_out within the bin edges +-1.5 fine bins (as in initTPlut)
@@ -1758,14 +1758,14 @@ void TrackletLUT::initPairPhiBendWindow(unsigned int iSeed,
                                         double d0max,
                                         int margin,
                                         double bendfac) {
-  assert(iSeed == Seed::L2L3L4 || iSeed == Seed::L4L5L6);
+  assert(iSeed == Seed::L3L4L2 || iSeed == Seed::L5L6L4);
   int nfinephibins =
       settings_.nallstubs(layerdisk_outer) * settings_.nvmte(1, iSeed) * (1 << settings_.nfinephi(1, iSeed));
   double dfinephi = settings_.dphisectorHG() / nfinephibins;
  
   // 0 = middle, 1 = outer, 2 = inner
   const unsigned int layers[3] = {layerdisk_middle, layerdisk_outer, layerdisk_inner};
-  double rl[3];
+  double layer_radius[3];
   double pitch[3];
   unsigned int nbendbits[3];
   std::vector<std::array<double, 2>> bend_cuts[3];  // (mid, half-width) per encoded bend
@@ -1800,12 +1800,12 @@ void TrackletLUT::initPairPhiBendWindow(unsigned int iSeed,
   // expected bend at radius r: local curvature rinv_eff = -2 dphi/dr (same convention as initTPlut)
   constexpr double eps = 0.01;  // cm
   auto bend_at = [&](int i, double rinv, double d0) {
-    double r = rl[i];
+    double r = layer_radius[i];
     double rinv_eff = -(phi_of_r(r + eps, rinv, d0) - phi_of_r(r - eps, rinv, d0)) / eps;
     return bendstrip(r, rinv_eff, pitch[i], settings_.sensorSpacing2S());
   };
-  auto dphiout = [&](double rinv, double d0) { return phi_of_r(rl[1], rinv, d0) - phi_of_r(rl[0], rinv, d0); };
-  auto dphiin = [&](double rinv, double d0) { return phi_of_r(rl[2], rinv, d0) - phi_of_r(rl[0], rinv, d0); };
+  auto dphiout = [&](double rinv, double d0) { return phi_of_r(layer_radius[1], rinv, d0) - phi_of_r(layer_radius[0], rinv, d0); };
+  auto dphiin = [&](double rinv, double d0) { return phi_of_r(layer_radius[2], rinv, d0) - phi_of_r(layer_radius[0], rinv, d0); };
  
   const double rinvcut = settings_.rinvmaxDisplaced();
  

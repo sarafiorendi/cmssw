@@ -82,7 +82,7 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
       layerdisk1_, TrackletLUT::VMRTableType::innerthird, region, false);  //projection to third layer/disk
   innerFromPairTable_.initVMRTableTripletCoarse(
       layerdisk1_, layerdisk2_, TrackletLUT::VMRTableType::innerfrompair, region, false);  //projection to outer layer/disk from inner pair
-  if (iSeed_ == Seed::L2L3L4 || iSeed_ == Seed::L4L5L6)
+  if (iSeed_ == Seed::L3L4L2 || iSeed_ == Seed::L5L6L4)
     pairphiwindow_.initPairPhiBendWindow(iSeed_, layerdisk1_, layerdisk2_, layerdisk3_,
                                          nbitsfinephiouterdiff_, nbitsfinephiinnerdiff_, region, 10.0, 1, 1.);
   nbitszfinebintable_ = settings_.vmrlutzbits(layerdisk1_);
@@ -306,7 +306,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
       else if (iSeed_ == Seed::D1D2L2)
         accept = DDLSeeding(innerFPGAStub, innerStub, middleFPGAStub, middleStub, outerFPGAStub, outerStub);
 
-      if (!accept && (iSeed_ == Seed::L2L3L4 || iSeed_ == Seed::L4L5L6)) {
+      if (!accept && (iSeed_ == Seed::L3L4L2 || iSeed_ == Seed::L5L6L4)) {
         int r = lastReject_;
         bool rinvbad = r & 1, z0bad = r & 2, d0bad = r & 12, phicritbad = r & 16;
         nrej_rinv += rinvbad;
@@ -586,15 +586,15 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         }
       }
 
-      if (iSeed_ == 8) 
-        std::cout << iTC_ << "," << istub << "," 
-                  << count_nstubs_out << "," << count_nstubs_in << ","
-                  << count_nmems_out << "," << count_nmems_in 
-// //                   << stub->zapprox() << "," << stub->rapprox() << "," 
-// //                   << stub->phiapprox(0.,0.) << "," << stub->bend().value() << ","
-// //                   << (const void*)stub << "," << (const void*)stub->l1tstub() << ","
-// //                   << middleallstubs_[midmem]->getName() 
-                  << std::endl;
+//       if (iSeed_ == 8) 
+//         std::cout << iTC_ << "," << istub << "," 
+//                   << count_nstubs_out << "," << count_nstubs_in << ","
+//                   << count_nmems_out << "," << count_nmems_in 
+// // //                   << stub->zapprox() << "," << stub->rapprox() << "," 
+// // //                   << stub->phiapprox(0.,0.) << "," << stub->bend().value() << ","
+// // //                   << (const void*)stub << "," << (const void*)stub->l1tstub() << ","
+// // //                   << middleallstubs_[midmem]->getName() 
+//                   << std::endl;
       istub++;
       if (istub >= middleallstubs_[midmem]->nStubs()) {
         istub = 0;
@@ -640,7 +640,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         << getName() << " " << countall << " " << countsel << std::endl;
   }
   
-  if (iSeed_ == Seed::L2L3L4 ) {
+  if (iSeed_ == Seed::L3L4L2 ) {
     unsigned int tested = 0, skippedbad = 0, rejouter = 0, rejouterpairbend = 0, nrejpair = 0, nrejinner = 0, nrejinnermempair = 0;
     int itrp = 0;
     for (const auto& u : trpunits_) {
