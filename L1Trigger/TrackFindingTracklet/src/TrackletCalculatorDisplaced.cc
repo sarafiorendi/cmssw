@@ -222,6 +222,8 @@ bool TrackletCalculatorDisplaced::LLLSeeding(const Stub* innerFPGAStub,
 
   assert(outerFPGAStub->layerdisk() < N_LAYER);
 
+  lastReject_ = 0;  
+
   double r1 = innerStub->r();
   double z1 = innerStub->z();
   double phi1 = innerStub->phi();
@@ -411,21 +413,25 @@ bool TrackletCalculatorDisplaced::LLLSeeding(const Stub* innerFPGAStub,
     if (settings_.debugTracklet())
       edm::LogVerbatim("Tracklet") << "TrackletCalculator::LLL Seeding irinv too large: " << rinvapprox << "(" << irinv
                                    << ")";
+    lastReject_ |= 1;
     success = false;
   }
   if (std::abs(z0approx) > settings_.disp_z0cut()) {
     if (settings_.debugTracklet())
       edm::LogVerbatim("Tracklet") << "Failed tracklet z0 cut " << z0approx << " in layer " << layer_;
+    lastReject_ |= 2;
     success = false;
   }
   if (std::abs(d0approx) > settings_.maxd0()) {
     if (settings_.debugTracklet())
       edm::LogVerbatim("Tracklet") << "Failed tracklet approx d0 cut " << d0approx;
+    lastReject_ |= 4;
     success = false;
   }
   if (std::abs(d0) > settings_.maxd0()) {
     if (settings_.debugTracklet())
       edm::LogVerbatim("Tracklet") << "Failed tracklet exact d0 cut " << d0;
+    lastReject_ |= 8;
     success = false;
   }
 
@@ -449,10 +455,12 @@ bool TrackletCalculatorDisplaced::LLLSeeding(const Stub* innerFPGAStub,
                                    << phicritapprox;
   if (settings_.usephicritapprox()) {
     if (!keepapprox) {
+      lastReject_ |= 16;
       return false;
     }
   } else {
     if (!keep) {
+      lastReject_ |= 16;
       return false;
     }
   }

@@ -24,6 +24,7 @@ TripletEngineUnit::TripletEngineUnit(const Settings* const settings,
                                      const TrackletLUT* pttableouter,
                                      const TrackletLUT* pttablemiddlein,
                                      const TrackletLUT* pttableinner,
+                                     const TrackletLUT* pairphiwindow,
                                      std::vector<VMStubsTEMemory*> innervmstubs,
                                      std::vector<VMStubsTEMemory*> outervmstubs)
     : innervmstubs_(std::move(innervmstubs)),
@@ -55,6 +56,7 @@ TripletEngineUnit::TripletEngineUnit(const Settings* const settings,
       pttableouter_(pttableouter),
       pttablemiddlein_(pttablemiddlein),
       pttableinner_(pttableinner),    
+      pairphiwindow_(pairphiwindow),
       candtriplets_(3) {}
 
 void TripletEngineUnit::init(const TrpEData& trpdata) {
@@ -75,6 +77,15 @@ void TripletEngineUnit::reset() {
   goodtriplet_ = false;
   goodtriplet__ = false;
   candtriplets_.reset();
+
+  n_triplets_tested_= 0;
+  n_skipped_bad_= 0;
+  n_rej_outer_= 0;
+  n_rej_outer_pair_bend_= 0;
+  n_rej_pair_= 0;
+  n_rej_inner_= 0;
+  n_rej_in_mem_pair_ = 0;
+  
 }
 
 void TripletEngineUnit::step() {
@@ -113,7 +124,7 @@ void TripletEngineUnit::step() {
 
   // phi / bend cuts on outer
   FPGAWord ifinephiouter = outervmstub.finephi();
-  assert(ifinephiouter == outervmstub.finephi());
+  assert(ifinephiouter == outervmstub.finephi()); // not sure why it is needed
   // retrieve lut value: first calculate the phi value, as done in TrackletLUT
   int outerfinephi = iAllStub_ * (1 << (nbitsfinephi_ - settings_->nbitsallstubs(outervmstub.stub()->layerdisk()))) +
                      phi_out_ * (1 << settings_->nfinephi(1, iSeed_)) + ifinephiouter.value();
@@ -141,11 +152,45 @@ void TripletEngineUnit::step() {
     if (settings_->debugTracklet()) {
       edm::LogVerbatim("Tracklet") << "Outer stub rejected";
     }
+    n_rej_outer_++;
     advanceOuterStub();   
     return;  
   }
 
+
+  // inner phi window + allowed inner bends from (idphi_out, middle bend, outer bend)
+  int dphi_in_lo = -(1 << (nbitsfinephiinnerdiff_ - 1));
+  int dphi_in_hi = (1 << (nbitsfinephiinnerdiff_ - 1)) - 1;
+  int innerbendmask = -1;  // all inner bends allowed
+  if (iSeed_ == 8 || iSeed_ == 9) {
+    int phibend_index = (idphi_out_for_index << (trpdata_.middlebend_.nbits() + outerbend.nbits())) +
+                        (trpdata_.middlebend_.value() << outerbend.nbits()) + 
+                        outerbend.value();
+    int window = pairphiwindow_->lookup(phibend_index);
+    if (window < 0) {           // no track compatible with dphi_out and the two bends at all
+      advanceOuterStub();
+      n_rej_outer_pair_bend_++;
+      return;
+    }
+    int half = 1 << (nbitsfinephiinnerdiff_ - 1);
+    dphi_in_lo = ((window >> nbitsfinephiinnerdiff_) & ((1 << nbitsfinephiinnerdiff_) - 1)) - half;
+    dphi_in_hi = (window & ((1 << nbitsfinephiinnerdiff_) - 1)) - half;
+    innerbendmask = window >> (2 * nbitsfinephiinnerdiff_);
+  }
+
+  // inner rz range from pair, which depends on ibin_out
+  int rel_pos = rzbin_out - trpdata_.rzbinfirst_out_;   
+  int rzstart_in_pair =  trpdata_.rzstart_in_pair_.at(rel_pos); 
+  // int rzlast_in_pair = rzstart_in_pair + trpdata_.rznext_in_pair_.at(rel_pos);
+
+  if (!innerEntryCompatible(nproj_in_, rzstart_in_pair, dphi_in_lo, dphi_in_hi)) {
+    advanceInnerBin();
+    n_rej_in_mem_pair_++;
+    return;
+  }
+
   // retrieve inner stub
+  n_triplets_tested_++;
   int ibin_in = trpdata_.start_in_ + next_in_;
   const VMStubTE& innervmstub = innervmstubs_[inmem_]->getVMStubTEBinned(ibin_in, istub_in_);
 
@@ -175,18 +220,27 @@ void TripletEngineUnit::step() {
 
   // phi / bend cuts on inner
   bool pass_pt_cut_inner = true;
+  bool in_pair_window = true;  
   FPGAWord innerbend = innervmstub.bend();
   if (iSeed_ == 8 || iSeed_ == 9) {
     int ptinnerindex = (idphi_in_for_index << innerbend.nbits()) + innerbend.value();
     int ptmiddleinindex = (idphi_in_for_index << trpdata_.middlebend_.nbits()) + trpdata_.middlebend_.value();
     pass_pt_cut_inner = pttablemiddlein_->lookup(ptmiddleinindex) && pttableinner_->lookup(ptinnerindex);
   }
+  in_pair_window = (idphi_in >= dphi_in_lo && idphi_in <= dphi_in_hi) &&
+                   ((innerbendmask >> innerbend.value()) & 1);    
 
   if (!(rz_in_ok && inrange_in && pass_pt_cut_inner)) {
     if (settings_->debugTracklet()) {
       edm::LogVerbatim("Tracklet") << "Inner stub rejected";
     }
-    trpdata_.bad_inner_stub_[(inmem_ * trpdata_.max_nbins_ + trpdata_.start_in_ + next_in_) * trpdata_.max_nstubs_ + istub_in_] = true;
+    trpdata_.bad_inner_stub_[badInnerIndex()] = true;
+    n_rej_inner_++;
+  } else if (!in_pair_window){  // inner stub not passing phi cut from pair
+    if (settings_->debugTracklet()) {
+      edm::LogVerbatim("Tracklet") << "Inner stub rejected because not passing phi cut from pair";
+    }
+    n_rej_inner_++;
   } else {  // condition on inner stub satisfied
 
     candtriplet_ =
@@ -196,7 +250,6 @@ void TripletEngineUnit::step() {
 
   // go to next projection (looping through all inner stubs for each outer stub)
   advanceIndices();
-  if (idle_) return;
 }
 
 
@@ -279,9 +332,9 @@ size_t TripletEngineUnit::badInnerIndex() const {
   return (inmem_ * trpdata_.max_nbins_ + trpdata_.start_in_ + next_in_) * trpdata_.max_nstubs_ + istub_in_;
 }
 
-// From the current inner position, move forward (within this outer stub's inner loop) to the first
+// from the current inner position, move forward (within this outer stub's inner loop) to the first
 // inner stub NOT marked bad. Returns false if there is none left.
-// Hardware: a find-first-set-bit over the bad-stub mask, one step.
+// could hardware do a find-first-set-bit over the bad-stub mask, one step?
 bool TripletEngineUnit::nextGoodInner() {
   while (nproj_in_ < trpdata_.projbin_in_.size()) {
     std::tie(next_in_, inmem_, nstub_in_, phi_in_) = trpdata_.projbin_in_[nproj_in_];
@@ -294,4 +347,21 @@ bool TripletEngineUnit::nextGoodInner() {
     istub_in_ = 0;
   }
   return false;
+}
+
+bool TripletEngineUnit::innerEntryCompatible(unsigned int k, int rzstart_in_pair, int dphi_lo, int dphi_hi) const {
+  int next, mem, nstubs, reg;
+  std::tie(next, mem, nstubs, reg) = trpdata_.projbin_in_[k];
+
+  // rz check: entry below the pair window
+  if (trpdata_.start_in_ + next < rzstart_in_pair)
+    return false;
+
+  // phi: idphi range covered by this memory, compared with the pair window
+  int r = (reg >= 2 * static_cast<int>(settings_->nvmte(1, iSeed_))) ? reg - 24 : reg;  // left neighbour region
+  int base = iAllStub_ * (1 << (nbitsfinephi_ - settings_->nbitsallstubs(layerdisk3_))) +
+             r * (1 << settings_->nfinephi(1, iSeed_));
+  int lo = base - trpdata_.middlefinephi_;
+  int hi = lo + (1 << settings_->nfinephi(1, iSeed_)) - 1;
+  return hi >= dphi_lo && lo <= dphi_hi;
 }

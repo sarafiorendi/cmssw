@@ -28,6 +28,7 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
       trpbuffer_(CircularBuffer<TrpEData>(3), 0, 0, 0, 0),
       innerTable_(settings),
       innerThirdTable_(settings),
+      innerFromPairTable_(settings),
       useOuterRegiontable_(settings),
       useInnerRegiontable_(settings),
       pttablemiddle_(settings),
@@ -35,7 +36,8 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
       pttablemiddlein_(settings),
       pttableinner_(settings),
       pttablemiddle_region_out_(settings),
-      pttablemiddle_region_in_(settings) {
+      pttablemiddle_region_in_(settings),
+      pairphiwindow_(settings) {
   innerallstubs_.clear();
   middleallstubs_.clear();
   outerallstubs_.clear();
@@ -78,7 +80,11 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
       layerdisk1_, TrackletLUT::VMRTableType::inner, region, false);  //projection to next layer/disk
   innerThirdTable_.initVMRTable(
       layerdisk1_, TrackletLUT::VMRTableType::innerthird, region, false);  //projection to third layer/disk
-
+  innerFromPairTable_.initVMRTableTripletCoarse(
+      layerdisk1_, layerdisk2_, TrackletLUT::VMRTableType::innerfrompair, region, false);  //projection to outer layer/disk from inner pair
+  if (iSeed_ == Seed::L2L3L4 || iSeed_ == Seed::L4L5L6)
+    pairphiwindow_.initPairPhiBendWindow(iSeed_, layerdisk1_, layerdisk2_, layerdisk3_,
+                                         nbitsfinephiouterdiff_, nbitsfinephiinnerdiff_, region, 10.0, 1, 1.);
   nbitszfinebintable_ = settings_.vmrlutzbits(layerdisk1_);
   nbitsrfinebintable_ = settings_.vmrlutrbits(layerdisk1_);
 
@@ -87,7 +93,7 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
   TCIndex_ = (iSeed_ << settings.nbitsseed()) + iTC_;
 
   maxStep_ = settings_.maxStep("TPD");
-//   maxStep_ = 108;
+//  maxStep_ = 108;
 }
 
 void TrackletProcessorDisplaced::addOutputProjection(TrackletProjectionsMemory*& outputProj, MemoryBase* memory) {
@@ -225,6 +231,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
                             &pttableouter_,
                             &pttablemiddlein_,
                             &pttableinner_,                            
+                            &pairphiwindow_,                            
                             innervmstubs_, 
                             outervmstubs_);
   trpunits_.resize(settings_.trpunits(iSeed_), trpunit);
@@ -249,9 +256,15 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
   bool goodtrpdata___ = false;
 
   bool trpbuffernearfull;
+  // for debugging
+//   unsigned int nsteps = 0;
+  unsigned int nrej_rinv = 0, nrej_z0 = 0, nrej_d0 = 0, nrej_phicrit = 0, nrej_only_rinv = 0, nrej_only_z0 = 0, nrej_only_d0 = 0;
+
   for (unsigned int istep = 0; istep < maxStep_; istep++) {
     CircularBuffer<TrpEData>& trpdatabuffer = std::get<0>(trpbuffer_);
     trpbuffernearfull = trpdatabuffer.nearfull();
+
+//     nsteps = istep + 1;
 
     //
     // First block here checks if there is a trpunit with data that should be used
@@ -292,6 +305,18 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         accept = LLDSeeding(innerFPGAStub, innerStub, middleFPGAStub, middleStub, outerFPGAStub, outerStub);
       else if (iSeed_ == Seed::D1D2L2)
         accept = DDLSeeding(innerFPGAStub, innerStub, middleFPGAStub, middleStub, outerFPGAStub, outerStub);
+
+      if (!accept && (iSeed_ == Seed::L2L3L4 || iSeed_ == Seed::L4L5L6)) {
+        int r = lastReject_;
+        bool rinvbad = r & 1, z0bad = r & 2, d0bad = r & 12, phicritbad = r & 16;
+        nrej_rinv += rinvbad;
+        nrej_z0 += z0bad;
+        nrej_d0 += d0bad;
+        nrej_phicrit += phicritbad;
+        nrej_only_rinv += (rinvbad && !z0bad && !d0bad);
+        nrej_only_z0 += (z0bad && !rinvbad && !d0bad);
+        nrej_only_d0 += (d0bad && !rinvbad && !z0bad);
+      }
 
       if (accept)
         countsel++;
@@ -334,8 +359,17 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
     unsigned int& midmem = std::get<2>(trpbuffer_);
     unsigned int midmemend = std::get<4>(trpbuffer_);
 
+    int count_nstubs_out = 0;
+    int count_nstubs_in = 0;
+    int count_nmems_out = 0;
+    int count_nmems_in = 0;
+
     if ((!trpbuffernearfull) && midmem < midmemend && istub < middleallstubs_[midmem]->nStubs()) {
       const Stub* stub = middleallstubs_[midmem]->getStub(istub);
+      count_nstubs_out = 0;
+      count_nstubs_in = 0;
+      count_nmems_out = 0;
+      count_nmems_in = 0;
 
       if (settings_.debugTracklet()) {
         edm::LogVerbatim("Tracklet") << "In " << getName() << " have middle stub";
@@ -437,9 +471,51 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         trpdata.projbin_in_.clear();
         trpdata.bad_inner_stub_.clear();
 
+        trpdata.rzbinfirst_in_pair_.clear();
+        trpdata.rzstart_in_pair_.clear();
+        trpdata.rzdiffmax_in_pair_.clear();
+
+        // here loop on start+first to start + maxdiff
+        // for each out r/z bin, find range of inner r/z bins    
+        // save this into some vector of trpdata
+        int lutval_pair = -1;
+        unsigned int nbitsrzbin_out_pairlut = N_RZBITS;
+        if (iSeed_ == Seed::D1D2L2)
+          nbitsrzbin_out_pairlut--; // must match initVMRTableTriplet's isD1D2L2 adjustment
+        unsigned int shift_outercoarse = nbitsrzbin_out_pairlut + NFINERZBITS;
+        
+        for (int irz_out = start_out * (1 << NFINERZBITS) + rzbinfirst_out;
+                 irz_out <= start_out * (1 << NFINERZBITS) + rzbinfirst_out + rzdiffmax_out;
+                 irz_out++) {
+          lutval_pair = innerFromPairTable_.lookup(
+                                                  (indexz << (nbitsrfinebintable_ + shift_outercoarse)) +
+                                                  (indexr << shift_outercoarse) +
+                                                  irz_out);       
+          if (lutval_pair != -1 ) {
+            FPGAWord lookupbits_pair(lutval_pair, lutwidth, true, __LINE__, __FILE__);
+            int rzbinfirst_in_pair = lookupbits_pair.bits(0, NFINERZBITS);
+            int next_in_pair = lookupbits_pair.bits(NFINERZBITS, 1);
+            int start_in_pair = lookupbits_pair.bits(NFINERZBITS + 1, nbitsrzbin_in);  // first rz bin projection
+            int rzdiffmax_in_pair = lookupbits_pair.bits(NFINERZBITS + 1 + nbitsrzbin_in, NFINERZBITS);
+  
+            trpdata.rzstart_in_pair_.push_back(start_in_pair);
+            trpdata.rznext_in_pair_.push_back(next_in_pair);  
+            trpdata.rzbinfirst_in_pair_.push_back(rzbinfirst_in_pair);
+            trpdata.rzdiffmax_in_pair_.push_back(rzdiffmax_in_pair);  
+            
+          }
+          else{
+            trpdata.rzstart_in_pair_.push_back(0);
+            trpdata.rzbinfirst_in_pair_.push_back(0);
+            trpdata.rzdiffmax_in_pair_.push_back(8);  
+            trpdata.rznext_in_pair_.push_back(1);  
+          }
+        }       
+
+
         for (int ibin_out = start_out; ibin_out <= last_out; ibin_out++) {
           for (unsigned int outmem = 0; outmem < outervmstubs_.size(); outmem++) {
-            // for each memory, check if its region is compatible 
+            // for each memory, check if its phi region is compatible 
             unsigned int out_phi_region = (outervmstubs_[outmem]->phibin() - 1) - (outervmstubs_[outmem]->getName()[11] - 'A') * 8;
             if (iSeed_ == Seed::L3L4L2 || iSeed_ == Seed::L5L6L4) {
               char mem_reg_out  = outervmstubs_[outmem]->getName()[11];
@@ -452,7 +528,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
                   out_phi_region += 16;
               if (std::abs(diff_reg) < 2){
                 if (usereg_out != -1 && !(usereg_out & (1 << out_phi_region))) {
-                  continue;
+//                   continue;
                 }  
               }  
             }
@@ -460,6 +536,8 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
             
             // check if the memory is not empty
             unsigned int nstubs_out = outervmstubs_[outmem]->nVMStubsBinned(ibin_out);
+            if (iSeed_ == 8) count_nstubs_out += nstubs_out;
+            if (iSeed_ == 8) count_nmems_out++;
             if (nstubs_out > 0)
               trpdata.projbin_out_.emplace_back(tuple<int, int, int, int>(ibin_out - start_out, outmem, nstubs_out, out_phi_region));
           }
@@ -468,7 +546,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         unsigned int max_nbins  = 0;        
         for (int ibin_in = start_in; ibin_in <= last_in; ibin_in++) {
           for (unsigned int inmem = 0; inmem < innervmstubs_.size(); inmem++) {
-            // for each memory, check if its region is compatible 
+            // for each memory, check if its phi region is compatible 
             unsigned int in_phi_region = (innervmstubs_[inmem]->phibin() - 1) - (innervmstubs_[inmem]->getName()[11] - 'A') * 8;
             if (iSeed_ == Seed::L3L4L2 || iSeed_ == Seed::L5L6L4) {
               char mem_reg_in  = innervmstubs_[inmem]->getName()[11];
@@ -481,11 +559,13 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
                   in_phi_region += 16;
               if (std::abs(diff_reg) < 2){
                 if (usereg_in != -1 && !(usereg_in & (1 << in_phi_region))) {
-                  continue;
+//                   continue;
                 }  
               }  
             }
             unsigned int nstubs_in = innervmstubs_[inmem]->nVMStubsBinned(ibin_in);
+            if (iSeed_ == 8) count_nstubs_in += nstubs_in;
+            if (iSeed_ == 8) count_nmems_in++;
             if (nstubs_in > 0) {
               trpdata.projbin_in_.emplace_back(tuple<int, int, int, int>(ibin_in - start_in, inmem, nstubs_in, in_phi_region));
               if (nstubs_in > max_nstubs)
@@ -506,6 +586,15 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         }
       }
 
+      if (iSeed_ == 8) 
+        std::cout << iTC_ << "," << istub << "," 
+                  << count_nstubs_out << "," << count_nstubs_in << ","
+                  << count_nmems_out << "," << count_nmems_in 
+// //                   << stub->zapprox() << "," << stub->rapprox() << "," 
+// //                   << stub->phiapprox(0.,0.) << "," << stub->bend().value() << ","
+// //                   << (const void*)stub << "," << (const void*)stub->l1tstub() << ","
+// //                   << middleallstubs_[midmem]->getName() 
+                  << std::endl;
       istub++;
       if (istub >= middleallstubs_[midmem]->nStubs()) {
         istub = 0;
@@ -550,6 +639,41 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
     globals_->ofstream("trackletprocessordisplaced.txt")
         << getName() << " " << countall << " " << countsel << std::endl;
   }
+  
+  if (iSeed_ == Seed::L2L3L4 ) {
+    unsigned int tested = 0, skippedbad = 0, rejouter = 0, rejouterpairbend = 0, nrejpair = 0, nrejinner = 0, nrejinnermempair = 0;
+    int itrp = 0;
+    for (const auto& u : trpunits_) {
+      tested += u.nTested();
+      skippedbad += u.nSkippedBadInner();
+      rejouter += u.nRejOuter();
+      rejouterpairbend += u.nRejOuterFromBend();
+      nrejpair += u.nRejPair();
+      nrejinner += u.nRejInner();
+      nrejinnermempair += u.nRejMemInner();
+      
+//       std::cout << "TRP," << getName() << "," << iSeed_ << "," << iSector_ << "," << nsteps << "," << itrp << ","
+//                                     << u.nTested() << "," << u.nSkippedBadInner() << ","
+//                                     << u.nRejOuter() << "," << u.nRejOuterFromBend() << ","
+//                                     << u.nRejPair() << "," << u.nRejInner() << ","
+//                                     << u.nRejMemInner() 
+//                                     << std::endl;
+      itrp++;
+    }
+//     std::cout << getName() << "," << iSeed_ << "," << iSector_ << "," << nsteps << ","
+// //                                   << tested << "," << skippedbad << ","
+// //                                   << rejouter << "," << rejouterpairbend << ","
+// //                                   << nrejpair << "," << nrejinner << ","
+// //                                   << nrejinnermempair << ","
+//                                   << countall << "," << countsel << ","
+//                                   << nrej_rinv << "," << nrej_z0 << ","
+//                                   << nrej_d0 << "," << nrej_phicrit << ","
+//                                   << nrej_only_rinv << "," << nrej_only_z0 << ","
+//                                   << nrej_only_d0 
+//                                   << std::endl;
+// //     if (tested > 5000)  std::cout << event.eventId() << std::endl;               
+  }  
+  
 }
 
 double TrackletProcessorDisplaced::compute_dphimax (std::vector<float> d0_vals, const double rinv, double r1, double r2) {
