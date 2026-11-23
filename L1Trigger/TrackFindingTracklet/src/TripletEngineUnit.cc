@@ -181,9 +181,12 @@ void TripletEngineUnit::step() {
   // inner rz range from pair, which depends on ibin_out
   int rel_pos = rzbin_out - trpdata_.rzbinfirst_out_;   
   int rzstart_in_pair =  trpdata_.rzstart_in_pair_.at(rel_pos); 
-  // int rzlast_in_pair = rzstart_in_pair + trpdata_.rznext_in_pair_.at(rel_pos);
+  int rzlast_in_pair = rzstart_in_pair + trpdata_.rznext_in_pair_.at(rel_pos);
+  // fine window in absolute fine-bin units (coarse << NFINERZBITS) + fine -> used per inner stub
+  int rzfinelo_in_pair = (rzstart_in_pair << NFINERZBITS) + trpdata_.rzbinfirst_in_pair_.at(rel_pos);
+  int rzfinehi_in_pair = rzfinelo_in_pair + trpdata_.rzdiffmax_in_pair_.at(rel_pos);
 
-  if (!innerEntryCompatible(nproj_in_, rzstart_in_pair, dphi_in_lo, dphi_in_hi)) {
+  if (!innerEntryCompatible(nproj_in_, rzstart_in_pair, rzlast_in_pair, dphi_in_lo, dphi_in_hi)) {
     advanceInnerBin();
     n_rej_in_mem_pair_++;
     return;
@@ -230,12 +233,22 @@ void TripletEngineUnit::step() {
   in_pair_window = (idphi_in >= dphi_in_lo && idphi_in <= dphi_in_hi) &&
                    ((innerbendmask >> innerbend.value()) & 1);    
 
+  // fine r/z window of the inner stub from the (middle, outer) pair. Depends on the outer stub,
+  // so a failure here must NOT mark the inner stub as bad.
+  int rzfine_in_abs = (trpdata_.start_in_ << NFINERZBITS) + rzbin_in;  // rzbin_in already includes +8 for the next bin
+  bool in_pair_rz = (rzfine_in_abs >= rzfinelo_in_pair && rzfine_in_abs <= rzfinehi_in_pair);
+
   if (!(rz_in_ok && inrange_in && pass_pt_cut_inner)) {
     if (settings_->debugTracklet()) {
       edm::LogVerbatim("Tracklet") << "Inner stub rejected";
     }
     trpdata_.bad_inner_stub_[badInnerIndex()] = true;
     n_rej_inner_++;
+  } else if (!in_pair_rz) {  // inner stub outside the r/z window from the pair
+    if (settings_->debugTracklet()) {
+      edm::LogVerbatim("Tracklet") << "Inner stub rejected because not passing r/z cut from pair";
+    }
+    n_rej_pair_++;
   } else if (!in_pair_window){  // inner stub not passing phi cut from pair
     if (settings_->debugTracklet()) {
       edm::LogVerbatim("Tracklet") << "Inner stub rejected because not passing phi cut from pair";
@@ -349,12 +362,14 @@ bool TripletEngineUnit::nextGoodInner() {
   return false;
 }
 
-bool TripletEngineUnit::innerEntryCompatible(unsigned int k, int rzstart_in_pair, int dphi_lo, int dphi_hi) const {
+bool TripletEngineUnit::innerEntryCompatible(
+    unsigned int k, int rzstart_in_pair, int rzlast_in_pair, int dphi_lo, int dphi_hi) const {
   int next, mem, nstubs, reg;
   std::tie(next, mem, nstubs, reg) = trpdata_.projbin_in_[k];
 
-  // rz check: entry below the pair window
-  if (trpdata_.start_in_ + next < rzstart_in_pair)
+  // rz check: coarse bin of this entry must lie inside the pair window [rzstart_in_pair, rzlast_in_pair]
+  int ibin_in = trpdata_.start_in_ + next;
+  if (ibin_in < rzstart_in_pair || ibin_in > rzlast_in_pair)
     return false;
 
   // phi: idphi range covered by this memory, compared with the pair window

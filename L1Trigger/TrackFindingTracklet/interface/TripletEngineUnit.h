@@ -76,7 +76,7 @@ namespace trklet {
     void advanceInnerBin();
     void advanceOuterStub();
 
-    bool innerEntryCompatible(unsigned int, int, int, int) const;
+    bool innerEntryCompatible(unsigned int, int, int, int, int) const;
     size_t badInnerIndex() const ;
     bool nextGoodInner() ;
 

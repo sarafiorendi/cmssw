@@ -38,6 +38,7 @@ namespace trklet {
     void execute(unsigned int iSector, double phimin, double phimax);
 
     std::vector<float> linspace(float A, float B, int N);
+    void mirrorRZWindowNegZ(int nlongvmbins, int& start, int next, int& first, int diff);
 
     double compute_phi(double r, double rho, double d0);
 

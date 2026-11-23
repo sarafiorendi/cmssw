@@ -424,15 +424,17 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         // LUT doesn't know about z sign.
         // So, first, mirror index of large z bin wrt center (as 0-3 bins are for negative z, 4 to 7 on the positive z).
         // Then subtract next_in so that we take that into account
-        if (iSeed_ == Seed::D1D2L2 && negdisk) {  // if projecting from disk into layer in the negative z region
-          start_in = settings_.NLONGVMBINS() - 1 - start_in - next_in;
-          if (next_in)
-            rzbinfirst_in = settings_.NLONGVMBINS() - (rzbinfirst_in + rzdiffmax_in - settings_.NLONGVMBINS());
-          else
-            rzbinfirst_in = settings_.NLONGVMBINS() - 1 - rzbinfirst_in - rzdiffmax_in;
-          if (rzbinfirst_in < 0)
-            rzbinfirst_in = 0;
-        }
+        if (iSeed_ == Seed::D1D2L2 && negdisk)
+          mirrorRZWindowNegZ(settings_.NLONGVMBINS(), start_in, next_in, rzbinfirst_in, rzdiffmax_in);
+//         if (iSeed_ == Seed::D1D2L2 && negdisk) {  // if projecting from disk into layer in the negative z region
+//           start_in = settings_.NLONGVMBINS() - 1 - start_in - next_in;
+//           if (next_in)
+//             rzbinfirst_in = settings_.NLONGVMBINS() - (rzbinfirst_in + rzdiffmax_in - settings_.NLONGVMBINS());
+//           else
+//             rzbinfirst_in = settings_.NLONGVMBINS() - 1 - rzbinfirst_in - rzdiffmax_in;
+//           if (rzbinfirst_in < 0)
+//             rzbinfirst_in = 0;
+//         }
         int last_in = start_in + next_in;  // last large rz-bin projection
 
         // find the phi region where outer / inner stubs are expected, based on middle stub phi
@@ -484,20 +486,43 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         if (iSeed_ == Seed::D1D2L2)
           nbitsrzbin_out_pairlut--; // must match initVMRTableTriplet's isD1D2L2 adjustment
         unsigned int shift_outercoarse = nbitsrzbin_out_pairlut + NFINERZBITS;
+
+        const int nouterslots_pairlut = (1 << shift_outercoarse);
+        const int negoffset_out = (iSeed_ == Seed::D1D2L2 && negdisk) ? ((1 << nbitsrzbin_out) << NFINERZBITS) : 0;
         
         for (int irz_out = start_out * (1 << NFINERZBITS) + rzbinfirst_out;
                  irz_out <= start_out * (1 << NFINERZBITS) + rzbinfirst_out + rzdiffmax_out;
                  irz_out++) {
-          lutval_pair = innerFromPairTable_.lookup(
-                                                  (indexz << (nbitsrfinebintable_ + shift_outercoarse)) +
-                                                  (indexr << shift_outercoarse) +
-                                                  irz_out);       
+          const int irz_out_lut = irz_out - negoffset_out;
+          lutval_pair = -1;
+          if (irz_out_lut >= 0 && irz_out_lut < nouterslots_pairlut)  // never read into the next middle cell
+            lutval_pair = innerFromPairTable_.lookup(
+                                                    (indexz << (nbitsrfinebintable_ + shift_outercoarse)) +
+                                                    (indexr << shift_outercoarse) +
+                                                    irz_out_lut);
           if (lutval_pair != -1 ) {
             FPGAWord lookupbits_pair(lutval_pair, lutwidth, true, __LINE__, __FILE__);
             int rzbinfirst_in_pair = lookupbits_pair.bits(0, NFINERZBITS);
             int next_in_pair = lookupbits_pair.bits(NFINERZBITS, 1);
             int start_in_pair = lookupbits_pair.bits(NFINERZBITS + 1, nbitsrzbin_in);  // first rz bin projection
             int rzdiffmax_in_pair = lookupbits_pair.bits(NFINERZBITS + 1 + nbitsrzbin_in, NFINERZBITS);
+
+            // the LUT caps the fine width at 7: when saturated, the true window may extend further,
+            // so open it up to the end of the last coarse bin (must be done before mirroring)
+            if (rzdiffmax_in_pair >= (1 << NFINERZBITS) - 1)
+              rzdiffmax_in_pair = ((next_in_pair + 1) << NFINERZBITS) - 1 - rzbinfirst_in_pair;
+
+            if (iSeed_ == Seed::D1D2L2 && negdisk) 
+              mirrorRZWindowNegZ(settings_.NLONGVMBINS(), start_in_pair, next_in_pair, rzbinfirst_in_pair, rzdiffmax_in_pair);
+//               {  // if projecting from disk into layer in the negative z region
+//               start_in_pair = settings_.NLONGVMBINS() - 1 - start_in_pair - next_in_pair;
+//               if (next_in_pair)
+//                 rzbinfirst_in_pair = settings_.NLONGVMBINS() - (rzbinfirst_in_pair + rzdiffmax_in_pair - settings_.NLONGVMBINS());
+//               else
+//                 rzbinfirst_in_pair = settings_.NLONGVMBINS() - 1 - rzbinfirst_in_pair - rzdiffmax_in_pair;
+//               if (rzbinfirst_in_pair < 0)
+//                 rzbinfirst_in_pair = 0;
+//             }
   
             trpdata.rzstart_in_pair_.push_back(start_in_pair);
             trpdata.rznext_in_pair_.push_back(next_in_pair);  
@@ -506,10 +531,12 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
             
           }
           else{
+            // no window from the pair LUT: leave the inner side unconstrained
+            // (coarse bins [0, NLONGVMBINS-1], fine bins [0, NLONGVMBINS*8-1])
             trpdata.rzstart_in_pair_.push_back(0);
             trpdata.rzbinfirst_in_pair_.push_back(0);
-            trpdata.rzdiffmax_in_pair_.push_back(8);  
-            trpdata.rznext_in_pair_.push_back(1);  
+            trpdata.rzdiffmax_in_pair_.push_back((settings_.NLONGVMBINS() << NFINERZBITS) - 1);
+            trpdata.rznext_in_pair_.push_back(settings_.NLONGVMBINS() - 1);
           }
         }       
 
@@ -744,4 +771,13 @@ std::vector<float> TrackletProcessorDisplaced::linspace(float A, float B, int N)
     float val = A;
     std::generate(v.begin(), v.end(), [&]{ float tmp = val; val += step; return tmp; });
     return v;
+}
+
+void TrackletProcessorDisplaced::mirrorRZWindowNegZ(int nlongvmbins, int& start, int next, int& first, int diff) {
+  const int nfine = 1 << NFINERZBITS;
+  int lastfine = (nlongvmbins * nfine - 1) - (start * nfine + first);  // mirror of old first fine bin
+  start = nlongvmbins - 1 - start - next;
+  first = lastfine - diff - start * nfine;
+  if (first < 0)
+    first = 0;
 }

@@ -1459,8 +1459,12 @@ void TrackletLUT::initVMRTableTripletCoarse(unsigned int layerdisk_middle, unsig
     other_lo = settings_.rmean(layerdisk_outer) - settings_.drmax();
     other_hi = settings_.rmean(layerdisk_outer) + settings_.drmax();
   } else {
-    rmin_o = 0;
-    rmax_o = settings_.rmaxdisk();
+//     rmin_o = 0;
+//     rmax_o = settings_.rmaxdisk();
+    // irz_out in the TPD comes from innerTable_ -> getVMRLookup (disk branch), whose
+    // NLONGVMBINS^2/2 bins span [rmindiskvm, rmaxdiskvm], not [0, rmaxdisk] (was a bug)
+    rmin_o = settings_.rmindiskvm();
+    rmax_o = settings_.rmaxdiskvm();
     other_lo = settings_.zmean(layerdisk_outer - N_LAYER) - settings_.dzmax();
     other_hi = settings_.zmean(layerdisk_outer - N_LAYER) + settings_.dzmax();
   }
@@ -1474,6 +1478,13 @@ void TrackletLUT::initVMRTableTripletCoarse(unsigned int layerdisk_middle, unsig
     for (unsigned int mrbin = 0; mrbin < rbins_middle; mrbin++) {
       double r_m = rmin_m + (mrbin + 0.5) * dr_m;
       double z_m = zmin_m + (mzbin + 0.5) * dz_m;
+
+      // 2S disk stubs: indexr in the TPD is the ring/module index, not a radius. 
+      // same as in initVMRtable
+      constexpr unsigned int NRING = 5;  // number of 2S rings in disks (x2 for the two module halves)
+      if (layerdisk_middle >= N_LAYER && mrbin < 2 * NRING) {
+        r_m = (layerdisk_middle < N_LAYER + 2) ? settings_.rDSSinner(mrbin) : settings_.rDSSouter(mrbin);
+      }
 
       for (unsigned int outbin = 0; outbin < outerbins_coarse; outbin++) {
         double r_o, z_o, dr_o, dz_o;
@@ -1580,6 +1591,11 @@ int TrackletLUT::getVMRLookupTriplet(unsigned int layerdisk_inner, double z_oute
       zbin1 = 0;
       }
 
+    // the encoding below can only describe a window over at most 2 coarse bins (one "next" flag).
+    // A wider window cannot be represented: return -1, which the TPD treats as "no constraint".
+    if (zbin2 / 8 - zbin1 / 8 > 1)
+      return -1;
+
     if (print_csv_lut)
       std::cout << "," << zbin1 << "," << zbin2  ;
 
@@ -1673,6 +1689,10 @@ int TrackletLUT::getVMRLookupTriplet(unsigned int layerdisk_inner, double z_oute
       rbin2 = NBINS - 1;
     if (rbin1 < 0)
       rbin1 = 0;
+
+    // at most 2 coarse bins can be encoded (see layer branch): too wide -> no constraint
+    if (rbin2 / 8 - rbin1 / 8 > 1)
+      return -1;
 
     // This is a 9 bit word:
     // xxx|yy|z|rrr
