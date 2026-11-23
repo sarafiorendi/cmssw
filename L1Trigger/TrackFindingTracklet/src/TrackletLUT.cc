@@ -1262,7 +1262,8 @@ void TrackletLUT::initVMRTable(unsigned int layerdisk, VMRTableType type, int re
 
 int TrackletLUT::getVMRLookup(unsigned int layerdisk, double z, double r, double dz, double dr, int iseed) const {
   double z0cut = settings_.z0cut();
-  // should this be updated for displaced seeds? settings_.disp_z0cut()
+  if (iseed >= 8)
+    z0cut = settings_.disp_z0cut();
 
   if (layerdisk < N_LAYER) {
     double constexpr zcutL2L3 = 52.0;  //Stubs closer to IP in z will not be used for L2L3 seeds
