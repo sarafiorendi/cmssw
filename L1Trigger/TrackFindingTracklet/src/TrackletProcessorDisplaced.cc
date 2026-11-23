@@ -474,6 +474,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
         trpdata.rzbinfirst_in_pair_.clear();
         trpdata.rzstart_in_pair_.clear();
         trpdata.rzdiffmax_in_pair_.clear();
+        trpdata.rznext_in_pair_.clear();
 
         // here loop on start+first to start + maxdiff
         // for each out r/z bin, find range of inner r/z bins    
@@ -528,7 +529,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
                   out_phi_region += 16;
               if (std::abs(diff_reg) < 2){
                 if (usereg_out != -1 && !(usereg_out & (1 << out_phi_region))) {
-//                   continue;
+                  continue;
                 }  
               }  
             }
@@ -559,7 +560,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
                   in_phi_region += 16;
               if (std::abs(diff_reg) < 2){
                 if (usereg_in != -1 && !(usereg_in & (1 << in_phi_region))) {
-//                   continue;
+                  continue;
                 }  
               }  
             }
