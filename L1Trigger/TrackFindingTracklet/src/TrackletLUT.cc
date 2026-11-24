@@ -1065,7 +1065,7 @@ void TrackletLUT::initBendMatch(unsigned int layerdisk) {
   writeTable();
 }
 
-void TrackletLUT::initVMRTable(unsigned int layerdisk, VMRTableType type, int region, bool combined) {
+void TrackletLUT::initVMRTable(unsigned int layerdisk, VMRTableType type, int region, bool combined, bool extended) {
   unsigned int zbits = settings_.vmrlutzbits(layerdisk);
   unsigned int rbits = settings_.vmrlutrbits(layerdisk);
 
@@ -1156,10 +1156,11 @@ void TrackletLUT::initVMRTable(unsigned int layerdisk, VMRTableType type, int re
       if (type == VMRTableType::inner) {
         if (layerdisk == LayerDisk::L1 || layerdisk == LayerDisk::L3 || layerdisk == LayerDisk::L5 ||
             layerdisk == LayerDisk::D1 || layerdisk == LayerDisk::D3) {
-          table_.push_back(getVMRLookup(layerdisk + 1, z, r, dz, dr));
+          table_.push_back(getVMRLookup(layerdisk + 1, z, r, dz, dr, -1, extended));
         }
         if (layerdisk == LayerDisk::L2) {
-          table_.push_back(getVMRLookup(layerdisk + 1, z, r, dz, dr, Seed::L2L3));
+//           table_.push_back(getVMRLookup(layerdisk + 1, z, r, dz, dr, Seed::L2L3));
+          table_.push_back(getVMRLookup(layerdisk + 1, z, r, dz, dr, extended ? -1 : Seed::L2L3, extended));
         }
       }
 
@@ -1175,15 +1176,15 @@ void TrackletLUT::initVMRTable(unsigned int layerdisk, VMRTableType type, int re
         }
 
         if (layerdisk == LayerDisk::L5) {  //projection from L5 to L4 for L5L6L4 seeding
-          table_.push_back(getVMRLookup(LayerDisk::L4, z, r, dz, dr));
+          table_.push_back(getVMRLookup(LayerDisk::L4, z, r, dz, dr, Seed::L5L6L4));
         }
 
         if (layerdisk == LayerDisk::L3) {  //projection from L3 to L2 for L3L4L2 seeding
-          table_.push_back(getVMRLookup(LayerDisk::L2, z, r, dz, dr));
+          table_.push_back(getVMRLookup(LayerDisk::L2, z, r, dz, dr, Seed::L3L4L2));
         }
 
         if (layerdisk == LayerDisk::D1) {  //projection from D1 to L2 for D1D2L2 seeding
-          table_.push_back(getVMRLookup(LayerDisk::L2, z, r, dz, dr));
+          table_.push_back(getVMRLookup(LayerDisk::L2, z, r, dz, dr, Seed::D1D2L2));
         }
       }
     }
@@ -1260,10 +1261,10 @@ void TrackletLUT::initVMRTable(unsigned int layerdisk, VMRTableType type, int re
   writeTable();
 }
 
-int TrackletLUT::getVMRLookup(unsigned int layerdisk, double z, double r, double dz, double dr, int iseed) const {
-  double z0cut = settings_.z0cut();
-  if (iseed >= 8)
-    z0cut = settings_.disp_z0cut();
+int TrackletLUT::getVMRLookup(unsigned int layerdisk, double z, double r, double dz, double dr, int iseed, bool extended) const {
+
+  const bool displaced = (iseed >= Seed::L3L4L2 || extended);
+  double z0cut = displaced ? settings_.disp_z0cut() : settings_.z0cut();
 
   if (layerdisk < N_LAYER) {
     double constexpr zcutL2L3 = 52.0;  //Stubs closer to IP in z will not be used for L2L3 seeds
@@ -1329,7 +1330,9 @@ int TrackletLUT::getVMRLookup(unsigned int layerdisk, double z, double r, double
     return value;
 
   } else {
-    if (std::abs(z) < 2.0 * z0cut)
+    if (!displaced && std::abs(z) < 2.0 * z0cut)
+      return -1;
+    if (displaced && std::abs(z) <= z0cut + 0.5 * dz)   // all 8 denominators are positive
       return -1;
 
     double zmean = settings_.zmean(layerdisk - N_LAYER);

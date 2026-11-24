@@ -77,9 +77,9 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
   // get projection tables
   unsigned int region = name.back() - 'A';
   innerTable_.initVMRTable(
-      layerdisk1_, TrackletLUT::VMRTableType::inner, region, false);  //projection to next layer/disk
+      layerdisk1_, TrackletLUT::VMRTableType::inner, region, false, true);  //projection to next layer/disk
   innerThirdTable_.initVMRTable(
-      layerdisk1_, TrackletLUT::VMRTableType::innerthird, region, false);  //projection to third layer/disk
+      layerdisk1_, TrackletLUT::VMRTableType::innerthird, region, false, true);  //projection to third layer/disk
   innerFromPairTable_.initVMRTableTripletCoarse(
       layerdisk1_, layerdisk2_, TrackletLUT::VMRTableType::innerfrompair, region, false);  //projection to outer layer/disk from inner pair
   if (iSeed_ == Seed::L3L4L2 || iSeed_ == Seed::L5L6L4)
@@ -398,6 +398,8 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
       int lutval2 = innerThirdTable_.lookup((indexz << nbitsrfinebintable_) + indexr);
       if (lutval != -1 && lutval2 != -1)
         lutval += (lutval2 << lutshift);
+      else  // skip this middle stub if any of the two luts is returning -1 
+        lutval = -1;
 
       if (lutval != -1) {
         unsigned int lutwidth = settings_.lutwidthtabextended(0, iSeed_);

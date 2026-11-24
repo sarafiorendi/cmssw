@@ -237,6 +237,7 @@ void TripletEngineUnit::step() {
   // so a failure here must NOT mark the inner stub as bad.
   int rzfine_in_abs = (trpdata_.start_in_ << NFINERZBITS) + rzbin_in;  // rzbin_in already includes +8 for the next bin
   bool in_pair_rz = (rzfine_in_abs >= rzfinelo_in_pair && rzfine_in_abs <= rzfinehi_in_pair);
+//   in_pair_rz = true;
 
   if (!(rz_in_ok && inrange_in && pass_pt_cut_inner)) {
     if (settings_->debugTracklet()) {
@@ -245,6 +246,8 @@ void TripletEngineUnit::step() {
     trpdata_.bad_inner_stub_[badInnerIndex()] = true;
     n_rej_inner_++;
   } else if (!in_pair_rz) {  // inner stub outside the r/z window from the pair
+//     int miss = (rzfine_in_abs < rzfinelo_in_pair) ? rzfine_in_abs - rzfinelo_in_pair : rzfine_in_abs - rzfinehi_in_pair;
+//     std::cout << "PAIRRZMISS," << iSeed_ << "," << miss << std::endl;
     if (settings_->debugTracklet()) {
       edm::LogVerbatim("Tracklet") << "Inner stub rejected because not passing r/z cut from pair";
     }
@@ -370,6 +373,7 @@ bool TripletEngineUnit::innerEntryCompatible(
   // rz check: coarse bin of this entry must lie inside the pair window [rzstart_in_pair, rzlast_in_pair]
   int ibin_in = trpdata_.start_in_ + next;
   if (ibin_in < rzstart_in_pair || ibin_in > rzlast_in_pair)
+//   if (ibin_in < rzstart_in_pair)
     return false;
 
   // phi: idphi range covered by this memory, compared with the pair window

@@ -103,7 +103,7 @@ namespace trklet {
 
     //In the VMR we used the position of the stub (r, z) to calculate the bin and fine rz position the stub has
     //region only used for name - should be removed
-    void initVMRTable(unsigned int layerdisk, VMRTableType type, int region = -1, bool combined = true);
+    void initVMRTable(unsigned int layerdisk, VMRTableType type, int region = -1, bool combined = true, bool extended = false);
 
     int getVMRLookupTriplet(unsigned int layerdisk, double z_outer, double r_outer, double dz_outer, double dr_outer, 
                             double z_middle, double r_middle, double dz_middle, double dr_middle,  
@@ -155,7 +155,7 @@ namespace trklet {
     int getphiCorrValue(
         unsigned int layerdisk, double bend, unsigned int irbin, double rmean, double dr, double drmax) const;
 
-    int getVMRLookup(unsigned int layerdisk, double z, double r, double dz, double dr, int iseed = -1) const;
+    int getVMRLookup(unsigned int layerdisk, double z, double r, double dz, double dr, int iseed = -1, bool extended = false) const;
 
     unsigned int ringId(const DetId& detId) const;
 
