@@ -26,7 +26,8 @@ TripletEngineUnit::TripletEngineUnit(const Settings* const settings,
                                      const TrackletLUT* pttableinner,
                                      const TrackletLUT* pairphiwindow,
                                      std::vector<VMStubsTEMemory*> innervmstubs,
-                                     std::vector<VMStubsTEMemory*> outervmstubs)
+                                     std::vector<VMStubsTEMemory*> outervmstubs,
+                                     const std::vector<unsigned int>& innervmrow)
     : innervmstubs_(std::move(innervmstubs)),
       outervmstubs_(std::move(outervmstubs)),
       settings_(settings),
@@ -57,7 +58,21 @@ TripletEngineUnit::TripletEngineUnit(const Settings* const settings,
       pttablemiddlein_(pttablemiddlein),
       pttableinner_(pttableinner),    
       pairphiwindow_(pairphiwindow),
-      candtriplets_(3) {}
+      candtriplets_(3) {
+  // For each third-layer (inner) VM memory: log2 of the number of middle fine-phi bins
+  // (nbitsfinephi_ bits per sector) covered by one of its VM bins.
+  // innervmrow[i] is the Settings row (0/1/2) that VMRouterCM used to bin memory i
+  // (row 1 for the L3L4L2/L5L6L4 third layers, row 2 for the L2L3D1/D1D2L2 ones).
+  assert(innervmrow.size() == innervmstubs_.size());
+  innervmshift_.clear();
+  innervmshift_.reserve(innervmrow.size());
+  for (unsigned int row : innervmrow) {
+    int shift = static_cast<int>(nbitsfinephi_) - static_cast<int>(settings_->nbitsallstubs(layerdisk3_)) -
+                static_cast<int>(settings_->nbitsvmte(row, iSeed_));
+    assert(shift >= 0);
+    innervmshift_.push_back(shift);
+  }
+}
 
 void TripletEngineUnit::init(const TrpEData& trpdata) {
   trpdata_ = trpdata;
@@ -229,9 +244,9 @@ void TripletEngineUnit::step() {
     int ptinnerindex = (idphi_in_for_index << innerbend.nbits()) + innerbend.value();
     int ptmiddleinindex = (idphi_in_for_index << trpdata_.middlebend_.nbits()) + trpdata_.middlebend_.value();
     pass_pt_cut_inner = pttablemiddlein_->lookup(ptmiddleinindex) && pttableinner_->lookup(ptinnerindex);
+    in_pair_window = (idphi_in >= dphi_in_lo && idphi_in <= dphi_in_hi) &&
+                     ((innerbendmask >> innerbend.value()) & 1);    
   }
-  in_pair_window = (idphi_in >= dphi_in_lo && idphi_in <= dphi_in_hi) &&
-                   ((innerbendmask >> innerbend.value()) & 1);    
 
   // fine r/z window of the inner stub from the (middle, outer) pair. Depends on the outer stub,
   // so a failure here must NOT mark the inner stub as bad.
@@ -376,11 +391,12 @@ bool TripletEngineUnit::innerEntryCompatible(
 //   if (ibin_in < rzstart_in_pair)
     return false;
 
-  // phi: idphi range covered by this memory, compared with the pair window
-  int r = (reg >= 2 * static_cast<int>(settings_->nvmte(1, iSeed_))) ? reg - 24 : reg;  // left neighbour region
-  int base = iAllStub_ * (1 << (nbitsfinephi_ - settings_->nbitsallstubs(layerdisk3_))) +
-             r * (1 << settings_->nfinephi(1, iSeed_));
-  int lo = base - trpdata_.middlefinephi_;
-  int hi = lo + (1 << settings_->nfinephi(1, iSeed_)) - 1;
+  // phi: idphi range covered by this memory, compared with the pair window.
+  // phibin() is the 1-based VM bin counted over the whole sector (e.g. L2L3D1 D1: x1..x4, y5..y8, z9..z12, w13..w16),
+  // so own and neighbouring allstub regions are handled without region letters or hardcoded offsets.
+  // Units: middle fine phi (nbitsfinephi_ bits per sector).
+  const int shift = innervmshift_[mem];
+  int lo = ((static_cast<int>(innervmstubs_[mem]->phibin()) - 1) << shift) - trpdata_.middlefinephi_;
+  int hi = lo + (1 << shift) - 1;
   return hi >= dphi_lo && lo <= dphi_hi;
 }

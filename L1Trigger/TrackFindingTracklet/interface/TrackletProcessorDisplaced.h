@@ -45,8 +45,15 @@ namespace trklet {
     double compute_deltaPhi(double rho, double d0, double r1, double r2);
 
     double compute_dphimax(std::vector<float> d0_vals, double rinv, double r1, double r2);
-
+    double compute_dphimax2(const std::vector<float>& d0_vals,
+                                                   const double rinv,
+                                                   double r1min,
+                                                   double r1max,
+                                                   double r2min,
+                                                   double r2max);
+                                                   
     int compute_nfinephibins(int layerdisk, int iSeed_, double dphimax);
+    static unsigned int vmteRow(const VMStubsTEMemory* mem, unsigned int layerdisk);
 
   private:
     int iTC_;
@@ -94,6 +101,10 @@ namespace trklet {
     std::vector<AllStubsMemory*> innerallstubs_;
     std::vector<AllStubsMemory*> middleallstubs_;
     std::vector<AllStubsMemory*> outerallstubs_;
+
+    std::vector<unsigned int> innervmrow_;  // Settings row used by VMRouterCM for each third-layer VM memory
+    std::vector<unsigned int> outervmrow_;  // same for the outer VM memories (for the usereg cut) 
+    
   };
 
 };  // namespace trklet

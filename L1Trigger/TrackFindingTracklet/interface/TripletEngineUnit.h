@@ -52,7 +52,9 @@ namespace trklet {
                       const TrackletLUT* pttableinner,
                       const TrackletLUT* pairphiwindow,
                       std::vector<VMStubsTEMemory*> innervmstubs,
-                      std::vector<VMStubsTEMemory*> outervmstubs);
+                      std::vector<VMStubsTEMemory*> outervmstubs,
+                      const std::vector<unsigned int>& innervmrow
+                      );
 
     ~TripletEngineUnit() = default;
 
@@ -141,6 +143,8 @@ namespace trklet {
     const TrackletLUT* pttableinner_;
     const TrackletLUT* pairphiwindow_;
 
+    std::vector<int> innervmshift_;  // per inner VM memory: log2(middle fine-phi bins per VM bin)
+    
     std::tuple<const Stub*, const Stub*, const Stub*> candtriplet_, candtriplet__;
     bool goodtriplet_ = false;
     bool goodtriplet__ = false;

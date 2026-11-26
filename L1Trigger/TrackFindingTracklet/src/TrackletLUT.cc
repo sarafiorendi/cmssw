@@ -374,8 +374,16 @@ void TrackletLUT::initTPlut(bool fillOrig,
     
     for (int irprojbin = 0; irprojbin < projrbins; irprojbin++) {
       // if disks in the seed, consider a radial range
-      if (iSeed == Seed::D1D2 || iSeed == Seed::D3D4 || iSeed == Seed::L1D1 || iSeed == Seed::L2D1 || \
-         (isThirdStub && iSeed == Seed::L2L3D1) || (!isThirdStub && iSeed == Seed::D1D2L2) ) {
+//       if (iSeed == Seed::D1D2 || iSeed == Seed::D3D4 || iSeed == Seed::L1D1 || iSeed == Seed::L2D1 || \
+//          (isThirdStub && iSeed == Seed::L2L3D1) || (!isThirdStub && iSeed == Seed::D1D2L2) ) {
+      if (isThirdStub && iSeed == Seed::L2L3D1) {
+        // L2L3D1 third stub (D1): must follow the VM binning of getVMRLookup for Seed::L2L3D1,
+        // i.e. 8 r bins over [rminspec, rmaxdisk] (TPD ir = ((start_in & 3) << 1) + (rzbinfirst_in >> 2))
+        constexpr double rminspec = 40.0;  // keep in sync with rminspec in getVMRLookup / getVMRLookupTriplet
+        rproj[0] = rminspec + irprojbin * (settings_.rmaxdisk() - rminspec) / projrbins;
+        rproj[1] = rminspec + (irprojbin + 1) * (settings_.rmaxdisk() - rminspec) / projrbins;
+      } else if (iSeed == Seed::D1D2 || iSeed == Seed::D3D4 || iSeed == Seed::L1D1 || iSeed == Seed::L2D1 || \
+                 (!isThirdStub && iSeed == Seed::D1D2L2) ) {
         rproj[0] =
             settings_.rmindiskvm() + irprojbin * (settings_.rmaxdiskvm() - settings_.rmindiskvm()) / projrbins;
         rproj[1] =
@@ -450,6 +458,11 @@ void TrackletLUT::initTPlut(bool fillOrig,
           double rorig = 0.0;
           if (iSeed == Seed::D1D2 || iSeed == Seed::D3D4 || (iSeed == Seed::D1D2L2 && !isThirdStub)) {
             rorig = rproj[i3] * settings_.zmean(layerdisk1 - N_LAYER) / settings_.zmean(layerdisk2 - N_LAYER);
+          } else if (iSeed == Seed::D1D2L2 && isThirdStub) {
+            // orig is D1 (a disk: rmean(layerdisk1) is meaningless). Projection is L2 (projrbins = 1),
+            // so use i3 to scan the two edges of the D1 r range instead.
+            // FIXME: [rmindiskvm, rmaxdiskvm] assumes PS-only D1 middle stubs (see isPSorig)
+            rorig = (i3 == 0) ? settings_.rmindiskvm() : settings_.rmaxdiskvm();
           } else {
             rorig = settings_.rmean(layerdisk1);
           }
@@ -458,9 +471,17 @@ void TrackletLUT::initTPlut(bool fillOrig,
             if (rorig >= rproj[i3])
               continue;
           }
-          double rinv1 = (rorig < rproj[i3]) ? rinv(0.0, -dphi[i2], rorig, rproj[i3]) : 20.0;
-          if (isThirdStub)
-            rinv1 = (rorig > rproj[i3]) ? rinv(0.0, dphi[i2], rproj[i3], rorig) : 20.0;
+//           double rinv1 = (rorig < rproj[i3]) ? rinv(0.0, -dphi[i2], rorig, rproj[i3]) : 20.0;
+//           if (isThirdStub)
+//             rinv1 = (rorig > rproj[i3]) ? rinv(0.0, dphi[i2], rproj[i3], rorig) : 20.0;
+          // dphi = phi_proj - phi_orig. Pass the stub at smaller r first, whatever its role, so that
+          // seeds where the third stub lies at larger r than the middle one (L2L3D1: D1 vs L2) also work.
+          // Sign convention identical to the original two branches.
+          double rinv1 = 20.0;
+          if (rorig < rproj[i3])
+            rinv1 = rinv(0.0, -dphi[i2], rorig, rproj[i3]);
+          else if (rorig > rproj[i3])
+            rinv1 = rinv(0.0, dphi[i2], rproj[i3], rorig);
 
           double pitchorig = (rorig < settings_.rcrit()) ? settings_.stripPitch(true) : settings_.stripPitch(false);
           double pitchproj =
@@ -552,12 +573,16 @@ void TrackletLUT::initTPregionlut(unsigned int iSeed,
                                   unsigned int nbitsfinephi,
                                   const TrackletLUT& tplutinner,
                                   unsigned int iTP) {
-  int nirbits = 0;
-  // check for is ThirdStub seeds 10 and 11
-  if (iSeed == Seed::D1D2 || iSeed == Seed::D3D4 || iSeed == Seed::L1D1 || iSeed == Seed::L2D1 || \
-      iSeed == Seed::L2L3D1 || iSeed == Seed::D1D2L2) {
-    nirbits = 3;
-  }
+//   int nirbits = 0;
+//   // check for is ThirdStub seeds 10 and 11
+//   if (iSeed == Seed::D1D2 || iSeed == Seed::D3D4 || iSeed == Seed::L1D1 || iSeed == Seed::L2D1 || \
+//       iSeed == Seed::L2L3D1 || iSeed == Seed::D1D2L2) {
+//     nirbits = 3;
+//   }
+  // r bits exist in tplutinner (initTPlut) only when the PROJECTED layer/disk is a disk:
+  // prompt D1D2/D3D4/L1D1/L2D1, L2L3D1 inner (D1), D1D2L2 outer (D2).
+  // Not for L2L3D1 outer (L3) nor D1D2L2 inner (L2). Must match projrbits in initTPlut.
+  int nirbits = (layerdisk2 >= N_LAYER) ? 3 : 0;
 
   unsigned int nbendbitsinner = 3;
 
@@ -587,7 +612,8 @@ void TrackletLUT::initTPregionlut(unsigned int iSeed,
             // case for the left neighbouring region, only for displaced tracking
             if (ireg >= 2 * settings_.nvmte(1, iSeed))
               outerfinephi = iAllStub * (1 << (nbitsfinephi - settings_.nbitsallstubs(layerdisk2))) +
-                             (ireg - 24) * (1 << settings_.nfinephi(1, iSeed)) + ifinephiouter; // 24 = 3 * settings_.nvmte(1, iSeed) 
+//                              (ireg - 24) * (1 << settings_.nfinephi(1, iSeed)) + ifinephiouter; // 24 = 3 * settings_.nvmte(1, iSeed) 
+                             ((int)ireg - 3 * (int)settings_.nvmte(1, iSeed)) * (1 << settings_.nfinephi(1, iSeed)) + ifinephiouter;
 
             // here the actual cut, defined by dphi < XX and dphi > -XX
             // XX value defined by nbitsfinephidiff  that in tracklet processor is
@@ -597,8 +623,10 @@ void TrackletLUT::initTPregionlut(unsigned int iSeed,
             if (idphi < 0)
               idphi = idphi + (1 << nbitsfinephidiff);
             int idphi1 = idphi;
-            if (iSeed >= 4 && iSeed < 8) // to be checked for displaced seeds
-              idphi1 = (idphi << 3) + ir;
+//             if (iSeed >= 4 && iSeed < 8) // to be checked for displaced seeds
+//               idphi1 = (idphi << 3) + ir;
+            if (nirbits > 0)  // disk projections, prompt and displaced
+              idphi1 = (idphi << nirbits) + ir;
             int ptinnerindexnew = (idphi1 << nbendbitsinner) + innerbend;
             match = match || (inrange && tplutinner.lookup(ptinnerindexnew));
           }
@@ -613,7 +641,8 @@ void TrackletLUT::initTPregionlut(unsigned int iSeed,
   }
 
   positive_ = false;
-  nbits_ = 8;
+//   nbits_ = 8;
+  nbits_ = isExtendedSeed ? max_n_regions : 8;  // extended table carries 3*nvmte region bits (prompt unchanged)
   char cTP = 'A' + iTP;
 
   name_ = "TP_" + TrackletConfigBuilder::LayerName(layerdisk1) + TrackletConfigBuilder::LayerName(layerdisk2) + cTP +
