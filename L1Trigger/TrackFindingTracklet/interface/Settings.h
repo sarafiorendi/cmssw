@@ -730,10 +730,11 @@ namespace trklet {
                                                         {Seed::D3D4, {{4, 5, 0}}},     //D3D4
                                                         {Seed::L1D1, {{4, 5, 0}}},     //L1D1
                                                         {Seed::L2D1, {{3, 5, 0}}},     //L2D1
-                                                        {Seed::L3L4L2, {{4, 4, 0}}},   //L3L4L2
-                                                        {Seed::L5L6L4, {{4, 4, 0}}},   //L5L6L4
+                                                        {Seed::L3L4L2, {{4, 5, 0}}},   //L3L4L2, was {4, 4, 0}
+                                                        {Seed::L5L6L4, {{4, 5, 0}}},   //L5L6L4, was {4, 4, 0}
                                                         {Seed::L2L3D1, {{5, 4, 4}}},   //L2L3D1
-                                                        {Seed::D1D2L2, {{4, 4, 4}}}};  //D1D2L2
+                                                        {Seed::D1D2L2, {{4, 4, 3}}},   //D1D2L2. was {4, 4, 4}
+                                                       };
 
     // These are the number of bits to represent lutval for VM memories in TE
     std::map<unsigned int, std::array<int, 3>> lutwidthtab_{{Seed::L1L2, {{10, 6, 0}}},    //L1L2
@@ -958,10 +959,10 @@ namespace trklet {
                                     {2.0 * FEbendcut, 2.0 * FEbendcut},   //D3D4 PS
                                     {2.0 * FEbendcut, 2.4 * FEbendcut},   //L1D1 PS
                                     {2.2 * FEbendcut, 2.2 * FEbendcut},   //L2D1 PS
-                                    {10  * FEbendcut, 10. * FEbendcut},    //L2L3L4  
-                                    {10  * FEbendcut, 10  * FEbendcut},   //L4L5L6  
-                                    {100 * FEbendcut, 100 * FEbendcut},   //XXXXXX  
-                                    {100 * FEbendcut, 100 * FEbendcut}};  //XXXXXX  
+                                    {3.  * FEbendcut, 3. * FEbendcut},    //L2L3L4
+                                    {3.  * FEbendcut, 3. * FEbendcut},    //L4L5L6
+                                    {3.  * FEbendcut, 3. * FEbendcut},    //L2L3D1
+                                    {100 * FEbendcut, 100 * FEbendcut}};  //D1D2L2
 
     double bendcutME_[N_LAYER + 2 * N_DISK] = {2.0 * FEbendcut,   //0  L1
                                                2.5 * FEbendcut,   //1  L2
