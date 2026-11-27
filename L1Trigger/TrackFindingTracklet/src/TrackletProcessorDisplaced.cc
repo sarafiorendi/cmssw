@@ -113,7 +113,7 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
   // in order to satisfy the min pt cut (maxrinv), scanning d0 and the r ranges of the two stubs
 //   const double rinv = settings_.rinvmaxDisplaced();  // assuming charge = 1
 //   // FIXME: max/min d0 to be configurable
-  std::vector<float> d0_vals = linspace(-10, 10, 101);
+  std::vector<float> d0_vals = linspace(-settings_.d0maxDisplaced(), settings_.d0maxDisplaced(), 101);
   double ndphimax_out = compute_dphimax2(d0_vals, rinv, rmid_min, rmid_max, rout_min, rout_max);
   double ndphimax_in = compute_dphimax2(d0_vals, rinv, rin_min, rin_max, rmid_min, rmid_max);
 
@@ -137,7 +137,7 @@ TrackletProcessorDisplaced::TrackletProcessorDisplaced(string name, Settings con
       layerdisk1_, layerdisk2_, TrackletLUT::VMRTableType::innerfrompair, region, false);  //projection to outer layer/disk from inner pair
   if (iSeed_ == Seed::L3L4L2 || iSeed_ == Seed::L5L6L4)
     pairphiwindow_.initPairPhiBendWindow(iSeed_, layerdisk1_, layerdisk2_, layerdisk3_,
-                                         nbitsfinephiouterdiff_, nbitsfinephiinnerdiff_, region, 10.0, 1, 1.);
+                                         nbitsfinephiouterdiff_, nbitsfinephiinnerdiff_, region, settings_.d0maxDisplaced(), 1, 1.);
   nbitszfinebintable_ = settings_.vmrlutzbits(layerdisk1_);
   nbitsrfinebintable_ = settings_.vmrlutrbits(layerdisk1_);
 
@@ -642,6 +642,7 @@ void TrackletProcessorDisplaced::execute(unsigned int iSector, double phimin, do
               out_phi_region += nvm_out;
             else if (diff_reg == -1)
               out_phi_region += 2 * nvm_out;
+//             if (iSeed_ == Seed::L3L4L2 || iSeed_ == Seed::L5L6L4) {
             if (iSeed_ == Seed::L3L4L2 || iSeed_ == Seed::L5L6L4 || iSeed_ == Seed::L2L3D1) {
               if (std::abs(diff_reg) < 2 && usereg_out != -1 && !(usereg_out & (1 << out_phi_region))){
 //                 if (iSeed_ == Seed::L2L3D1) std::cout << "removing this region " << ivm << std::endl;
@@ -896,13 +897,13 @@ int TrackletProcessorDisplaced::compute_nfinephibins(int layerdisk, int iSeed_, 
 //   while ((1 << bits) < nbins_out) bits++;
   int bits = log(nbins_out) / log(2.0) + 1;
   
-//   std::cout << "iSeed_ = " << iSeed_
-//             << "   dphimax = " << dphimax
-//             << "   nfinephibins = " << nfinephibins
-//             << "   dfinephi = " << dfinephi
-//             << "   nbins_out = " << nbins_out
-//             << "   bits = " << bits
-//             << std::endl;
+  std::cout << "iSeed_ = " << iSeed_
+            << "   dphimax = " << dphimax
+            << "   nfinephibins = " << nfinephibins
+            << "   dfinephi = " << dfinephi
+            << "   nbins_out = " << nbins_out
+            << "   bits = " << bits
+            << std::endl;
   
   return bits;
   

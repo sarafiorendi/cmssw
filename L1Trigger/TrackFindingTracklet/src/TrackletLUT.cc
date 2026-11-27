@@ -373,12 +373,10 @@ void TrackletLUT::initTPlut(bool fillOrig,
     dphi[1] = (iphidiff + deltaphi) * dfinephi;
     
     for (int irprojbin = 0; irprojbin < projrbins; irprojbin++) {
-      // if disks in the seed, consider a radial range
-//       if (iSeed == Seed::D1D2 || iSeed == Seed::D3D4 || iSeed == Seed::L1D1 || iSeed == Seed::L2D1 || \
-//          (isThirdStub && iSeed == Seed::L2L3D1) || (!isThirdStub && iSeed == Seed::D1D2L2) ) {
+      // if disks in the seed, consider a radial range (min r value depends on seed)
       if (isThirdStub && iSeed == Seed::L2L3D1) {
-        // L2L3D1 third stub (D1): must follow the VM binning of getVMRLookup for Seed::L2L3D1,
-        // i.e. 8 r bins over [rminspec, rmaxdisk] (TPD ir = ((start_in & 3) << 1) + (rzbinfirst_in >> 2))
+        // L2L3D1 third stub (D1): follow the VM binning of getVMRLookup for L2L3D1:
+        // 8 r-bins over [rminspec, rmaxdisk] 
         constexpr double rminspec = 40.0;  // keep in sync with rminspec in getVMRLookup / getVMRLookupTriplet
         rproj[0] = rminspec + irprojbin * (settings_.rmaxdisk() - rminspec) / projrbins;
         rproj[1] = rminspec + (irprojbin + 1) * (settings_.rmaxdisk() - rminspec) / projrbins;
@@ -453,66 +451,68 @@ void TrackletLUT::initTPlut(bool fillOrig,
       double rinvmax = -1.0;
       double absrinvmin = 1.0;
 
+      double rinvcutte = isExtendedSeed ? settings_.rinvmaxDisplaced() : settings_.rinvcutte();
+      double d0max = settings_.d0maxDisplaced(); 
+
+      // for displaced seeds: scan d0 so that the pt and bend cuts are valid for |d0| <= d0max.
+      // same calculation as in TrackletProcessorDisplaced::compute_phi: phi(r) ~ -r*rinv/2 + d0/r
+      //   -> dphi-implied curvature (d0=0 circle) : rinv0 = rinv + 2*d0/(r1*r2)
+      //   -> local crossing angle at radius r     : equivalent curvature rinv + 2*d0/r^2
+      const int nd0 = isExtendedSeed ? 21 : 1; // scanning on 21 values, TBD: can I just take min and max within the range?
+      bool anypass = false;  // at least one (corner, d0) point satisfies the pt cut
+
       for (int i2 = 0; i2 < 2; i2++) {
         for (int i3 = 0; i3 < 2; i3++) {
           double rorig = 0.0;
           if (iSeed == Seed::D1D2 || iSeed == Seed::D3D4 || (iSeed == Seed::D1D2L2 && !isThirdStub)) {
             rorig = rproj[i3] * settings_.zmean(layerdisk1 - N_LAYER) / settings_.zmean(layerdisk2 - N_LAYER);
           } else if (iSeed == Seed::D1D2L2 && isThirdStub) {
-            // orig is D1 (a disk: rmean(layerdisk1) is meaningless). Projection is L2 (projrbins = 1),
-            // so use i3 to scan the two edges of the D1 r range instead.
-            // FIXME: [rmindiskvm, rmaxdiskvm] assumes PS-only D1 middle stubs (see isPSorig)
             rorig = (i3 == 0) ? settings_.rmindiskvm() : settings_.rmaxdiskvm();
           } else {
             rorig = settings_.rmean(layerdisk1);
           }
-        // not sure about this one for seeds 10 and 11, please check
-          if (settings_.useCalcBendCuts && !isThirdStub) {
-            if (rorig >= rproj[i3])
-              continue;
-          }
-//           double rinv1 = (rorig < rproj[i3]) ? rinv(0.0, -dphi[i2], rorig, rproj[i3]) : 20.0;
-//           if (isThirdStub)
-//             rinv1 = (rorig > rproj[i3]) ? rinv(0.0, dphi[i2], rproj[i3], rorig) : 20.0;
-          // dphi = phi_proj - phi_orig. Pass the stub at smaller r first, whatever its role, so that
-          // seeds where the third stub lies at larger r than the middle one (L2L3D1: D1 vs L2) also work.
-          // Sign convention identical to the original two branches.
-          double rinv1 = 20.0;
-          if (rorig < rproj[i3])
-            rinv1 = rinv(0.0, -dphi[i2], rorig, rproj[i3]);
-          else if (rorig > rproj[i3])
-            rinv1 = rinv(0.0, dphi[i2], rproj[i3], rorig);
+          if (settings_.useCalcBendCuts && !isThirdStub && rorig >= rproj[i3])
+            continue;
+          if (rorig == rproj[i3])
+            continue;
 
-          double pitchorig = (rorig < settings_.rcrit()) ? settings_.stripPitch(true) : settings_.stripPitch(false);
-          double pitchproj =
-              (rproj[i3] < settings_.rcrit()) ? settings_.stripPitch(true) : settings_.stripPitch(false);
-          double abendorig = bendstrip(rorig, rinv1, pitchorig, settings_.sensorSpacing2S());
-          double abendproj = bendstrip(rproj[i3], rinv1, pitchproj, settings_.sensorSpacing2S());
-          if (abendorig < bendorigmin)
-            bendorigmin = abendorig;
-          if (abendorig > bendorigmax)
-            bendorigmax = abendorig;
-          if (abendproj < bendprojmin)
-            bendprojmin = abendproj;
-          if (abendproj > bendprojmax)
-            bendprojmax = abendproj;
-          if (std::abs(rinv1) < absrinvmin)
-            absrinvmin = std::abs(rinv1);
-          if (rinv1 > rinvmax)
-            rinvmax = rinv1;
-          if (rinv1 < rinvmin)
-            rinvmin = rinv1;
+          // curvature of the d0 = 0 circle through the two points 
+          const double rinv0 = (rorig < rproj[i3]) ? rinv(0.0, -dphi[i2], rorig, rproj[i3])
+                                                   : rinv(0.0, dphi[i2], rproj[i3], rorig);
+
+          const double pitchorig = (rorig < settings_.rcrit()) ? settings_.stripPitch(true) : settings_.stripPitch(false);
+          const double pitchproj = (rproj[i3] < settings_.rcrit()) ? settings_.stripPitch(true) : settings_.stripPitch(false);
+
+          for (int id0 = 0; id0 < nd0; id0++) {
+            const double d0 = (nd0 == 1) ? 0.0 : -d0max + 2.0 * d0max * id0 / (nd0 - 1);
+            const double rinvtrue = rinv0 - 2.0 * d0 / (rorig * rproj[i3]);
+            if (isExtendedSeed && std::abs(rinvtrue) > rinvcutte)
+              continue;  // this (dphi, d0) needs pt < ptmin -> not valid 
+            anypass = true;
+
+            const double rinvbendorig = rinvtrue + 2.0 * d0 / (rorig * rorig);
+            const double rinvbendproj = rinvtrue + 2.0 * d0 / (rproj[i3] * rproj[i3]);
+            const double abendorig = bendstrip(rorig, rinvbendorig, pitchorig, settings_.sensorSpacing2S());
+            const double abendproj = bendstrip(rproj[i3], rinvbendproj, pitchproj, settings_.sensorSpacing2S());
+
+            bendorigmin = std::min(bendorigmin, abendorig);
+            bendorigmax = std::max(bendorigmax, abendorig);
+            bendprojmin = std::min(bendprojmin, abendproj);
+            bendprojmax = std::max(bendprojmax, abendproj);
+            absrinvmin = std::min(absrinvmin, std::abs(rinvtrue));
+            rinvmax = std::max(rinvmax, rinvtrue);
+            rinvmin = std::min(rinvmin, rinvtrue);
+          }
         }
       }
 
       bool passptcut;
       double bendfac;
-      double rinvcutte = isExtendedSeed? settings_.rinvmaxDisplaced() : settings_.rinvcutte();
-      // in previous implementation, rinvcutte always the prompt one
-
-      if (settings_.useCalcBendCuts) {
-        double lowrinvcutte =
-            rinvcutte / 3;  //Somewhat arbitrary value, allows for better acceptance in bins with low rinv (high pt)
+      if (isExtendedSeed) {
+        passptcut = anypass;  // pt cut already applied per (corner, d0) point
+        bendfac = (absrinvmin < rinvcutte / 3) ? 1.05 : 1.0;
+      } else if (settings_.useCalcBendCuts) {
+        double lowrinvcutte = rinvcutte / 3;
         passptcut = rinvmin < rinvcutte and rinvmax > -rinvcutte;
         bendfac = (rinvmin < lowrinvcutte and rinvmax > -lowrinvcutte)
                       ? 1.05
@@ -521,7 +521,7 @@ void TrackletLUT::initTPlut(bool fillOrig,
         passptcut = absrinvmin < rinvcutte;
         bendfac = 1.0;
       }
-
+      
       if (fillOrig) {
         for (int ibend = 0; ibend < (1 << nbendbitsorig); ibend++) {
           double bendminfac = (isPSorig and (ibend == 2 or ibend == 3)) ? bendfac : 1.0;
@@ -573,15 +573,7 @@ void TrackletLUT::initTPregionlut(unsigned int iSeed,
                                   unsigned int nbitsfinephi,
                                   const TrackletLUT& tplutinner,
                                   unsigned int iTP) {
-//   int nirbits = 0;
-//   // check for is ThirdStub seeds 10 and 11
-//   if (iSeed == Seed::D1D2 || iSeed == Seed::D3D4 || iSeed == Seed::L1D1 || iSeed == Seed::L2D1 || \
-//       iSeed == Seed::L2L3D1 || iSeed == Seed::D1D2L2) {
-//     nirbits = 3;
-//   }
   // r bits exist in tplutinner (initTPlut) only when the PROJECTED layer/disk is a disk:
-  // prompt D1D2/D3D4/L1D1/L2D1, L2L3D1 inner (D1), D1D2L2 outer (D2).
-  // Not for L2L3D1 outer (L3) nor D1D2L2 inner (L2). Must match projrbits in initTPlut.
   int nirbits = (layerdisk2 >= N_LAYER) ? 3 : 0;
 
   unsigned int nbendbitsinner = 3;
@@ -612,7 +604,6 @@ void TrackletLUT::initTPregionlut(unsigned int iSeed,
             // case for the left neighbouring region, only for displaced tracking
             if (ireg >= 2 * settings_.nvmte(1, iSeed))
               outerfinephi = iAllStub * (1 << (nbitsfinephi - settings_.nbitsallstubs(layerdisk2))) +
-//                              (ireg - 24) * (1 << settings_.nfinephi(1, iSeed)) + ifinephiouter; // 24 = 3 * settings_.nvmte(1, iSeed) 
                              ((int)ireg - 3 * (int)settings_.nvmte(1, iSeed)) * (1 << settings_.nfinephi(1, iSeed)) + ifinephiouter;
 
             // here the actual cut, defined by dphi < XX and dphi > -XX
@@ -623,7 +614,7 @@ void TrackletLUT::initTPregionlut(unsigned int iSeed,
             if (idphi < 0)
               idphi = idphi + (1 << nbitsfinephidiff);
             int idphi1 = idphi;
-//             if (iSeed >= 4 && iSeed < 8) // to be checked for displaced seeds
+//             if (iSeed >= 4 && iSeed < 8) // to be checked for displaced seeds. now replaced by the two lines below
 //               idphi1 = (idphi << 3) + ir;
             if (nirbits > 0)  // disk projections, prompt and displaced
               idphi1 = (idphi << nirbits) + ir;
